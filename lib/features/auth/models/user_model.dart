@@ -6,19 +6,19 @@ class UserModel extends HiveObject {
   String email;
   String password;
 
+  /// 'user' | 'admin' | 'nutritionist'
   String role;
 
-  double? weight;
-  double? height;
+  double? weight;     // kg
+  double? height;     // cm
   int? age;
-  String? gender;
-  String? profession;
+  String? gender;     // 'Laki-laki' | 'Perempuan'
+  String? activityLevel;
   String? medicalHistory;
-  String? dailyCalorieNeed;
+  double? dailyCalorieNeed;
   DateTime? birthDate;
   bool isBlocked;
-  double? targetWeightGainPerMonth;
-
+  double? targetWeightGainPerMonth; // kg/bulan (pos = naik, neg = turun)
 
   UserModel({
     required this.id,
@@ -30,7 +30,7 @@ class UserModel extends HiveObject {
     this.height,
     this.age,
     this.gender,
-    this.profession,
+    this.activityLevel,
     this.medicalHistory,
     this.dailyCalorieNeed,
     this.birthDate,
@@ -38,6 +38,7 @@ class UserModel extends HiveObject {
     this.targetWeightGainPerMonth,
   });
 
+  /// Target makro harian (gram)
   Map<String, double> get macroTargets {
     final cal = dailyCalorieNeed ?? 2000;
     return {
@@ -68,7 +69,7 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
       height: f[6] as double?,
       age: f[7] as int?,
       gender: f[8] as String?,
-      profession: f[9] as String?,
+      activityLevel: f[9] as String?,
       medicalHistory: f[10] as String?,
       dailyCalorieNeed: f[11] as double?,
       birthDate: f[12] as DateTime?,
@@ -80,7 +81,7 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
   @override
   void write(BinaryWriter writer, UserModel obj) {
     writer
-      ..writeByte(16)
+      ..writeByte(15)
       ..writeByte(0)..write(obj.id)
       ..writeByte(1)..write(obj.name)
       ..writeByte(2)..write(obj.email)
@@ -90,17 +91,11 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
       ..writeByte(6)..write(obj.height)
       ..writeByte(7)..write(obj.age)
       ..writeByte(8)..write(obj.gender)
-      ..writeByte(9)..write(obj.profession)
+      ..writeByte(9)..write(obj.activityLevel)
       ..writeByte(10)..write(obj.medicalHistory)
       ..writeByte(11)..write(obj.dailyCalorieNeed)
       ..writeByte(12)..write(obj.birthDate)
       ..writeByte(13)..write(obj.isBlocked)
-      ..writeByte(14)..write(obj.targetWeightGainPerMonth)
+      ..writeByte(14)..write(obj.targetWeightGainPerMonth);
   }
 }
-
-
-
-
-
-
