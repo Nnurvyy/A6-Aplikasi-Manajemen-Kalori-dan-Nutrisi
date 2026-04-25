@@ -11,8 +11,8 @@ class DayItem {
 
 class NutrisiItem {
   final String name;
-  final double consumed;   // gram dikonsumsi
-  final double target;     // gram target
+  final double consumed; // gram dikonsumsi
+  final double target; // gram target
   final IconData icon;
   final Color bgColor;
   final Color fillColor;
@@ -42,9 +42,10 @@ class DashboardController {
 
   // ── Kalori data ──
   double kaloriConsumed = 760;
-  double kaloriTarget   = 2000;
+  double kaloriTarget = 2000; // akan di-update dari profil user
 
-  double get kaloriPercentage => (kaloriConsumed / kaloriTarget).clamp(0.0, 1.0);
+  double get kaloriPercentage =>
+      (kaloriConsumed / kaloriTarget).clamp(0.0, 1.0);
 
   // ── Days ──
   final List<DayItem> days = const [
@@ -64,30 +65,68 @@ class DashboardController {
       consumed: 35,
       target: 80,
       icon: Icons.fitness_center,
-      bgColor:    const Color(0xFFFFEBEE),
-      fillColor:  const Color(0xFFFFCDD2),
-      borderColor:const Color(0xFFEF9A9A),
-      iconColor:  const Color(0xFFE53935),
+      bgColor: const Color(0xFFFFEBEE),
+      fillColor: const Color(0xFFFFCDD2),
+      borderColor: const Color(0xFFEF9A9A),
+      iconColor: const Color(0xFFE53935),
     ),
     NutrisiItem(
       name: 'Karbohidrat',
       consumed: 160,
       target: 250,
       icon: Icons.grain,
-      bgColor:    const Color(0xFFFFF8E1),
-      fillColor:  const Color(0xFFFFF9C4),
-      borderColor:const Color(0xFFFFE082),
-      iconColor:  const Color(0xFFF59E0B),
+      bgColor: const Color(0xFFFFF8E1),
+      fillColor: const Color(0xFFFFF9C4),
+      borderColor: const Color(0xFFFFE082),
+      iconColor: const Color(0xFFF59E0B),
     ),
     NutrisiItem(
       name: 'Lemak',
       consumed: 28,
       target: 65,
       icon: Icons.water_drop,
-      bgColor:    const Color(0xFFFFF3E0),
-      fillColor:  const Color(0xFFFFE0B2),
-      borderColor:const Color(0xFFFFCC80),
-      iconColor:  const Color(0xFFFF8C00),
+      bgColor: const Color(0xFFFFF3E0),
+      fillColor: const Color(0xFFFFE0B2),
+      borderColor: const Color(0xFFFFCC80),
+      iconColor: const Color(0xFFFF8C00),
+    ),
+  ];
+
+  /// Nutrisi items dengan target dari profil user
+  List<NutrisiItem> nutrisiItemsWithTargets({
+    required double protein,
+    required double carbs,
+    required double fat,
+  }) => [
+    NutrisiItem(
+      name: 'Protein',
+      consumed: 35,
+      target: protein,
+      icon: Icons.fitness_center,
+      bgColor: const Color(0xFFFFEBEE),
+      fillColor: const Color(0xFFFFCDD2),
+      borderColor: const Color(0xFFEF9A9A),
+      iconColor: const Color(0xFFE53935),
+    ),
+    NutrisiItem(
+      name: 'Karbohidrat',
+      consumed: 160,
+      target: carbs,
+      icon: Icons.grain,
+      bgColor: const Color(0xFFFFF8E1),
+      fillColor: const Color(0xFFFFF9C4),
+      borderColor: const Color(0xFFFFE082),
+      iconColor: const Color(0xFFF59E0B),
+    ),
+    NutrisiItem(
+      name: 'Lemak',
+      consumed: 28,
+      target: fat,
+      icon: Icons.water_drop,
+      bgColor: const Color(0xFFFFF3E0),
+      fillColor: const Color(0xFFFFE0B2),
+      borderColor: const Color(0xFFFFCC80),
+      iconColor: const Color(0xFFFF8C00),
     ),
   ];
 
@@ -138,7 +177,8 @@ class DashboardController {
   // ─── HELPERS ────────────────────────────────────────────────────────────────
 
   /// Sisa kalori yang masih bisa dikonsumsi hari ini
-  double get kaloriRemaining => (kaloriTarget - kaloriConsumed).clamp(0, kaloriTarget);
+  double get kaloriRemaining =>
+      (kaloriTarget - kaloriConsumed).clamp(0, kaloriTarget);
 
   /// Status warna berdasarkan persentase kalori
   Color get kaloriStatusColor {

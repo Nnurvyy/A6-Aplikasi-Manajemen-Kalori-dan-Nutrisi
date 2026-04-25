@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../auth/auth_controller.dart';
 import '../../models/submission_model.dart';
 import '../../widgets/submission/submission_card.dart';
 import '../../widgets/submission/submission_info_dialog.dart';
@@ -18,31 +20,47 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
   static const _textDark = Color(0xFF1A2E22);
   static const _textMuted = Color(0xFF7A9485);
 
-  final List<SubmissionModel> _submissions = [
-    SubmissionModel(
-      id: '1',
-      userId: 'u1',
-      userName: 'Nuri',
-      foodName: 'Nasi Goreng Spesial',
-      imagePath: 'assets/placeholder.png',
-      calories: 350,
-      protein: 12,
-      carbs: 55,
-      fat: 8,
-      status: SubmissionStatus.pending,
-      createdAt: DateTime.now().subtract(const Duration(hours: 2)),
-    ),
-    SubmissionModel(
-      id: '2',
-      userId: 'u1',
-      userName: 'Nuri',
-      foodName: 'Es Teh Manis',
-      imagePath: 'assets/placeholder.png',
-      calories: 80,
-      status: SubmissionStatus.approved,
-      createdAt: DateTime.now().subtract(const Duration(days: 1)),
-    ),
-  ];
+  // List pengajuan user yang sedang login
+  final List<SubmissionModel> _submissions = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialData();
+  }
+
+  void _loadInitialData() {
+    final user = context.read<AuthController>().currentUser;
+    if (user == null) return;
+    // Data dummy sesuai user yang login (bisa diganti dengan Hive persistence)
+    setState(() {
+      _submissions.addAll([
+        SubmissionModel(
+          id: '1',
+          userId: user.id,
+          userName: user.name,
+          foodName: 'Nasi Goreng Spesial',
+          imagePath: '',
+          calories: 350,
+          protein: 12,
+          carbs: 55,
+          fat: 8,
+          status: SubmissionStatus.pending,
+          createdAt: DateTime.now().subtract(const Duration(hours: 2)),
+        ),
+        SubmissionModel(
+          id: '2',
+          userId: user.id,
+          userName: user.name,
+          foodName: 'Es Teh Manis',
+          imagePath: '',
+          calories: 80,
+          status: SubmissionStatus.approved,
+          createdAt: DateTime.now().subtract(const Duration(days: 1)),
+        ),
+      ]);
+    });
+  }
 
   void _goToAdd() async {
     final result = await Navigator.push<SubmissionModel>(
@@ -113,24 +131,18 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Image.asset(
-            'assets/lottie_empty.png',
-            width: 180,
-            errorBuilder: (_, __, ___) {
-              return Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  color: _primary.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.upload_file_rounded,
-                  size: 54,
-                  color: _primary,
-                ),
-              );
-            },
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              color: _primary.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.upload_file_rounded,
+              size: 54,
+              color: _primary,
+            ),
           ),
           const SizedBox(height: 20),
           const Text(

@@ -1,5 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
+import '../../auth/auth_controller.dart';
 import '../../models/submission_model.dart';
 
 class AddSubmissionScreen extends StatefulWidget {
@@ -24,7 +28,7 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
   final _carbsCtrl = TextEditingController();
   final _fatCtrl = TextEditingController();
 
-  bool _hasImage = false;
+  File? _imageFile;
   bool _isSaving = false;
 
   @override
@@ -37,30 +41,97 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
     super.dispose();
   }
 
-  void _pickImage() {
-    setState(() => _hasImage = true);
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder:
+          (_) => SafeArea(
+            child: Wrap(
+              children: [
+                ListTile(
+                  leading: const Icon(
+                    Icons.camera_alt_rounded,
+                    color: _primary,
+                  ),
+                  title: const Text('Ambil Foto'),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final picked = await picker.pickImage(
+                      source: ImageSource.camera,
+                      imageQuality: 80,
+                    );
+                    if (picked != null) {
+                      setState(() => _imageFile = File(picked.path));
+                    }
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(
+                    Icons.photo_library_rounded,
+                    color: _primary,
+                  ),
+                  title: const Text('Pilih dari Galeri'),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final picked = await picker.pickImage(
+                      source: ImageSource.gallery,
+                      imageQuality: 80,
+                    );
+                    if (picked != null) {
+                      setState(() => _imageFile = File(picked.path));
+                    }
+                  },
+                ),
+                if (_imageFile != null)
+                  ListTile(
+                    leading: const Icon(
+                      Icons.delete_rounded,
+                      color: Colors.redAccent,
+                    ),
+                    title: const Text(
+                      'Hapus Foto',
+                      style: TextStyle(color: Colors.redAccent),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      setState(() => _imageFile = null);
+                    },
+                  ),
+              ],
+            ),
+          ),
+    );
   }
 
   void _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (!_hasImage) {
+    if (_imageFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Harap pilih foto makanan terlebih dahulu'),
+          backgroundColor: Colors.redAccent,
         ),
       );
       return;
     }
 
+    final auth = context.read<AuthController>();
+    final user = auth.currentUser;
+
     setState(() => _isSaving = true);
-    await Future.delayed(const Duration(milliseconds: 700));
+    await Future.delayed(const Duration(milliseconds: 400));
 
     final result = SubmissionModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      userId: 'u1',
-      userName: 'Nuri',
+      userId: user?.id ?? 'unknown',
+      userName: user?.name ?? 'User',
       foodName: _nameCtrl.text.trim(),
-      imagePath: 'assets/placeholder.png',
+      imagePath: _imageFile!.path,
       calories: double.tryParse(_calCtrl.text),
       protein: double.tryParse(_proteinCtrl.text),
       carbs: double.tryParse(_carbsCtrl.text),
@@ -133,34 +204,56 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
     return GestureDetector(
       onTap: _pickImage,
       child: Container(
-        height: 180,
+        height: 200,
         decoration: BoxDecoration(
-          color: _hasImage ? _primary.withOpacity(0.08) : Colors.white,
+          color: _imageFile != null ? _primary.withOpacity(0.08) : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: _hasImage ? _primary : _border,
-            width: _hasImage ? 2 : 1.5,
+            color: _imageFile != null ? _primary : _border,
+            width: _imageFile != null ? 2 : 1.5,
           ),
         ),
         child:
-            _hasImage
-                ? Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+            _imageFile != null
+                ? Stack(
                   children: [
-                    const Icon(
-                      Icons.check_circle_rounded,
-                      color: _primary,
-                      size: 40,
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: Image.file(
+                        _imageFile!,
+                        width: double.infinity,
+                        height: 200,
+                        fit: BoxFit.cover,
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Foto dipilih (simulasi)',
-                      style: TextStyle(color: _primaryDark, fontSize: 13),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Ketuk untuk ganti',
-                      style: TextStyle(color: _textMuted, fontSize: 12),
+                    // Overlay edit button
+                    Positioned(
+                      right: 10,
+                      bottom: 10,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.edit, color: Colors.white, size: 14),
+                            SizedBox(width: 4),
+                            Text(
+                              'Ganti',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 )

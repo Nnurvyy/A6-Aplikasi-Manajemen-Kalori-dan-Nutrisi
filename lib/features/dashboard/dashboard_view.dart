@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../auth/auth_controller.dart';
 import 'dashboard_controller.dart';
 
-class DashboardView extends StatefulWidget {
-  const DashboardView({super.key});
+/// Widget murni isi dashboard — TANPA Scaffold/BottomNav sendiri.
+/// Dibungkus oleh UserMainView yang sudah punya satu BottomAppBar.
+class DashboardBody extends StatefulWidget {
+  const DashboardBody({super.key});
 
   @override
-  State<DashboardView> createState() => _DashboardViewState();
+  State<DashboardBody> createState() => _DashboardBodyState();
 }
 
-class _DashboardViewState extends State<DashboardView> {
+class _DashboardBodyState extends State<DashboardBody> {
   final DashboardController _controller = DashboardController();
 
   @override
@@ -19,21 +23,25 @@ class _DashboardViewState extends State<DashboardView> {
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<AuthController>().currentUser;
+    final kaloriTarget = user?.dailyCalorieNeed ?? 2000;
+    final macros = user?.macroTargets;
+
+    // Update controller target dari data user
+    _controller.kaloriTarget = kaloriTarget;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F0),
-      bottomNavigationBar: _buildBottomNavBar(),
-      floatingActionButton: _buildFAB(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(),
+              _buildHeader(user?.name),
               _buildDaySelector(),
               _buildKaloriCard(),
               const SizedBox(height: 8),
-              _buildNutriGrid(),
+              _buildNutriGrid(macros),
               const SizedBox(height: 24),
             ],
           ),
@@ -43,33 +51,43 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   // ─── HEADER ───────────────────────────────────────────────────────────────
-
-  Widget _buildHeader() {
+  Widget _buildHeader(String? nama) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text(
-            'NutriTrack',
-            style: TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF1B2A1B),
-              letterSpacing: -0.5,
-            ),
-          ),
-          GestureDetector(
-            onTap: _controller.onSettingsTapped,
-            child: Container(
-              width: 38,
-              height: 38,
-              decoration: const BoxDecoration(
-                color: Color(0xFF4CAF50),
-                shape: BoxShape.circle,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'NutriTrack',
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF1B2A1B),
+                  letterSpacing: -0.5,
+                ),
               ),
-              child: const Icon(Icons.settings, color: Colors.white, size: 20),
+              if (nama != null)
+                Text(
+                  'Halo, $nama 👋',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF5A7A5A),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+            ],
+          ),
+          Container(
+            width: 38,
+            height: 38,
+            decoration: const BoxDecoration(
+              color: Color(0xFF4CAF50),
+              shape: BoxShape.circle,
             ),
+            child: const Icon(Icons.settings, color: Colors.white, size: 20),
           ),
         ],
       ),
@@ -77,7 +95,6 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   // ─── DAY SELECTOR ─────────────────────────────────────────────────────────
-
   Widget _buildDaySelector() {
     return SizedBox(
       height: 58,
@@ -95,9 +112,7 @@ class _DashboardViewState extends State<DashboardView> {
               duration: const Duration(milliseconds: 200),
               width: 38,
               decoration: BoxDecoration(
-                color: isActive
-                    ? const Color(0xFF4CAF50)
-                    : Colors.transparent,
+                color: isActive ? const Color(0xFF4CAF50) : Colors.transparent,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Column(
@@ -108,9 +123,7 @@ class _DashboardViewState extends State<DashboardView> {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: isActive
-                          ? Colors.white
-                          : const Color(0xFF5A7A5A),
+                      color: isActive ? Colors.white : const Color(0xFF5A7A5A),
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -119,9 +132,7 @@ class _DashboardViewState extends State<DashboardView> {
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: isActive
-                          ? Colors.white
-                          : const Color(0xFF1B2A1B),
+                      color: isActive ? Colors.white : const Color(0xFF1B2A1B),
                     ),
                   ),
                 ],
@@ -134,10 +145,8 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   // ─── KALORI CARD ──────────────────────────────────────────────────────────
-
   Widget _buildKaloriCard() {
     final pct = _controller.kaloriPercentage;
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: Container(
@@ -169,10 +178,7 @@ class _DashboardViewState extends State<DashboardView> {
             const SizedBox(height: 4),
             Text(
               '${_controller.kaloriConsumed.toInt()} / ${_controller.kaloriTarget.toInt()} kkal',
-              style: const TextStyle(
-                fontSize: 13,
-                color: Color(0xFF5A7A5A),
-              ),
+              style: const TextStyle(fontSize: 13, color: Color(0xFF5A7A5A)),
             ),
           ],
         ),
@@ -212,8 +218,11 @@ class _DashboardViewState extends State<DashboardView> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.local_fire_department,
-                              color: Colors.white, size: 18),
+                          const Icon(
+                            Icons.local_fire_department,
+                            color: Colors.white,
+                            size: 18,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             '${(percentage * 100).toInt()}%',
@@ -246,21 +255,30 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   // ─── NUTRISI GRID ─────────────────────────────────────────────────────────
+  Widget _buildNutriGrid(Map<String, double>? macros) {
+    // Gunakan target dari user jika ada, fallback ke controller default
+    final items =
+        macros != null
+            ? _controller.nutrisiItemsWithTargets(
+              protein: macros['protein'] ?? 80,
+              carbs: macros['carbs'] ?? 250,
+              fat: macros['fat'] ?? 65,
+            )
+            : _controller.nutrisiItems;
 
-  Widget _buildNutriGrid() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: Row(
-        children: _controller.nutrisiItems.map((item) {
-          return Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(
-                right: item == _controller.nutrisiItems.last ? 0 : 10,
-              ),
-              child: _buildNutriCard(item),
-            ),
-          );
-        }).toList(),
+        children:
+            items.asMap().entries.map((e) {
+              final isLast = e.key == items.length - 1;
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(right: isLast ? 0 : 10),
+                  child: _buildNutriCard(e.value),
+                ),
+              );
+            }).toList(),
       ),
     );
   }
@@ -305,7 +323,6 @@ class _DashboardViewState extends State<DashboardView> {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Terminal atas
           Positioned(
             top: 0,
             child: Container(
@@ -319,7 +336,6 @@ class _DashboardViewState extends State<DashboardView> {
               ),
             ),
           ),
-          // Body baterai
           Positioned(
             top: 5,
             child: Container(
@@ -335,7 +351,6 @@ class _DashboardViewState extends State<DashboardView> {
                 child: Stack(
                   alignment: Alignment.bottomCenter,
                   children: [
-                    // Fill level
                     FractionallySizedBox(
                       heightFactor: item.percentage,
                       alignment: Alignment.bottomCenter,
@@ -348,13 +363,8 @@ class _DashboardViewState extends State<DashboardView> {
                         ),
                       ),
                     ),
-                    // Icon
                     Center(
-                      child: Icon(
-                        item.icon,
-                        color: item.iconColor,
-                        size: 20,
-                      ),
+                      child: Icon(item.icon, color: item.iconColor, size: 20),
                     ),
                   ],
                 ),
@@ -365,62 +375,7 @@ class _DashboardViewState extends State<DashboardView> {
       ),
     );
   }
-
-  // ─── BOTTOM NAV ───────────────────────────────────────────────────────────
-
-  Widget _buildBottomNavBar() {
-    return BottomAppBar(
-      color: const Color(0xFF2E7D32),
-      shape: const CircularNotchedRectangle(),
-      notchMargin: 8,
-      child: SizedBox(
-        height: 60,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildNavItem(Icons.home, 'Home', 0),
-            _buildNavItem(Icons.history, 'Riwayat', 1),
-            const SizedBox(width: 48), // space for FAB
-            _buildNavItem(Icons.assignment, 'Pengajuan', 2),
-            _buildNavItem(Icons.person, 'Profile', 3),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, String label, int index) {
-    final isActive = _controller.selectedNavIndex == index;
-    return GestureDetector(
-      onTap: () => setState(() => _controller.selectNav(index)),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            color: isActive ? Colors.white : Colors.white54,
-            size: 22,
-          ),
-          const SizedBox(height: 3),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: isActive ? Colors.white : Colors.white54,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFAB() {
-    return FloatingActionButton(
-      onPressed: _controller.onAddTapped,
-      backgroundColor: const Color(0xFF1B2A1B),
-      shape: const CircleBorder(),
-      child: const Icon(Icons.add, color: Colors.white, size: 26),
-    );
-  }
 }
+
+// ─── BACKWARD COMPAT: alias lama masih bisa compile ─────────────────────────
+typedef DashboardView = DashboardBody;
