@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dashboard_controller.dart';
+import 'package:provider/provider.dart';
+import '../auth/auth_controller.dart';
+import '../auth/login_view.dart';
 
 class DashboardView extends StatefulWidget {
   const DashboardView({super.key});
@@ -34,7 +37,7 @@ class _DashboardViewState extends State<DashboardView> {
               _buildKaloriCard(),
               const SizedBox(height: 8),
               _buildNutriGrid(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 8),
             ],
           ),
         ),
@@ -59,17 +62,45 @@ class _DashboardViewState extends State<DashboardView> {
               letterSpacing: -0.5,
             ),
           ),
-          GestureDetector(
-            onTap: _controller.onSettingsTapped,
-            child: Container(
-              width: 38,
-              height: 38,
-              decoration: const BoxDecoration(
-                color: Color(0xFF4CAF50),
-                shape: BoxShape.circle,
+          Row(
+            children: [
+              GestureDetector(
+                onTap: _controller.onSettingsTapped,
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF4CAF50),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.settings,
+                      color: Colors.white, size: 20),
+                ),
               ),
-              child: const Icon(Icons.settings, color: Colors.white, size: 20),
-            ),
+              const SizedBox(width: 10),
+              GestureDetector(
+                onTap: () async {
+                  final auth = context.read<AuthController>();
+                  await auth.logout();
+                  if (!mounted) return;
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginView()),
+                    (route) => false,
+                  );
+                },
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.logout,
+                      color: Colors.white, size: 20),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -156,6 +187,7 @@ class _DashboardViewState extends State<DashboardView> {
         ),
         child: Column(
           children: [
+            // ── POIN 1: BatteryBar mengikuti tinggi parent ──
             _buildBatteryBar(pct),
             const SizedBox(height: 14),
             const Text(
@@ -180,37 +212,48 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
+  // ── POIN 1: BatteryBar tanpa height hardcoded — mengikuti parent via IntrinsicHeight ──
   Widget _buildBatteryBar(double percentage) {
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            height: 64,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE8F5E9),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFA5D6A7), width: 2),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Stack(
-                children: [
-                  FractionallySizedBox(
-                    widthFactor: percentage,
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF66BB6A), Color(0xFF4CAF50)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(12),
-                          bottomLeft: Radius.circular(12),
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: Container(
+              // Tidak ada height: ... → tinggi ditentukan oleh IntrinsicHeight / konten
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F5E9),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFA5D6A7), width: 2),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Stack(
+                  children: [
+                    // Fill berdasarkan percentage → widthFactor
+                    Positioned.fill(
+                      child: FractionallySizedBox(
+                        widthFactor: percentage,
+                        alignment: Alignment.centerLeft,
+                        child: Container(
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [Color(0xFF66BB6A), Color(0xFF4CAF50)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(12),
+                              bottomLeft: Radius.circular(12),
+                            ),
+                          ),
                         ),
                       ),
+                    ),
+                    // Label % di tengah bar
+                    Center(
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           const Icon(Icons.local_fire_department,
                               color: Colors.white, size: 18),
@@ -226,22 +269,22 @@ class _DashboardViewState extends State<DashboardView> {
                         ],
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-        const SizedBox(width: 6),
-        Container(
-          width: 10,
-          height: 28,
-          decoration: BoxDecoration(
-            color: const Color(0xFFA5D6A7),
-            borderRadius: BorderRadius.circular(6),
+          const SizedBox(width: 6),
+          // Terminal baterai — tinggi mengikuti bar lewat CrossAxisAlignment.stretch
+          Container(
+            width: 10,
+            decoration: BoxDecoration(
+              color: const Color(0xFFA5D6A7),
+              borderRadius: BorderRadius.circular(6),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -293,6 +336,17 @@ class _DashboardViewState extends State<DashboardView> {
             ),
             textAlign: TextAlign.center,
           ),
+          // ── POIN 2: Teks konsumsi hari ini ──
+          const SizedBox(height: 4),
+          Text(
+            '${item.consumed.toStringAsFixed(1)}g / ${item.target.toStringAsFixed(0)}g',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+              color: item.borderColor,
+            ),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
@@ -335,7 +389,6 @@ class _DashboardViewState extends State<DashboardView> {
                 child: Stack(
                   alignment: Alignment.bottomCenter,
                   children: [
-                    // Fill level
                     FractionallySizedBox(
                       heightFactor: item.percentage,
                       alignment: Alignment.bottomCenter,
@@ -348,7 +401,6 @@ class _DashboardViewState extends State<DashboardView> {
                         ),
                       ),
                     ),
-                    // Icon
                     Center(
                       child: Icon(
                         item.icon,
@@ -359,6 +411,55 @@ class _DashboardViewState extends State<DashboardView> {
                   ],
                 ),
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── POIN 3: SEPARATOR / HEADER "Riwayat Makanan" ─────────────────────────
+
+  Widget _buildRiwayatHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              height: 1,
+              color: const Color(0xFFD0E8D0),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF4CAF50),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Icon(Icons.history, color: Colors.white, size: 14),
+                SizedBox(width: 6),
+                Text(
+                  'Riwayat Makanan',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Container(
+              height: 1,
+              color: const Color(0xFFD0E8D0),
             ),
           ),
         ],
@@ -380,7 +481,7 @@ class _DashboardViewState extends State<DashboardView> {
           children: [
             _buildNavItem(Icons.home, 'Home', 0),
             _buildNavItem(Icons.history, 'Riwayat', 1),
-            const SizedBox(width: 48), // space for FAB
+            const SizedBox(width: 48),
             _buildNavItem(Icons.assignment, 'Pengajuan', 2),
             _buildNavItem(Icons.person, 'Profile', 3),
           ],
