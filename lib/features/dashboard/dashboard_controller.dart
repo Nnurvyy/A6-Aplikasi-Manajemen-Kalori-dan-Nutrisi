@@ -6,14 +6,13 @@ import 'package:flutter/material.dart';
 class DayItem {
   final String label;
   final int number;
-
   const DayItem({required this.label, required this.number});
 }
 
 class NutrisiItem {
   final String name;
-  final double consumed;   // gram dikonsumsi
-  final double target;     // gram target
+  final double consumed;
+  final double target;
   final IconData icon;
   final Color bgColor;
   final Color fillColor;
@@ -35,18 +34,20 @@ class NutrisiItem {
 }
 
 // ─── FOOD HISTORY MODEL ───────────────────────────────────────────────────────
+// Strukturnya mengacu pada FoodModel (id, name, category, calories, protein,
+// carbs, fat, servingSize) ditambah metadata log (consumedAt, mealTime).
 
 class FoodHistoryItem {
   final String id;
   final String name;
   final String category;
-  final double calories;
-  final double protein;
-  final double carbs;
-  final double fat;
-  final double servingSize; // grams
+  final double calories;     // kkal per 100g
+  final double protein;      // g per 100g
+  final double carbs;        // g per 100g
+  final double fat;          // g per 100g
+  final double servingSize;  // gram yang dikonsumsi
   final DateTime consumedAt;
-  final String mealTime; // 'Sarapan', 'Makan Siang', 'Makan Malam', 'Snack'
+  final String mealTime;     // 'Sarapan' | 'Makan Siang' | 'Makan Malam' | 'Snack'
 
   const FoodHistoryItem({
     required this.id,
@@ -61,11 +62,11 @@ class FoodHistoryItem {
     required this.mealTime,
   });
 
-  // Kalori aktual berdasarkan serving size
+  // Nilai aktual berdasarkan serving size
   double get totalCalories => calories * servingSize / 100;
-  double get totalProtein => protein * servingSize / 100;
-  double get totalCarbs => carbs * servingSize / 100;
-  double get totalFat => fat * servingSize / 100;
+  double get totalProtein  => protein  * servingSize / 100;
+  double get totalCarbs    => carbs    * servingSize / 100;
+  double get totalFat      => fat      * servingSize / 100;
 }
 
 // ─── CONTROLLER ───────────────────────────────────────────────────────────────
@@ -75,7 +76,7 @@ class DashboardController {
   int selectedDayIndex = 0;
   int selectedNavIndex = 0;
 
-  // ── Kalori data ──
+  // ── Kalori data (nanti dihitung dari recentFoodHistory) ──
   double kaloriConsumed = 760;
   double kaloriTarget   = 2000;
 
@@ -99,34 +100,36 @@ class DashboardController {
       consumed: 35,
       target: 80,
       icon: Icons.fitness_center,
-      bgColor:    const Color(0xFFFFEBEE),
-      fillColor:  const Color(0xFFFFCDD2),
-      borderColor:const Color(0xFFEF9A9A),
-      iconColor:  const Color(0xFFE53935),
+      bgColor:     const Color(0xFFFFEBEE),
+      fillColor:   const Color(0xFFFFCDD2),
+      borderColor: const Color(0xFFEF9A9A),
+      iconColor:   const Color(0xFFE53935),
     ),
     NutrisiItem(
       name: 'Karbohidrat',
       consumed: 160,
       target: 250,
       icon: Icons.grain,
-      bgColor:    const Color(0xFFFFF8E1),
-      fillColor:  const Color(0xFFFFF9C4),
-      borderColor:const Color(0xFFFFE082),
-      iconColor:  const Color(0xFFF59E0B),
+      bgColor:     const Color(0xFFFFF8E1),
+      fillColor:   const Color(0xFFFFF9C4),
+      borderColor: const Color(0xFFFFE082),
+      iconColor:   const Color(0xFFF59E0B),
     ),
     NutrisiItem(
       name: 'Lemak',
       consumed: 28,
       target: 65,
       icon: Icons.water_drop,
-      bgColor:    const Color(0xFFFFF3E0),
-      fillColor:  const Color(0xFFFFE0B2),
-      borderColor:const Color(0xFFFFCC80),
-      iconColor:  const Color(0xFFFF8C00),
+      bgColor:     const Color(0xFFFFF3E0),
+      fillColor:   const Color(0xFFFFE0B2),
+      borderColor: const Color(0xFFFFCC80),
+      iconColor:   const Color(0xFFFF8C00),
     ),
   ];
 
-  // ── Food History (dummy data, 3 makanan terakhir) ──
+  // ── Food History — 3 makanan terakhir (dummy) ──
+  // Ganti list ini dengan data dari Hive/API saat integrasi.
+  // Untuk menguji empty state, kosongkan list ini: []
   List<FoodHistoryItem> get recentFoodHistory => [
     FoodHistoryItem(
       id: 'fh-003',
@@ -168,13 +171,11 @@ class DashboardController {
 
   // ─── LIFECYCLE ──────────────────────────────────────────────────────────────
 
-  void init() {
-    // TODO: load data dari local DB atau API
-    _loadDashboardData();
-  }
+  void init() => _loadDashboardData();
 
   Future<void> _loadDashboardData() async {
-    // TODO: panggil repository / service untuk ambil data harian
+    // TODO: load dari Hive / API
+    // kaloriConsumed = recentFoodHistory.fold(0, (s, i) => s + i.totalCalories);
   }
 
   // ─── USER ACTIONS ───────────────────────────────────────────────────────────
@@ -188,26 +189,37 @@ class DashboardController {
     selectedNavIndex = index;
   }
 
-  void onAddTapped() {
-    // TODO: buka bottom sheet / halaman tambah makanan
+  void onSettingsTapped() {
+    // TODO: navigasi ke Settings
   }
 
-  void onSettingsTapped() {
-    // TODO: navigasi ke halaman settings
+  // ── FAB: buka FoodListView (database) ──
+  void onAddFromDatabaseTapped(BuildContext context) {
+    // TODO: navigasi ke FoodListView
+    // Navigator.push(context,
+    //   MaterialPageRoute(builder: (_) => const FoodListView()));
+  }
+
+  // ── FAB: buka ScanView ──
+  void onScanTapped(BuildContext context) {
+    // TODO: navigasi ke ScanView
+    // Navigator.push(context,
+    //   MaterialPageRoute(builder: (_) => const ScanView()));
   }
 
   // ─── HELPERS ────────────────────────────────────────────────────────────────
 
-  double get kaloriRemaining => (kaloriTarget - kaloriConsumed).clamp(0, kaloriTarget);
+  double get kaloriRemaining =>
+      (kaloriTarget - kaloriConsumed).clamp(0, kaloriTarget);
 
   Color get kaloriStatusColor {
-    if (kaloriPercentage < 0.5) return const Color(0xFF4CAF50);
+    if (kaloriPercentage < 0.5)  return const Color(0xFF4CAF50);
     if (kaloriPercentage < 0.85) return const Color(0xFFF59E0B);
     return const Color(0xFFE53935);
   }
 
   String get kaloriStatusLabel {
-    if (kaloriPercentage < 0.5) return 'Masih aman';
+    if (kaloriPercentage < 0.5)  return 'Masih aman';
     if (kaloriPercentage < 0.85) return 'Hampir tercapai';
     return 'Batas tercapai';
   }
