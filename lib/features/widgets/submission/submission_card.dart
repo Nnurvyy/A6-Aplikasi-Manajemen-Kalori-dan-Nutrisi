@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../models/submission_model.dart';
 
@@ -7,7 +8,6 @@ class SubmissionCard extends StatelessWidget {
 
   const SubmissionCard({super.key, required this.item, this.onTap});
 
-  static const _bg = Color(0xFFF4FAF6);
   static const _primary = Color(0xFF2ECC71);
   static const _textDark = Color(0xFF1A2E22);
   static const _textMuted = Color(0xFF7A9485);
@@ -45,6 +45,42 @@ class SubmissionCard extends StatelessWidget {
     }
   }
 
+  Widget _buildImage() {
+    // File lokal (dari image_picker)
+    if (item.imagePath.isNotEmpty &&
+        !item.imagePath.startsWith('assets') &&
+        File(item.imagePath).existsSync()) {
+      return Image.file(
+        File(item.imagePath),
+        width: 90,
+        height: 90,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _placeholder(),
+      );
+    }
+    // Asset
+    if (item.imagePath.startsWith('assets')) {
+      return Image.asset(
+        item.imagePath,
+        width: 90,
+        height: 90,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _placeholder(),
+      );
+    }
+    // Placeholder
+    return _placeholder();
+  }
+
+  Widget _placeholder() {
+    return Container(
+      width: 90,
+      height: 90,
+      color: _primary.withOpacity(0.1),
+      child: const Icon(Icons.fastfood_rounded, color: _primary, size: 36),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -68,24 +104,7 @@ class SubmissionCard extends StatelessWidget {
                 topLeft: Radius.circular(16),
                 bottomLeft: Radius.circular(16),
               ),
-              child:
-                  item.imagePath.startsWith('assets')
-                      ? Image.asset(
-                        item.imagePath,
-                        width: 90,
-                        height: 90,
-                        fit: BoxFit.cover,
-                      )
-                      : Container(
-                        width: 90,
-                        height: 90,
-                        color: _primary.withOpacity(0.1),
-                        child: const Icon(
-                          Icons.fastfood_rounded,
-                          color: _primary,
-                          size: 36,
-                        ),
-                      ),
+              child: _buildImage(),
             ),
             const SizedBox(width: 12),
             Expanded(

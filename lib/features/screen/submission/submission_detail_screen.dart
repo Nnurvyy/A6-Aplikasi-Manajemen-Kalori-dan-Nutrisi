@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../models/submission_model.dart';
 
@@ -33,6 +34,62 @@ class SubmissionDetailScreen extends StatelessWidget {
     }
   }
 
+  IconData get _statusIcon {
+    switch (submission.status) {
+      case SubmissionStatus.approved:
+        return Icons.check_circle_rounded;
+      case SubmissionStatus.canceled:
+        return Icons.cancel_rounded;
+      case SubmissionStatus.pending:
+        return Icons.hourglass_top_rounded;
+    }
+  }
+
+  Widget _buildImageWidget() {
+    // File lokal dari image_picker
+    if (submission.imagePath.isNotEmpty &&
+        !submission.imagePath.startsWith('assets') &&
+        File(submission.imagePath).existsSync()) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Image.file(
+          File(submission.imagePath),
+          width: double.infinity,
+          height: 220,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _imagePlaceholder(),
+        ),
+      );
+    }
+    // Asset path
+    if (submission.imagePath.startsWith('assets')) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Image.asset(
+          submission.imagePath,
+          width: double.infinity,
+          height: 220,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _imagePlaceholder(),
+        ),
+      );
+    }
+    return _imagePlaceholder();
+  }
+
+  Widget _imagePlaceholder() {
+    return Container(
+      height: 200,
+      decoration: BoxDecoration(
+        color: _primary.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: const Center(
+        child: Icon(Icons.fastfood_rounded, size: 72, color: _primary),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -56,27 +113,19 @@ class SubmissionDetailScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _imageCard(),
+          _buildImageWidget(),
           const SizedBox(height: 16),
           _infoCard(),
           const SizedBox(height: 16),
-          if (submission.calories != null) _nutriCard(),
+          if (submission.calories != null ||
+              submission.protein != null ||
+              submission.carbs != null ||
+              submission.fat != null)
+            _nutriCard(),
           const SizedBox(height: 16),
           _statusCard(),
+          const SizedBox(height: 16),
         ],
-      ),
-    );
-  }
-
-  Widget _imageCard() {
-    return Container(
-      height: 200,
-      decoration: BoxDecoration(
-        color: _primary.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: const Center(
-        child: Icon(Icons.fastfood_rounded, size: 72, color: _primary),
       ),
     );
   }
@@ -182,17 +231,6 @@ class SubmissionDetailScreen extends StatelessWidget {
     );
   }
 
-  IconData get _statusIcon {
-    switch (submission.status) {
-      case SubmissionStatus.approved:
-        return Icons.check_circle_rounded;
-      case SubmissionStatus.canceled:
-        return Icons.cancel_rounded;
-      case SubmissionStatus.pending:
-        return Icons.hourglass_top_rounded;
-    }
-  }
-
   Widget _card({required Widget child}) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -258,5 +296,6 @@ class SubmissionDetailScreen extends StatelessWidget {
   }
 
   String _formatDate(DateTime d) =>
-      '${d.day}/${d.month}/${d.year} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year} '
+      '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
 }
