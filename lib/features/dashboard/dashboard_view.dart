@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dashboard_controller.dart';
+import 'package:provider/provider.dart';
+import '../auth/auth_controller.dart';
+import '../auth/login_view.dart';
 
 class DashboardView extends StatefulWidget {
   const DashboardView({super.key});
@@ -19,11 +22,10 @@ class _DashboardViewState extends State<DashboardView> {
 
   @override
   Widget build(BuildContext context) {
+    // Tidak ada bottomNavigationBar / floatingActionButton di sini.
+    // Keduanya dikelola oleh UserMainView (shell).
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F0),
-      bottomNavigationBar: _buildBottomNavBar(),
-      floatingActionButton: _buildFAB(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -34,7 +36,10 @@ class _DashboardViewState extends State<DashboardView> {
               _buildKaloriCard(),
               const SizedBox(height: 8),
               _buildNutriGrid(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 8),
+              _buildRiwayatHeader(),
+              _buildRiwayatList(),
+              const SizedBox(height: 100), // ruang agar tidak ketutup navbar
             ],
           ),
         ),
@@ -59,17 +64,45 @@ class _DashboardViewState extends State<DashboardView> {
               letterSpacing: -0.5,
             ),
           ),
-          GestureDetector(
-            onTap: _controller.onSettingsTapped,
-            child: Container(
-              width: 38,
-              height: 38,
-              decoration: const BoxDecoration(
-                color: Color(0xFF4CAF50),
-                shape: BoxShape.circle,
+          Row(
+            children: [
+              GestureDetector(
+                onTap: _controller.onSettingsTapped,
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF4CAF50),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.settings,
+                      color: Colors.white, size: 20),
+                ),
               ),
-              child: const Icon(Icons.settings, color: Colors.white, size: 20),
-            ),
+              const SizedBox(width: 10),
+              GestureDetector(
+                onTap: () async {
+                  final auth = context.read<AuthController>();
+                  await auth.logout();
+                  if (!mounted) return;
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginView()),
+                    (route) => false,
+                  );
+                },
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.logout,
+                      color: Colors.white, size: 20),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -137,7 +170,6 @@ class _DashboardViewState extends State<DashboardView> {
 
   Widget _buildKaloriCard() {
     final pct = _controller.kaloriPercentage;
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: Container(
@@ -169,10 +201,7 @@ class _DashboardViewState extends State<DashboardView> {
             const SizedBox(height: 4),
             Text(
               '${_controller.kaloriConsumed.toInt()} / ${_controller.kaloriTarget.toInt()} kkal',
-              style: const TextStyle(
-                fontSize: 13,
-                color: Color(0xFF5A7A5A),
-              ),
+              style: const TextStyle(fontSize: 13, color: Color(0xFF5A7A5A)),
             ),
           ],
         ),
@@ -181,67 +210,76 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   Widget _buildBatteryBar(double percentage) {
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            height: 64,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE8F5E9),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFA5D6A7), width: 2),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Stack(
-                children: [
-                  FractionallySizedBox(
-                    widthFactor: percentage,
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF66BB6A), Color(0xFF4CAF50)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(12),
-                          bottomLeft: Radius.circular(12),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.local_fire_department,
-                              color: Colors.white, size: 18),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${(percentage * 100).toInt()}%',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F5E9),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFA5D6A7), width: 2),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: FractionallySizedBox(
+                        widthFactor: percentage,
+                        alignment: Alignment.centerLeft,
+                        child: Container(
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [Color(0xFF66BB6A), Color(0xFF4CAF50)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(12),
+                              bottomLeft: Radius.circular(12),
                             ),
                           ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.local_fire_department,
+                                color: Colors.white, size: 18),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${(percentage * 100).toInt()}%',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-        const SizedBox(width: 6),
-        Container(
-          width: 10,
-          height: 28,
-          decoration: BoxDecoration(
-            color: const Color(0xFFA5D6A7),
-            borderRadius: BorderRadius.circular(6),
+          const SizedBox(width: 6),
+          Container(
+            width: 10,
+            decoration: BoxDecoration(
+              color: const Color(0xFFA5D6A7),
+              borderRadius: BorderRadius.circular(6),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -293,6 +331,16 @@ class _DashboardViewState extends State<DashboardView> {
             ),
             textAlign: TextAlign.center,
           ),
+          const SizedBox(height: 4),
+          Text(
+            '${item.consumed.toStringAsFixed(1)}g / ${item.target.toStringAsFixed(0)}g',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+              color: item.borderColor,
+            ),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
@@ -305,7 +353,6 @@ class _DashboardViewState extends State<DashboardView> {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Terminal atas
           Positioned(
             top: 0,
             child: Container(
@@ -314,12 +361,10 @@ class _DashboardViewState extends State<DashboardView> {
               decoration: BoxDecoration(
                 color: item.borderColor,
                 borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(3),
-                ),
+                    top: Radius.circular(3)),
               ),
             ),
           ),
-          // Body baterai
           Positioned(
             top: 5,
             child: Container(
@@ -335,7 +380,6 @@ class _DashboardViewState extends State<DashboardView> {
                 child: Stack(
                   alignment: Alignment.bottomCenter,
                   children: [
-                    // Fill level
                     FractionallySizedBox(
                       heightFactor: item.percentage,
                       alignment: Alignment.bottomCenter,
@@ -343,18 +387,13 @@ class _DashboardViewState extends State<DashboardView> {
                         decoration: BoxDecoration(
                           color: item.fillColor,
                           borderRadius: const BorderRadius.vertical(
-                            bottom: Radius.circular(8),
-                          ),
+                              bottom: Radius.circular(8)),
                         ),
                       ),
                     ),
-                    // Icon
                     Center(
-                      child: Icon(
-                        item.icon,
-                        color: item.iconColor,
-                        size: 20,
-                      ),
+                      child: Icon(item.icon,
+                          color: item.iconColor, size: 20),
                     ),
                   ],
                 ),
@@ -366,61 +405,502 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
-  // ─── BOTTOM NAV ───────────────────────────────────────────────────────────
+  // ─── SEPARATOR "Riwayat Makanan" ──────────────────────────────────────────
 
-  Widget _buildBottomNavBar() {
-    return BottomAppBar(
-      color: const Color(0xFF2E7D32),
-      shape: const CircularNotchedRectangle(),
-      notchMargin: 8,
-      child: SizedBox(
-        height: 60,
+  Widget _buildRiwayatHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+      child: Row(
+        children: [
+          Expanded(
+              child: Container(height: 1, color: const Color(0xFFD0E8D0))),
+          const SizedBox(width: 12),
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF4CAF50),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.history, color: Colors.white, size: 14),
+                SizedBox(width: 6),
+                Text(
+                  'Riwayat Makanan',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+              child: Container(height: 1, color: const Color(0xFFD0E8D0))),
+        ],
+      ),
+    );
+  }
+
+  // ─── RIWAYAT LIST ─────────────────────────────────────────────────────────
+
+  Widget _buildRiwayatList() {
+    final history = _controller.recentFoodHistory;
+
+    if (history.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        child: Container(
+          width: double.infinity,
+          padding:
+              const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+                color: const Color(0xFFE0E0E0), width: 1.5),
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(Icons.no_meals_rounded,
+                    color: Color(0xFF4CAF50), size: 28),
+              ),
+              const SizedBox(height: 14),
+              const Text(
+                'Belum ada makanan hari ini',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1B2A1B),
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Tekan tombol + untuk menambahkan\nmakanan dari database atau scan',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF5A7A5A),
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        children:
+            history.map((item) => _buildFoodHistoryCard(item)).toList(),
+      ),
+    );
+  }
+
+  // ─── FOOD HISTORY CARD ────────────────────────────────────────────────────
+
+  Widget _buildFoodHistoryCard(FoodHistoryItem item) {
+    final Color accentColor = _categoryColor(item.category);
+
+    return GestureDetector(
+      onTap: () => _showFoodDetailModal(item),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border:
+              Border.all(color: const Color(0xFFE0E0E0), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildNavItem(Icons.home, 'Home', 0),
-            _buildNavItem(Icons.history, 'Riwayat', 1),
-            const SizedBox(width: 48), // space for FAB
-            _buildNavItem(Icons.assignment, 'Pengajuan', 2),
-            _buildNavItem(Icons.person, 'Profile', 3),
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: accentColor.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Center(
+                child: Text(
+                  item.name[0].toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: accentColor,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.name,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1B2A1B),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${item.category} • ${item.mealTime}',
+                    style: const TextStyle(
+                        fontSize: 11, color: Color(0xFF5A7A5A)),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      _nutriChip(
+                          'P ${item.totalProtein.toStringAsFixed(1)}g',
+                          const Color(0xFFFFEBEE),
+                          const Color(0xFFE53935)),
+                      const SizedBox(width: 4),
+                      _nutriChip(
+                          'K ${item.totalCarbs.toStringAsFixed(1)}g',
+                          const Color(0xFFFFF8E1),
+                          const Color(0xFFF59E0B)),
+                      const SizedBox(width: 4),
+                      _nutriChip(
+                          'L ${item.totalFat.toStringAsFixed(1)}g',
+                          const Color(0xFFFFF3E0),
+                          const Color(0xFFFF8C00)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${item.totalCalories.toInt()}',
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF4CAF50),
+                  ),
+                ),
+                const Text('kkal',
+                    style: TextStyle(
+                        fontSize: 10, color: Color(0xFF5A7A5A))),
+                const SizedBox(height: 4),
+                Text(
+                  _controller.formatMealTime(item.consumedAt),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFF9E9E9E),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNavItem(IconData icon, String label, int index) {
-    final isActive = _controller.selectedNavIndex == index;
-    return GestureDetector(
-      onTap: () => setState(() => _controller.selectNav(index)),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            color: isActive ? Colors.white : Colors.white54,
-            size: 22,
+  // ─── MODAL DETAIL ─────────────────────────────────────────────────────────
+
+  void _showFoodDetailModal(FoodHistoryItem item) {
+    final Color accentColor = _categoryColor(item.category);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.85,
+        expand: false,
+        builder: (_, scrollCtrl) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius:
+                BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          const SizedBox(height: 3),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: isActive ? Colors.white : Colors.white54,
-            ),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE0E0E0),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  controller: scrollCtrl,
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: accentColor.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Center(
+                            child: Text(
+                              item.name[0].toUpperCase(),
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w800,
+                                color: accentColor,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(item.name,
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF1B2A1B),
+                                  )),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  _pillBadge(item.category, accentColor),
+                                  const SizedBox(width: 6),
+                                  _pillBadge(item.mealTime,
+                                      const Color(0xFF4CAF50)),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF4CAF50), Color(0xFF66BB6A)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.local_fire_department,
+                              color: Colors.white, size: 28),
+                          const SizedBox(width: 10),
+                          Column(
+                            children: [
+                              Text('${item.totalCalories.toInt()}',
+                                  style: const TextStyle(
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white)),
+                              const Text('kkal total',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.white70)),
+                            ],
+                          ),
+                          const SizedBox(width: 24),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('${item.servingSize.toInt()} gram',
+                                  style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white)),
+                              Text(
+                                  '(${item.calories.toInt()} kkal/100g)',
+                                  style: const TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.white70)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        _macroCard('Protein', item.totalProtein,
+                            const Color(0xFFFFEBEE),
+                            const Color(0xFFE53935),
+                            Icons.fitness_center),
+                        const SizedBox(width: 10),
+                        _macroCard('Karbo', item.totalCarbs,
+                            const Color(0xFFFFF8E1),
+                            const Color(0xFFF59E0B), Icons.grain),
+                        const SizedBox(width: 10),
+                        _macroCard('Lemak', item.totalFat,
+                            const Color(0xFFFFF3E0),
+                            const Color(0xFFFF8C00), Icons.water_drop),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF4F6F0),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.access_time,
+                              size: 16, color: Color(0xFF5A7A5A)),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Dikonsumsi pukul ${_controller.formatMealTime(item.consumedAt)} • ${item.mealTime}',
+                            style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF5A7A5A),
+                                fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        // TODO: hapus dari riwayat
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFEBEE),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                              color: const Color(0xFFEF9A9A), width: 1.5),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.delete_outline,
+                                color: Color(0xFFE53935), size: 18),
+                            SizedBox(width: 8),
+                            Text('Hapus dari Riwayat',
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFFE53935))),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildFAB() {
-    return FloatingActionButton(
-      onPressed: _controller.onAddTapped,
-      backgroundColor: const Color(0xFF1B2A1B),
-      shape: const CircleBorder(),
-      child: const Icon(Icons.add, color: Colors.white, size: 26),
+  // ─── HELPERS ──────────────────────────────────────────────────────────────
+
+  Widget _nutriChip(String label, Color bg, Color textColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+          color: bg, borderRadius: BorderRadius.circular(6)),
+      child: Text(label,
+          style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: textColor)),
     );
+  }
+
+  Widget _pillBadge(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(text,
+          style: TextStyle(
+              fontSize: 10, fontWeight: FontWeight.w700, color: color)),
+    );
+  }
+
+  Widget _macroCard(String label, double value, Color bg, Color color,
+      IconData icon) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 18),
+            const SizedBox(height: 6),
+            Text('${value.toStringAsFixed(1)}g',
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: color)),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 10, color: color.withOpacity(0.7))),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _categoryColor(String category) {
+    switch (category.toLowerCase()) {
+      case 'lauk':           return const Color(0xFF4CAF50);
+      case 'makanan pokok':  return const Color(0xFFF59E0B);
+      case 'sayuran':        return const Color(0xFF43A047);
+      case 'buah':           return const Color(0xFFE91E63);
+      case 'minuman':        return const Color(0xFF1E88E5);
+      case 'snack':          return const Color(0xFF9C27B0);
+      default:               return const Color(0xFF78909C);
+    }
   }
 }
