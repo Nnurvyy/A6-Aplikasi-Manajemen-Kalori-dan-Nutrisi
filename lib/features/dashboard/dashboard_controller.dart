@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 // ─── DATA MODELS ──────────────────────────────────────────────────────────────
 
 class DayItem {
+  final DateTime date;
   final String label;
   final int number;
-  const DayItem({required this.label, required this.number});
+  const DayItem({required this.date, required this.label, required this.number});
 }
 
 class NutrisiItem {
@@ -83,15 +84,22 @@ class DashboardController {
       (kaloriConsumed / kaloriTarget).clamp(0.0, 1.0);
 
   // ── Days ──
-  final List<DayItem> days = const [
-    DayItem(label: 'sen', number: 6),
-    DayItem(label: 'sel', number: 7),
-    DayItem(label: 'rab', number: 8),
-    DayItem(label: 'kam', number: 9),
-    DayItem(label: 'jum', number: 10),
-    DayItem(label: 'sab', number: 11),
-    DayItem(label: 'min', number: 12),
-  ];
+  List<DayItem> days = [];
+
+  void initDays() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    days = List.generate(7, (i) {
+      final d = today.subtract(Duration(days: 6 - i));
+      const labels = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+      return DayItem(
+        date: d,
+        label: labels[d.weekday - 1],
+        number: d.day,
+      );
+    });
+    selectedDayIndex = 6; // Default to today
+  }
 
   // ── Nutrisi items ──
   List<NutrisiItem> get nutrisiItems => [
@@ -111,8 +119,8 @@ class DashboardController {
       target: 250,
       icon: Icons.grain,
       bgColor: const Color(0xFFFFF8E1),
-      fillColor: const Color(0xFFFFF9C4),
-      borderColor: const Color(0xFFFFE082),
+      fillColor: const Color(0xFFFFD54F),
+      borderColor: const Color(0xFFFFCA28),
       iconColor: const Color(0xFFF59E0B),
     ),
     NutrisiItem(
@@ -129,14 +137,17 @@ class DashboardController {
 
   // ── Nutrisi items dengan target kustom (dari profil user) ──
   List<NutrisiItem> nutrisiItemsWithTargets({
-    required double protein,
-    required double carbs,
-    required double fat,
+    required double consumedProtein,
+    required double targetProtein,
+    required double consumedCarbs,
+    required double targetCarbs,
+    required double consumedFat,
+    required double targetFat,
   }) => [
     NutrisiItem(
       name: 'Protein',
-      consumed: nutrisiItems[0].consumed,
-      target: protein,
+      consumed: consumedProtein,
+      target: targetProtein,
       icon: Icons.fitness_center,
       bgColor: const Color(0xFFFFEBEE),
       fillColor: const Color(0xFFFFCDD2),
@@ -145,18 +156,18 @@ class DashboardController {
     ),
     NutrisiItem(
       name: 'Karbohidrat',
-      consumed: nutrisiItems[1].consumed,
-      target: carbs,
+      consumed: consumedCarbs,
+      target: targetCarbs,
       icon: Icons.grain,
       bgColor: const Color(0xFFFFF8E1),
-      fillColor: const Color(0xFFFFF9C4),
-      borderColor: const Color(0xFFFFE082),
+      fillColor: const Color(0xFFFFD54F),
+      borderColor: const Color(0xFFFFCA28),
       iconColor: const Color(0xFFF59E0B),
     ),
     NutrisiItem(
       name: 'Lemak',
-      consumed: nutrisiItems[2].consumed,
-      target: fat,
+      consumed: consumedFat,
+      target: targetFat,
       icon: Icons.water_drop,
       bgColor: const Color(0xFFFFF3E0),
       fillColor: const Color(0xFFFFE0B2),
@@ -209,18 +220,14 @@ class DashboardController {
 
   // ─── LIFECYCLE ──────────────────────────────────────────────────────────────
 
-  void init() => _loadDashboardData();
-
-  Future<void> _loadDashboardData() async {
-    // TODO: load dari Hive / API
-    // kaloriConsumed = recentFoodHistory.fold(0, (s, i) => s + i.totalCalories);
+  void init() {
+    initDays();
   }
 
   // ─── USER ACTIONS ───────────────────────────────────────────────────────────
 
   void selectDay(int index) {
     selectedDayIndex = index;
-    _loadDashboardData();
   }
 
   void selectNav(int index) {

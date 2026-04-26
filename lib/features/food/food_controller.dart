@@ -10,8 +10,12 @@ class FoodController extends ChangeNotifier {
   String _selectedCategory = 'Semua';
   bool _isLoading = false;
 
-  List<LogModel> get getAllLogs => HiveService.logs.values.toList().cast<LogModel>();
-
+  List<LogModel> getUserLogs(String userId) {
+    return HiveService.logs.values
+        .cast<LogModel>()
+        .where((log) => log.userId == userId)
+        .toList();
+  }
   List<FoodModel> get foods => _filtered;
   List<FoodModel> get allApproved =>
       _allFoods.where((f) => f.isApproved).toList();
@@ -23,8 +27,8 @@ class FoodController extends ChangeNotifier {
     'Semua', 'Makanan Pokok', 'Lauk', 'Sayuran', 'Buah', 'Minuman', 'Snack', 'Lainnya'
   ];
 
-  double get totalCaloriesToday {
-    return getAllLogs.fold(0, (sum, item) => sum + item.calories);
+  double totalCaloriesToday(String userId) {
+    return getUserLogs(userId).fold(0, (sum, item) => sum + item.calories);
   }
 
   void loadFoods({bool approvedOnly = true}) {

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'PilihMakananManual.dart';
+import '../../services/hive_service.dart';
+import '../food/models/food_model.dart';
 
 class FoodItem {
   final String name;
@@ -33,6 +35,8 @@ class _FoodDatabaseScreenState extends State<FoodDatabaseScreen>
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
 
+  List<FoodModel> _dbFoods = [];
+  
   final List<FoodItem> _myIngredients = [
     FoodItem(
       name: 'Nasi Putih',
@@ -68,12 +72,28 @@ class _FoodDatabaseScreenState extends State<FoodDatabaseScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this, initialIndex: 1);
+    _tabController = TabController(length: 2, vsync: this, initialIndex: 0);
+    _dbFoods = HiveService.foods.values.toList();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  void _onSearchChanged() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      if (query.isEmpty) {
+        _dbFoods = HiveService.foods.values.toList();
+      } else {
+        _dbFoods = HiveService.foods.values
+            .where((f) => f.name.toLowerCase().contains(query))
+            .toList();
+      }
+    });
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
   }
@@ -174,25 +194,33 @@ class _FoodDatabaseScreenState extends State<FoodDatabaseScreen>
       child: Column(
         children: [
           _buildSearchBar(),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           Expanded(
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.search_off_rounded,
-                    size: 64,
-                    color: _textMuted.withOpacity(0.5),
+            child: _dbFoods.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.search_off_rounded,
+                          size: 64,
+                          color: _textMuted.withOpacity(0.5),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          _searchController.text.isNotEmpty 
+                            ? 'Makanan tidak ditemukan'
+                            : 'Database kosong',
+                          style: TextStyle(color: _textMuted, fontSize: 15),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.separated(
+                    itemCount: _dbFoods.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (_, i) => _buildDbFoodCard(_dbFoods[i]),
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Cari makanan di database',
-                    style: TextStyle(color: _textMuted, fontSize: 15),
-                  ),
-                ],
-              ),
-            ),
           ),
         ],
       ),
@@ -204,8 +232,6 @@ class _FoodDatabaseScreenState extends State<FoodDatabaseScreen>
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          _buildSearchBar(),
-          const SizedBox(height: 12),
           _buildAddCustomButton(),
           const SizedBox(height: 16),
           Expanded(
@@ -240,7 +266,7 @@ class _FoodDatabaseScreenState extends State<FoodDatabaseScreen>
       child: TextField(
         controller: _searchController,
         decoration: InputDecoration(
-          hintText: 'Cari makanan...',
+          hintText: 'Cari makanan di database...',
           hintStyle: TextStyle(color: _textMuted, fontSize: 14),
           prefixIcon: Icon(Icons.search_rounded, color: _textMuted),
           border: InputBorder.none,
@@ -293,6 +319,108 @@ class _FoodDatabaseScreenState extends State<FoodDatabaseScreen>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildDbFoodCard(FoodModel item) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: _primary.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.food_bank_outlined,
+              color: _primary,
+              size: 26,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: _textDark,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${item.defaultServingSize.toStringAsFixed(0)} gram',
+                  style: TextStyle(color: _textMuted, fontSize: 12),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    _nutriBadge(
+                      '${item.calories.toStringAsFixed(0)}',
+                      'kal',
+                      _calColor,
+                    ),
+                    const SizedBox(width: 8),
+                    _nutriBadge(
+                      '${item.protein.toStringAsFixed(1)}g',
+                      'protein',
+                      _proteinColor,
+                    ),
+                    const SizedBox(width: 8),
+                    _nutriBadge(
+                      '${item.carbs.toStringAsFixed(1)}g',
+                      'karbo',
+                      _carbsColor,
+                    ),
+                    const SizedBox(width: 8),
+                    _nutriBadge(
+                      '${item.fat.toStringAsFixed(1)}g',
+                      'lemak',
+                      _fatColor,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(
+              Icons.add_shopping_cart_rounded,
+              color: _primary,
+              size: 22,
+            ),
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('${item.name} ditambahkan! (Demo)'),
+                  backgroundColor: _primary,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -386,7 +514,7 @@ class _FoodDatabaseScreenState extends State<FoodDatabaseScreen>
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('${item.name} ditambahkan ke log!'),
+                      content: Text('${item.name} ditambahkan! (Demo)'),
                       backgroundColor: _primary,
                       behavior: SnackBarBehavior.floating,
                       shape: RoundedRectangleBorder(
