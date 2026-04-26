@@ -316,16 +316,20 @@ class _UserMainViewState extends State<UserMainView>
         color: const Color(0xFF2E7D32),
         shape: const CircularNotchedRectangle(),
         notchMargin: 8,
-        child: SizedBox(
-          height: 60,
-          child: Row(
-            children: [
-              _buildNavBtn(0),
-              _buildNavBtn(1),
-              const SizedBox(width: 64), // notch space
-              _buildNavBtn(2),
-              _buildNavBtn(3),
-            ],
+        padding: EdgeInsets.zero,
+        child: SafeArea(
+          top: false,
+          child: SizedBox(
+            height: 60,
+            child: Row(
+              children: [
+                _buildNavBtn(0),
+                _buildNavBtn(1),
+                const SizedBox(width: 64), // notch space
+                _buildNavBtn(2),
+                _buildNavBtn(3),
+              ],
+            ),
           ),
         ),
       ),
