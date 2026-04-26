@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../auth/auth_controller.dart';
 import 'dashboard_controller.dart';
-import 'package:provider/provider.dart';
-import '../auth/auth_controller.dart';
 import '../auth/login_view.dart';
 import '../food/models/log_model.dart';
 import '../../services/hive_service.dart';
@@ -926,3 +924,6 @@ class _DashboardBodyState extends State<DashboardBody> {
     }
   }
 }
+
+// Alias agar import lama tetap compile
+typedef DashboardView = DashboardBody;
