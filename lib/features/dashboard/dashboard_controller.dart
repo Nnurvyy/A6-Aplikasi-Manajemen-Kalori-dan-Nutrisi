@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-
 // ─── DATA MODELS ──────────────────────────────────────────────────────────────
 
 class DayItem {
@@ -41,13 +40,13 @@ class FoodHistoryItem {
   final String id;
   final String name;
   final String category;
-  final double calories;     // kkal per 100g
-  final double protein;      // g per 100g
-  final double carbs;        // g per 100g
-  final double fat;          // g per 100g
-  final double servingSize;  // gram yang dikonsumsi
+  final double calories; // kkal per 100g
+  final double protein; // g per 100g
+  final double carbs; // g per 100g
+  final double fat; // g per 100g
+  final double servingSize; // gram yang dikonsumsi
   final DateTime consumedAt;
-  final String mealTime;     // 'Sarapan' | 'Makan Siang' | 'Makan Malam' | 'Snack'
+  final String mealTime; // 'Sarapan' | 'Makan Siang' | 'Makan Malam' | 'Snack'
 
   const FoodHistoryItem({
     required this.id,
@@ -64,9 +63,9 @@ class FoodHistoryItem {
 
   // Nilai aktual berdasarkan serving size
   double get totalCalories => calories * servingSize / 100;
-  double get totalProtein  => protein  * servingSize / 100;
-  double get totalCarbs    => carbs    * servingSize / 100;
-  double get totalFat      => fat      * servingSize / 100;
+  double get totalProtein => protein * servingSize / 100;
+  double get totalCarbs => carbs * servingSize / 100;
+  double get totalFat => fat * servingSize / 100;
 }
 
 // ─── CONTROLLER ───────────────────────────────────────────────────────────────
@@ -78,9 +77,10 @@ class DashboardController {
 
   // ── Kalori data (nanti dihitung dari recentFoodHistory) ──
   double kaloriConsumed = 760;
-  double kaloriTarget   = 2000;
+  double kaloriTarget = 2000; // akan di-update dari profil user
 
-  double get kaloriPercentage => (kaloriConsumed / kaloriTarget).clamp(0.0, 1.0);
+  double get kaloriPercentage =>
+      (kaloriConsumed / kaloriTarget).clamp(0.0, 1.0);
 
   // ── Days ──
   final List<DayItem> days = const [
@@ -100,30 +100,68 @@ class DashboardController {
       consumed: 35,
       target: 80,
       icon: Icons.fitness_center,
-      bgColor:     const Color(0xFFFFEBEE),
-      fillColor:   const Color(0xFFFFCDD2),
+      bgColor: const Color(0xFFFFEBEE),
+      fillColor: const Color(0xFFFFCDD2),
       borderColor: const Color(0xFFEF9A9A),
-      iconColor:   const Color(0xFFE53935),
+      iconColor: const Color(0xFFE53935),
     ),
     NutrisiItem(
       name: 'Karbohidrat',
       consumed: 160,
       target: 250,
       icon: Icons.grain,
-      bgColor:     const Color(0xFFFFF8E1),
-      fillColor:   const Color(0xFFFFF9C4),
+      bgColor: const Color(0xFFFFF8E1),
+      fillColor: const Color(0xFFFFF9C4),
       borderColor: const Color(0xFFFFE082),
-      iconColor:   const Color(0xFFF59E0B),
+      iconColor: const Color(0xFFF59E0B),
     ),
     NutrisiItem(
       name: 'Lemak',
       consumed: 28,
       target: 65,
       icon: Icons.water_drop,
-      bgColor:     const Color(0xFFFFF3E0),
-      fillColor:   const Color(0xFFFFE0B2),
+      bgColor: const Color(0xFFFFF3E0),
+      fillColor: const Color(0xFFFFE0B2),
       borderColor: const Color(0xFFFFCC80),
-      iconColor:   const Color(0xFFFF8C00),
+      iconColor: const Color(0xFFFF8C00),
+    ),
+  ];
+
+  // ── Nutrisi items dengan target kustom (dari profil user) ──
+  List<NutrisiItem> nutrisiItemsWithTargets({
+    required double protein,
+    required double carbs,
+    required double fat,
+  }) => [
+    NutrisiItem(
+      name: 'Protein',
+      consumed: nutrisiItems[0].consumed,
+      target: protein,
+      icon: Icons.fitness_center,
+      bgColor: const Color(0xFFFFEBEE),
+      fillColor: const Color(0xFFFFCDD2),
+      borderColor: const Color(0xFFEF9A9A),
+      iconColor: const Color(0xFFE53935),
+    ),
+    NutrisiItem(
+      name: 'Karbohidrat',
+      consumed: nutrisiItems[1].consumed,
+      target: carbs,
+      icon: Icons.grain,
+      bgColor: const Color(0xFFFFF8E1),
+      fillColor: const Color(0xFFFFF9C4),
+      borderColor: const Color(0xFFFFE082),
+      iconColor: const Color(0xFFF59E0B),
+    ),
+    NutrisiItem(
+      name: 'Lemak',
+      consumed: nutrisiItems[2].consumed,
+      target: fat,
+      icon: Icons.water_drop,
+      bgColor: const Color(0xFFFFF3E0),
+      fillColor: const Color(0xFFFFE0B2),
+      borderColor: const Color(0xFFFFCC80),
+      iconColor: const Color(0xFFFF8C00),
     ),
   ];
 
@@ -213,13 +251,13 @@ class DashboardController {
       (kaloriTarget - kaloriConsumed).clamp(0, kaloriTarget);
 
   Color get kaloriStatusColor {
-    if (kaloriPercentage < 0.5)  return const Color(0xFF4CAF50);
+    if (kaloriPercentage < 0.5) return const Color(0xFF4CAF50);
     if (kaloriPercentage < 0.85) return const Color(0xFFF59E0B);
     return const Color(0xFFE53935);
   }
 
   String get kaloriStatusLabel {
-    if (kaloriPercentage < 0.5)  return 'Masih aman';
+    if (kaloriPercentage < 0.5) return 'Masih aman';
     if (kaloriPercentage < 0.85) return 'Hampir tercapai';
     return 'Batas tercapai';
   }
