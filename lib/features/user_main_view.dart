@@ -317,7 +317,7 @@ class _UserMainViewState extends State<UserMainView>
         shape: const CircularNotchedRectangle(),
         notchMargin: 8,
         child: SizedBox(
-          height: 60,
+          height: 70,
           child: Row(
             children: [
               _buildNavBtn(0),
