@@ -30,8 +30,7 @@ class _RegisterViewState extends State<RegisterView> {
   final _ageCtrl = TextEditingController();
   final _weightCtrl = TextEditingController();
   final _heightCtrl = TextEditingController();
-  String _activityLevel = 'Jarang olahraga';
-  final _medHistory = TextEditingController();
+  String _activityLevel = 'Sedikit aktif atau tidak berolahraga';
   double _targetWeight = 0;
   final _form2Key = GlobalKey<FormState>();
 
@@ -41,11 +40,11 @@ class _RegisterViewState extends State<RegisterView> {
   int _selectedDay = 1;
 
   final List<String> _activityLevels = [
-    'Jarang olahraga',
-    'Olahraga ringan (1-3 kali seminggu)',
-    'Olahraga sedang (3-5 kali seminggu)',
-    'Olahraga berat (6-7 hari seminggu / ngegym)',
-    'Sangat berat (latihan fisik ekstra / atlet)',
+    'Sedikit aktif atau tidak berolahraga',
+    'Olahraga ringan (1-3 hari/minggu)',
+    'Cukup aktif (olahraga sekitar 3-5 hari/minggu)',
+    'Sangat aktif (olahraga berat/olahraga 6-7 hari seminggu)',
+    'Ekstra aktif (Berolahraga secara berat disertai pekerjaan fisik)',
   ];
 
   final List<String> _months = [
@@ -63,7 +62,6 @@ class _RegisterViewState extends State<RegisterView> {
     _ageCtrl.dispose();
     _weightCtrl.dispose();
     _heightCtrl.dispose();
-    _medHistory.dispose();
     super.dispose();
   }
 
@@ -104,7 +102,6 @@ class _RegisterViewState extends State<RegisterView> {
       age: int.tryParse(_ageCtrl.text) ?? 20,
       gender: _gender,
       activityLevel: _activityLevel,
-      medicalHistory: _medHistory.text.isEmpty ? 'Tidak ada' : _medHistory.text,
       birthDate: DateTime(_selectedYear, _selectedMonth, _selectedDay),
       targetWeightGainPerMonth: _targetWeight,
     );
@@ -405,14 +402,6 @@ class _RegisterViewState extends State<RegisterView> {
                     borderSide:
                         const BorderSide(color: AppColors.lightBorder)),
               ),
-            ),
-            const SizedBox(height: 14),
-            NtTextField(
-              label: 'Riwayat Penyakit',
-              hint: 'Misal: diabetes, hipertensi (isi "Tidak ada" jika sehat)',
-              controller: _medHistory,
-              maxLines: 2,
-              prefixIcon: Icons.medical_information_outlined,
             ),
             const SizedBox(height: 14),
             Text('Target Perubahan BB/bulan (kg)',

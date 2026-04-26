@@ -78,7 +78,7 @@ class DashboardController {
 
   // ── Kalori data (nanti dihitung dari recentFoodHistory) ──
   double kaloriConsumed = 760;
-  double kaloriTarget = 2000; // akan di-update dari profil user
+  double kaloriTarget = 2000.0; // akan di-update dari profil user
 
   double get kaloriPercentage =>
       (kaloriConsumed / kaloriTarget).clamp(0.0, 1.0);

@@ -29,7 +29,7 @@ class _DashboardBodyState extends State<DashboardBody> {
     final user = context.watch<AuthController>().currentUser;
     final foodController = context.watch<FoodController>();
 
-    final kaloriTarget = user?.dailyCalorieNeed ?? 2000;
+    final kaloriTarget = user?.dailyCalorieNeed ?? 2000.0;
     final macros = user?.macroTargets;
 
     // Filter history by selected date
@@ -217,7 +217,7 @@ class _DashboardBodyState extends State<DashboardBody> {
   Widget _buildBatteryBar(double percentage) {
     return IntrinsicHeight(
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
             child: Container(
@@ -280,10 +280,11 @@ class _DashboardBodyState extends State<DashboardBody> {
           ),
           const SizedBox(width: 6),
           Container(
-            width: 10,
+            width: 8,
+            height: 36,
             decoration: BoxDecoration(
               color: const Color(0xFFA5D6A7),
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(4),
             ),
           ),
         ],
