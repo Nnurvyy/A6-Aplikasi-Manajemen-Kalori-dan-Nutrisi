@@ -3,6 +3,9 @@ import 'dashboard_controller.dart';
 import 'package:provider/provider.dart';
 import '../auth/auth_controller.dart';
 import '../auth/login_view.dart';
+import '../food/models/log_model.dart';
+import '../../services/hive_service.dart';
+import '../food/food_controller.dart';
 
 class DashboardView extends StatefulWidget {
   const DashboardView({super.key});
@@ -450,7 +453,12 @@ class _DashboardViewState extends State<DashboardView> {
   // ─── RIWAYAT LIST ─────────────────────────────────────────────────────────
 
   Widget _buildRiwayatList() {
-    final history = _controller.recentFoodHistory;
+    
+    final foodController = context.watch<FoodController>();
+
+    final history = foodController.getAllLogs;
+    
+    history.sort((a, b) => b.consumedAt.compareTo(a.consumedAt));
 
     if (history.isEmpty) {
       return Padding(
@@ -513,7 +521,7 @@ class _DashboardViewState extends State<DashboardView> {
 
   // ─── FOOD HISTORY CARD ────────────────────────────────────────────────────
 
-  Widget _buildFoodHistoryCard(FoodHistoryItem item) {
+  Widget _buildFoodHistoryCard(LogModel item) {
     final Color accentColor = _categoryColor(item.category);
 
     return GestureDetector(
@@ -545,7 +553,7 @@ class _DashboardViewState extends State<DashboardView> {
               ),
               child: Center(
                 child: Text(
-                  item.name[0].toUpperCase(),
+                  item.foodName[0].toUpperCase(),
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
@@ -560,7 +568,7 @@ class _DashboardViewState extends State<DashboardView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item.name,
+                    item.foodName,
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
@@ -569,7 +577,8 @@ class _DashboardViewState extends State<DashboardView> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${item.category} • ${item.mealTime}',
+                    '${item.category} • ${item.mealType}',
+                    //'${item.category} • ${item.mealTime}',
                     style: const TextStyle(
                         fontSize: 11, color: Color(0xFF5A7A5A)),
                   ),
@@ -577,17 +586,17 @@ class _DashboardViewState extends State<DashboardView> {
                   Row(
                     children: [
                       _nutriChip(
-                          'P ${item.totalProtein.toStringAsFixed(1)}g',
+                          'P ${item.protein.toStringAsFixed(1)}g',
                           const Color(0xFFFFEBEE),
                           const Color(0xFFE53935)),
                       const SizedBox(width: 4),
                       _nutriChip(
-                          'K ${item.totalCarbs.toStringAsFixed(1)}g',
+                          'K ${item.carbs.toStringAsFixed(1)}g',
                           const Color(0xFFFFF8E1),
                           const Color(0xFFF59E0B)),
                       const SizedBox(width: 4),
                       _nutriChip(
-                          'L ${item.totalFat.toStringAsFixed(1)}g',
+                          'L ${item.fat.toStringAsFixed(1)}g',
                           const Color(0xFFFFF3E0),
                           const Color(0xFFFF8C00)),
                     ],
@@ -599,7 +608,7 @@ class _DashboardViewState extends State<DashboardView> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '${item.totalCalories.toInt()}',
+                  '${item.calories.toInt()}',
                   style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
@@ -611,7 +620,8 @@ class _DashboardViewState extends State<DashboardView> {
                         fontSize: 10, color: Color(0xFF5A7A5A))),
                 const SizedBox(height: 4),
                 Text(
-                  _controller.formatMealTime(item.consumedAt),
+                  "${item.consumedAt.hour.toString().padLeft(2, '0')}:${item.consumedAt.minute.toString().padLeft(2, '0')}",
+                  //_controller.formatMealTime(item.consumedAt),
                   style: const TextStyle(
                     fontSize: 11,
                     color: Color(0xFF9E9E9E),
@@ -628,8 +638,8 @@ class _DashboardViewState extends State<DashboardView> {
 
   // ─── MODAL DETAIL ─────────────────────────────────────────────────────────
 
-  void _showFoodDetailModal(FoodHistoryItem item) {
-    final Color accentColor = _categoryColor(item.category);
+  void _showFoodDetailModal(LogModel item) {
+    final Color accentColor = _categoryColor(item.mealType);
 
     showModalBottomSheet(
       context: context,
@@ -675,7 +685,7 @@ class _DashboardViewState extends State<DashboardView> {
                           ),
                           child: Center(
                             child: Text(
-                              item.name[0].toUpperCase(),
+                              item.foodName[0].toUpperCase(),
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.w800,
@@ -689,7 +699,7 @@ class _DashboardViewState extends State<DashboardView> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(item.name,
+                              Text(item.foodName,
                                   style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w800,
@@ -700,7 +710,7 @@ class _DashboardViewState extends State<DashboardView> {
                                 children: [
                                   _pillBadge(item.category, accentColor),
                                   const SizedBox(width: 6),
-                                  _pillBadge(item.mealTime,
+                                  _pillBadge(item.mealType,
                                       const Color(0xFF4CAF50)),
                                 ],
                               ),
@@ -728,7 +738,7 @@ class _DashboardViewState extends State<DashboardView> {
                           const SizedBox(width: 10),
                           Column(
                             children: [
-                              Text('${item.totalCalories.toInt()}',
+                              Text('${item.calories.toInt()}',
                                   style: const TextStyle(
                                       fontSize: 32,
                                       fontWeight: FontWeight.w800,
@@ -761,16 +771,16 @@ class _DashboardViewState extends State<DashboardView> {
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        _macroCard('Protein', item.totalProtein,
+                        _macroCard('Protein', item.protein,
                             const Color(0xFFFFEBEE),
                             const Color(0xFFE53935),
                             Icons.fitness_center),
                         const SizedBox(width: 10),
-                        _macroCard('Karbo', item.totalCarbs,
+                        _macroCard('Karbo', item.carbs,
                             const Color(0xFFFFF8E1),
                             const Color(0xFFF59E0B), Icons.grain),
                         const SizedBox(width: 10),
-                        _macroCard('Lemak', item.totalFat,
+                        _macroCard('Lemak', item.fat,
                             const Color(0xFFFFF3E0),
                             const Color(0xFFFF8C00), Icons.water_drop),
                       ],
@@ -788,7 +798,7 @@ class _DashboardViewState extends State<DashboardView> {
                               size: 16, color: Color(0xFF5A7A5A)),
                           const SizedBox(width: 8),
                           Text(
-                            'Dikonsumsi pukul ${_controller.formatMealTime(item.consumedAt)} • ${item.mealTime}',
+                            'Dikonsumsi pukul ${_controller.formatMealTime(item.consumedAt)} • ${item.mealType}',
                             style: const TextStyle(
                                 fontSize: 12,
                                 color: Color(0xFF5A7A5A),

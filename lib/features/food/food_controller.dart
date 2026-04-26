@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'models/food_model.dart';
+import 'models/log_model.dart';
 import '../../services/hive_service.dart';
 
 class FoodController extends ChangeNotifier {
@@ -8,6 +9,8 @@ class FoodController extends ChangeNotifier {
   String _searchQuery = '';
   String _selectedCategory = 'Semua';
   bool _isLoading = false;
+
+  List<LogModel> get getAllLogs => HiveService.logs.values.toList().cast<LogModel>();
 
   List<FoodModel> get foods => _filtered;
   List<FoodModel> get allApproved =>
@@ -19,6 +22,10 @@ class FoodController extends ChangeNotifier {
   static const List<String> categories = [
     'Semua', 'Makanan Pokok', 'Lauk', 'Sayuran', 'Buah', 'Minuman', 'Snack', 'Lainnya'
   ];
+
+  double get totalCaloriesToday {
+    return getAllLogs.fold(0, (sum, item) => sum + item.calories);
+  }
 
   void loadFoods({bool approvedOnly = true}) {
     _allFoods = HiveService.foods.values
@@ -72,4 +79,56 @@ class FoodController extends ChangeNotifier {
   }
 
   FoodModel? findById(String id) => HiveService.foods.get(id);
+
+  Future<bool> addFoodToDailyLog({
+    required String userId,
+    required String foodName,
+    required String category,
+    required double calories,
+    required double protein,
+    required double carbs,
+    required double fat,
+    required String mealType,
+    required DateTime dateConsumed, 
+  }) async {
+    //max 3 hari yg lalu
+    final now = DateTime.now();
+    final threeDaysAgo = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 3));
+    final inputDateOnly = DateTime(dateConsumed.year, dateConsumed.month, dateConsumed.day);
+
+    if (inputDateOnly.isBefore(threeDaysAgo)) {
+      // reject >3 hari lalu
+      return false; 
+    }
+
+    final newLog = LogModel(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      userId: userId,
+      foodName: foodName,
+      calories: calories,
+      protein: protein,
+      carbs: carbs,
+      fat: fat,
+      mealType: mealType,
+      consumedAt: dateConsumed,
+      syncStatus: 'pending', 
+      servingSize: 100.0,
+      category: category,
+    );
+
+    await HiveService.logs.put(newLog.id, newLog);
+    
+    
+    notifyListeners();
+
+    final allLogs = HiveService.logs.values.toList();
+    print("\n=== ISI DATABASE RIWAYAT SAAT INI ===");
+    print("Total data riwayat: ${allLogs.length}");
+    for (var log in allLogs) {
+      print("- Makanan: ${log.foodName} | Kalori: ${log.calories} | Tanggal: ${log.consumedAt} | Status: ${log.syncStatus} | Kategori: ${log.category}");
+    }
+    print("===========================================\n");
+
+    return true; 
+  }
 }
