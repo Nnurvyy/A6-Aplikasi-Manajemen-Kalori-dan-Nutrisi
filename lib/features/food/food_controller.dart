@@ -84,6 +84,8 @@ class FoodController extends ChangeNotifier {
 
   FoodModel? findById(String id) => HiveService.foods.get(id);
 
+  List<LogModel> get allLogs => HiveService.logs.values.toList();
+
   Future<bool> addFoodToDailyLog({
     required String userId,
     required String foodName,
@@ -94,6 +96,8 @@ class FoodController extends ChangeNotifier {
     required double fat,
     required String mealType,
     required DateTime dateConsumed, 
+    required double servingSize,
+    bool isManual = false,
   }) async {
     //max 3 hari yg lalu
     final now = DateTime.now();
@@ -116,8 +120,9 @@ class FoodController extends ChangeNotifier {
       mealType: mealType,
       consumedAt: dateConsumed,
       syncStatus: 'pending', 
-      servingSize: 100.0,
+      servingSize: servingSize,
       category: category,
+      isManual: isManual,
     );
 
     await HiveService.logs.put(newLog.id, newLog);

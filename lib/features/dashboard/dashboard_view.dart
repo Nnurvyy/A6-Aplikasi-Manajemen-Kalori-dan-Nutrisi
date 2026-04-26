@@ -583,8 +583,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${item.category} • ${item.mealType}',
-                    //'${item.category} • ${item.mealTime}',
+                    item.category,
                     style: const TextStyle(
                       fontSize: 11,
                       color: Color(0xFF5A7A5A),
@@ -651,7 +650,7 @@ class _DashboardBodyState extends State<DashboardBody> {
   // ─── MODAL DETAIL ─────────────────────────────────────────────────────────
 
   void _showFoodDetailModal(LogModel item) {
-    final Color accentColor = _categoryColor(item.mealType);
+    final Color accentColor = _categoryColor(item.category);
 
     showModalBottomSheet(
       context: context,
@@ -729,11 +728,6 @@ class _DashboardBodyState extends State<DashboardBody> {
                                           _pillBadge(
                                             item.category,
                                             accentColor,
-                                          ),
-                                          const SizedBox(width: 6),
-                                          _pillBadge(
-                                            item.mealType,
-                                            const Color(0xFF4CAF50),
                                           ),
                                         ],
                                       ),

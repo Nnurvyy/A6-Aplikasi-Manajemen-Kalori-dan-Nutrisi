@@ -8,6 +8,7 @@ import '../auth/auth_controller.dart';
 import '../shared/widgets/nt_button.dart';
 import 'package:intl/intl.dart';
 import 'food_controller.dart';
+import 'watchlist_controller.dart';
 
 class FoodDetailView extends StatefulWidget {
   final FoodModel food;
@@ -21,19 +22,11 @@ class FoodDetailView extends StatefulWidget {
 class _FoodDetailViewState extends State<FoodDetailView> {
   late double _currentGrams;
   int _quantity = 1;
-  String _mealType = 'Lunch';
 
   @override
   void initState() {
     super.initState();
     _currentGrams = widget.food.defaultServingSize;
-    
-    // Auto-select meal type based on time
-    final hour = DateTime.now().hour;
-    if (hour >= 4 && hour < 11) _mealType = 'Sarapan';
-    else if (hour >= 11 && hour < 16) _mealType = 'Makan Siang';
-    else if (hour >= 16 && hour < 21) _mealType = 'Makan Malam';
-    else _mealType = 'Camilan';
   }
 
   @override
@@ -50,7 +43,9 @@ class _FoodDetailViewState extends State<FoodDetailView> {
       'fat': baseNutrition['fat']! * _quantity,
     };
     
-    // Watchlist removed for now
+    final watchlist = context.watch<WatchlistController>();
+    final userId = auth.currentUser?.id;
+    final isSaved = userId != null && watchlist.isInWatchlist(userId, widget.food.id);
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
@@ -66,7 +61,22 @@ class _FoodDetailViewState extends State<FoodDetailView> {
               onPressed: () => Navigator.pop(context),
             ),
             actions: [
-              // Bookmark icon removed
+              if (userId != null)
+                IconButton(
+                  icon: Icon(
+                    isSaved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+                    color: Colors.white,
+                  ),
+                  onPressed: () {
+                    watchlist.toggleWatchlist(userId, widget.food);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(isSaved ? 'Dihapus dari simpanan' : 'Disimpan ke watchlist'),
+                        duration: const Duration(seconds: 1),
+                      ),
+                    );
+                  },
+                ),
             ],
             flexibleSpace: FlexibleSpaceBar(
               background: widget.food.imageUrl != null
@@ -110,8 +120,6 @@ class _FoodDetailViewState extends State<FoodDetailView> {
                           color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                         ),
                       ),
-                      const Spacer(),
-                      _mealTypeBadge(_mealType),
                     ],
                   ),
 
@@ -309,8 +317,9 @@ class _FoodDetailViewState extends State<FoodDetailView> {
               protein: nutrition['protein']!,
               carbs: nutrition['carbs']!,
               fat: nutrition['fat']!,
-              mealType: _mealType,
+              mealType: '',
               dateConsumed: DateTime.now(), 
+              servingSize: _currentGrams * _quantity,
             );
 
             // HistoryController removed for now
@@ -320,7 +329,7 @@ class _FoodDetailViewState extends State<FoodDetailView> {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Berhasil ditambahkan ke $_mealType! Status: Pending'),
+                  content: Text('${widget.food.name} berhasil ditambahkan ke log'),
                   backgroundColor: AppColors.primary,
                 ),
               );
@@ -339,24 +348,7 @@ class _FoodDetailViewState extends State<FoodDetailView> {
     );
   }
 
-  Widget _mealTypeBadge(String type) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
-      ),
-      child: Text(
-        type,
-        style: GoogleFonts.poppins(
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-          color: AppColors.primary,
-        ),
-      ),
-    );
-  }
+
 
   Widget _buildMacroCard(String label, double value, Color color, IconData icon, bool isDark) {
     return Expanded(
