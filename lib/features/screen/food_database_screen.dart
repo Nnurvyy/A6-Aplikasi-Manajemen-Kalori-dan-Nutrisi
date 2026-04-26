@@ -1,25 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
+import 'food_item_model.dart';
 import 'PilihMakananManual.dart';
+import '../food/models/food_model.dart';
+import '../../services/hive_service.dart';
 
-class FoodItem {
-  final String name;
-  final double servingSize;
-  final String unit;
-  final double calories;
-  final double protein;
-  final double carbs;
-  final double fat;
-
-  FoodItem({
-    required this.name,
-    required this.servingSize,
-    required this.unit,
-    required this.calories,
-    required this.protein,
-    required this.carbs,
-    required this.fat,
-  });
-}
+// FoodItem lokal dihapus — sekarang pakai FoodModel (Hive) supaya persisten.
 
 class FoodDatabaseScreen extends StatefulWidget {
   const FoodDatabaseScreen({super.key});
@@ -33,26 +19,10 @@ class _FoodDatabaseScreenState extends State<FoodDatabaseScreen>
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
 
-  final List<FoodItem> _myIngredients = [
-    FoodItem(
-      name: 'Nasi Putih',
-      servingSize: 100,
-      unit: 'gram',
-      calories: 130,
-      protein: 2.7,
-      carbs: 28.2,
-      fat: 0.3,
-    ),
-    FoodItem(
-      name: 'Telur Ayam',
-      servingSize: 1,
-      unit: 'butir',
-      calories: 77,
-      protein: 6.3,
-      carbs: 0.6,
-      fat: 5.3,
-    ),
-  ];
+  // Baca langsung dari Hive — hanya tampilkan food milik user (isApproved=false = custom)
+  List<FoodModel> get _myIngredients =>
+      HiveService.foods.values.where((f) => !f.isApproved).toList()
+        ..sort((a, b) => a.name.compareTo(b.name));
 
   static const Color _primary = Color(0xFF2ECC71);
   static const Color _primaryDark = Color(0xFF27AE60);
@@ -78,7 +48,7 @@ class _FoodDatabaseScreenState extends State<FoodDatabaseScreen>
     super.dispose();
   }
 
-  void _deleteIngredient(int index) {
+  void _deleteIngredient(FoodModel item) {
     showDialog(
       context: context,
       builder:
@@ -90,9 +60,7 @@ class _FoodDatabaseScreenState extends State<FoodDatabaseScreen>
               'Hapus Bahan?',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
-            content: Text(
-              'Yakin ingin menghapus "${_myIngredients[index].name}"?',
-            ),
+            content: Text('Yakin ingin menghapus "${item.name}"?'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
@@ -105,9 +73,12 @@ class _FoodDatabaseScreenState extends State<FoodDatabaseScreen>
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                onPressed: () {
-                  setState(() => _myIngredients.removeAt(index));
-                  Navigator.pop(context);
+                onPressed: () async {
+                  await HiveService.foods.delete(item.id);
+                  if (mounted) {
+                    setState(() {});
+                    Navigator.pop(context);
+                  }
                 },
                 child: const Text(
                   'Hapus',
@@ -124,8 +95,25 @@ class _FoodDatabaseScreenState extends State<FoodDatabaseScreen>
       context,
       MaterialPageRoute(builder: (_) => const PilihMakananManual()),
     );
-    if (result != null) {
-      setState(() => _myIngredients.add(result));
+    if (result != null && mounted) {
+      // Konversi FoodItem (dari PilihMakananManual) → FoodModel lalu simpan ke Hive
+      final food = FoodModel(
+        id: const Uuid().v4(),
+        name: result.name,
+        category: 'Lainnya',
+        calories: result.calories,
+        protein: result.protein,
+        carbs: result.carbs,
+        fat: result.fat,
+        defaultServingSize: result.servingSize,
+        isApproved:
+            false, // false = bahan custom milik user (bukan dari database resmi)
+        createdAt: DateTime.now(),
+        description:
+            result.unit, // simpan satuan (gram/butir/dll) di description
+      );
+      await HiveService.foods.put(food.id, food);
+      setState(() {});
     }
   }
 
@@ -200,6 +188,7 @@ class _FoodDatabaseScreenState extends State<FoodDatabaseScreen>
   }
 
   Widget _buildMyIngredientsTab() {
+    final items = _myIngredients;
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -210,13 +199,12 @@ class _FoodDatabaseScreenState extends State<FoodDatabaseScreen>
           const SizedBox(height: 16),
           Expanded(
             child:
-                _myIngredients.isEmpty
+                items.isEmpty
                     ? _buildEmptyState()
                     : ListView.separated(
-                      itemCount: _myIngredients.length,
+                      itemCount: items.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 10),
-                      itemBuilder:
-                          (_, i) => _buildIngredientCard(_myIngredients[i], i),
+                      itemBuilder: (_, i) => _buildIngredientCard(items[i]),
                     ),
           ),
         ],
@@ -297,7 +285,12 @@ class _FoodDatabaseScreenState extends State<FoodDatabaseScreen>
     );
   }
 
-  Widget _buildIngredientCard(FoodItem item, int index) {
+  Widget _buildIngredientCard(FoodModel item) {
+    // unit tersimpan di description saat save dari PilihMakananManual
+    final unit =
+        (item.description != null && item.description!.isNotEmpty)
+            ? item.description!
+            : 'gram';
     return Container(
       decoration: BoxDecoration(
         color: _surface,
@@ -341,7 +334,7 @@ class _FoodDatabaseScreenState extends State<FoodDatabaseScreen>
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${item.servingSize.toStringAsFixed(0)} ${item.unit}',
+                  '${item.defaultServingSize.toStringAsFixed(0)} $unit',
                   style: TextStyle(color: _textMuted, fontSize: 12),
                 ),
                 const SizedBox(height: 6),
@@ -402,7 +395,7 @@ class _FoodDatabaseScreenState extends State<FoodDatabaseScreen>
                   color: Colors.redAccent,
                   size: 22,
                 ),
-                onPressed: () => _deleteIngredient(index),
+                onPressed: () => _deleteIngredient(item),
               ),
             ],
           ),
