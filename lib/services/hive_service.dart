@@ -3,19 +3,14 @@ import '../features/auth/models/user_model.dart';
 import '../features/food/models/food_model.dart';
 import '../features/food/models/log_model.dart';
 
-
 class HiveService {
   static const String userBox = 'users';
   static const String foodBox = 'foods';
-
   static const String logBox = 'logs';
-
   static const String settingsBox = 'settings';
 
+  /// Adapter sudah di-register di main.dart — di sini hanya buka box.
   static Future<void> initBoxes() async {
-
-    Hive.registerAdapter(LogModelAdapter());
-
     await Hive.openBox<UserModel>(userBox);
     await Hive.openBox<FoodModel>(foodBox);
     await Hive.openBox<LogModel>(logBox);
