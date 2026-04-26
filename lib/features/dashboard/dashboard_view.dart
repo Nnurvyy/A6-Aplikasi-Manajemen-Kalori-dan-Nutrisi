@@ -86,8 +86,11 @@ class _DashboardBodyState extends State<DashboardBody> {
                     color: Color(0xFF4CAF50),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.settings,
-                      color: Colors.white, size: 20),
+                  child: const Icon(
+                    Icons.settings,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
@@ -109,8 +112,11 @@ class _DashboardBodyState extends State<DashboardBody> {
                     color: Colors.red,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.logout,
-                      color: Colors.white, size: 20),
+                  child: const Icon(
+                    Icons.logout,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                 ),
               ),
             ],
@@ -253,8 +259,11 @@ class _DashboardBodyState extends State<DashboardBody> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.local_fire_department,
-                                color: Colors.white, size: 18),
+                            const Icon(
+                              Icons.local_fire_department,
+                              color: Colors.white,
+                              size: 18,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               '${(percentage * 100).toInt()}%',
@@ -287,7 +296,7 @@ class _DashboardBodyState extends State<DashboardBody> {
   }
 
   // ─── NUTRISI GRID ─────────────────────────────────────────────────────────
-  Widget _buildNutriGrid(Map<String, double>? macros) {
+  Widget _buildNutriGrid([Map<String, double>? macros]) {
     // Gunakan target dari user jika ada, fallback ke controller default
     final items =
         macros != null
@@ -373,7 +382,8 @@ class _DashboardBodyState extends State<DashboardBody> {
               decoration: BoxDecoration(
                 color: item.borderColor,
                 borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(3)),
+                  top: Radius.circular(3),
+                ),
               ),
             ),
           ),
@@ -399,13 +409,13 @@ class _DashboardBodyState extends State<DashboardBody> {
                         decoration: BoxDecoration(
                           color: item.fillColor,
                           borderRadius: const BorderRadius.vertical(
-                              bottom: Radius.circular(8)),
+                            bottom: Radius.circular(8),
+                          ),
                         ),
                       ),
                     ),
                     Center(
-                      child: Icon(item.icon,
-                          color: item.iconColor, size: 20),
+                      child: Icon(item.icon, color: item.iconColor, size: 20),
                     ),
                   ],
                 ),
@@ -416,7 +426,6 @@ class _DashboardBodyState extends State<DashboardBody> {
       ),
     );
   }
-}
 
   // ─── SEPARATOR "Riwayat Makanan" ──────────────────────────────────────────
 
@@ -425,12 +434,10 @@ class _DashboardBodyState extends State<DashboardBody> {
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
       child: Row(
         children: [
-          Expanded(
-              child: Container(height: 1, color: const Color(0xFFD0E8D0))),
+          Expanded(child: Container(height: 1, color: const Color(0xFFD0E8D0))),
           const SizedBox(width: 12),
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
               color: const Color(0xFF4CAF50),
               borderRadius: BorderRadius.circular(20),
@@ -453,8 +460,7 @@ class _DashboardBodyState extends State<DashboardBody> {
             ),
           ),
           const SizedBox(width: 12),
-          Expanded(
-              child: Container(height: 1, color: const Color(0xFFD0E8D0))),
+          Expanded(child: Container(height: 1, color: const Color(0xFFD0E8D0))),
         ],
       ),
     );
@@ -463,11 +469,10 @@ class _DashboardBodyState extends State<DashboardBody> {
   // ─── RIWAYAT LIST ─────────────────────────────────────────────────────────
 
   Widget _buildRiwayatList() {
-    
     final foodController = context.watch<FoodController>();
 
     final history = foodController.getAllLogs;
-    
+
     history.sort((a, b) => b.consumedAt.compareTo(a.consumedAt));
 
     if (history.isEmpty) {
@@ -475,13 +480,11 @@ class _DashboardBodyState extends State<DashboardBody> {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         child: Container(
           width: double.infinity,
-          padding:
-              const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+          padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-                color: const Color(0xFFE0E0E0), width: 1.5),
+            border: Border.all(color: const Color(0xFFE0E0E0), width: 1.5),
           ),
           child: Column(
             children: [
@@ -492,8 +495,11 @@ class _DashboardBodyState extends State<DashboardBody> {
                   color: const Color(0xFFE8F5E9),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Icon(Icons.no_meals_rounded,
-                    color: Color(0xFF4CAF50), size: 28),
+                child: const Icon(
+                  Icons.no_meals_rounded,
+                  color: Color(0xFF4CAF50),
+                  size: 28,
+                ),
               ),
               const SizedBox(height: 14),
               const Text(
@@ -523,8 +529,7 @@ class _DashboardBodyState extends State<DashboardBody> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
-        children:
-            history.map((item) => _buildFoodHistoryCard(item)).toList(),
+        children: history.map((item) => _buildFoodHistoryCard(item)).toList(),
       ),
     );
   }
@@ -542,8 +547,7 @@ class _DashboardBodyState extends State<DashboardBody> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
-          border:
-              Border.all(color: const Color(0xFFE0E0E0), width: 1.5),
+          border: Border.all(color: const Color(0xFFE0E0E0), width: 1.5),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.04),
@@ -590,25 +594,30 @@ class _DashboardBodyState extends State<DashboardBody> {
                     '${item.category} • ${item.mealType}',
                     //'${item.category} • ${item.mealTime}',
                     style: const TextStyle(
-                        fontSize: 11, color: Color(0xFF5A7A5A)),
+                      fontSize: 11,
+                      color: Color(0xFF5A7A5A),
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Row(
                     children: [
                       _nutriChip(
-                          'P ${item.protein.toStringAsFixed(1)}g',
-                          const Color(0xFFFFEBEE),
-                          const Color(0xFFE53935)),
+                        'P ${item.protein.toStringAsFixed(1)}g',
+                        const Color(0xFFFFEBEE),
+                        const Color(0xFFE53935),
+                      ),
                       const SizedBox(width: 4),
                       _nutriChip(
-                          'K ${item.carbs.toStringAsFixed(1)}g',
-                          const Color(0xFFFFF8E1),
-                          const Color(0xFFF59E0B)),
+                        'K ${item.carbs.toStringAsFixed(1)}g',
+                        const Color(0xFFFFF8E1),
+                        const Color(0xFFF59E0B),
+                      ),
                       const SizedBox(width: 4),
                       _nutriChip(
-                          'L ${item.fat.toStringAsFixed(1)}g',
-                          const Color(0xFFFFF3E0),
-                          const Color(0xFFFF8C00)),
+                        'L ${item.fat.toStringAsFixed(1)}g',
+                        const Color(0xFFFFF3E0),
+                        const Color(0xFFFF8C00),
+                      ),
                     ],
                   ),
                 ],
@@ -625,9 +634,10 @@ class _DashboardBodyState extends State<DashboardBody> {
                     color: Color(0xFF4CAF50),
                   ),
                 ),
-                const Text('kkal',
-                    style: TextStyle(
-                        fontSize: 10, color: Color(0xFF5A7A5A))),
+                const Text(
+                  'kkal',
+                  style: TextStyle(fontSize: 10, color: Color(0xFF5A7A5A)),
+                ),
                 const SizedBox(height: 4),
                 Text(
                   "${item.consumedAt.hour.toString().padLeft(2, '0')}:${item.consumedAt.minute.toString().padLeft(2, '0')}",
@@ -655,205 +665,259 @@ class _DashboardBodyState extends State<DashboardBody> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => DraggableScrollableSheet(
-        initialChildSize: 0.6,
-        minChildSize: 0.4,
-        maxChildSize: 0.85,
-        expand: false,
-        builder: (_, scrollCtrl) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius:
-                BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE0E0E0),
-                    borderRadius: BorderRadius.circular(2),
+      builder:
+          (ctx) => DraggableScrollableSheet(
+            initialChildSize: 0.6,
+            minChildSize: 0.4,
+            maxChildSize: 0.85,
+            expand: false,
+            builder:
+                (_, scrollCtrl) => Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(24),
+                    ),
                   ),
-                ),
-              ),
-              Expanded(
-                child: ListView(
-                  controller: scrollCtrl,
-                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 52,
-                          height: 52,
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Container(
+                          width: 40,
+                          height: 4,
                           decoration: BoxDecoration(
-                            color: accentColor.withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Center(
-                            child: Text(
-                              item.foodName[0].toUpperCase(),
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w800,
-                                color: accentColor,
-                              ),
-                            ),
+                            color: const Color(0xFFE0E0E0),
+                            borderRadius: BorderRadius.circular(2),
                           ),
                         ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(item.foodName,
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w800,
-                                    color: Color(0xFF1B2A1B),
-                                  )),
-                              const SizedBox(height: 4),
-                              Row(
+                      ),
+                      Expanded(
+                        child: ListView(
+                          controller: scrollCtrl,
+                          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 52,
+                                  height: 52,
+                                  decoration: BoxDecoration(
+                                    color: accentColor.withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      item.foodName[0].toUpperCase(),
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w800,
+                                        color: accentColor,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        item.foodName,
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w800,
+                                          color: Color(0xFF1B2A1B),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          _pillBadge(
+                                            item.category,
+                                            accentColor,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          _pillBadge(
+                                            item.mealType,
+                                            const Color(0xFF4CAF50),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+                            Container(
+                              padding: const EdgeInsets.symmetric(vertical: 20),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF4CAF50),
+                                    Color(0xFF66BB6A),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  _pillBadge(item.category, accentColor),
-                                  const SizedBox(width: 6),
-                                  _pillBadge(item.mealType,
-                                      const Color(0xFF4CAF50)),
+                                  const Icon(
+                                    Icons.local_fire_department,
+                                    color: Colors.white,
+                                    size: 28,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Column(
+                                    children: [
+                                      Text(
+                                        '${item.calories.toInt()}',
+                                        style: const TextStyle(
+                                          fontSize: 32,
+                                          fontWeight: FontWeight.w800,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const Text(
+                                        'kkal total',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.white70,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(width: 24),
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '${item.servingSize.toInt()} gram',
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      Text(
+                                        '(${item.calories.toInt()} kkal/100g)',
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.white70,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ],
                               ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    Container(
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF4CAF50), Color(0xFF66BB6A)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.local_fire_department,
-                              color: Colors.white, size: 28),
-                          const SizedBox(width: 10),
-                          Column(
-                            children: [
-                              Text('${item.calories.toInt()}',
-                                  style: const TextStyle(
-                                      fontSize: 32,
-                                      fontWeight: FontWeight.w800,
-                                      color: Colors.white)),
-                              const Text('kkal total',
-                                  style: TextStyle(
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                _macroCard(
+                                  'Protein',
+                                  item.protein,
+                                  const Color(0xFFFFEBEE),
+                                  const Color(0xFFE53935),
+                                  Icons.fitness_center,
+                                ),
+                                const SizedBox(width: 10),
+                                _macroCard(
+                                  'Karbo',
+                                  item.carbs,
+                                  const Color(0xFFFFF8E1),
+                                  const Color(0xFFF59E0B),
+                                  Icons.grain,
+                                ),
+                                const SizedBox(width: 10),
+                                _macroCard(
+                                  'Lemak',
+                                  item.fat,
+                                  const Color(0xFFFFF3E0),
+                                  const Color(0xFFFF8C00),
+                                  Icons.water_drop,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF4F6F0),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.access_time,
+                                    size: 16,
+                                    color: Color(0xFF5A7A5A),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Dikonsumsi pukul ${_controller.formatMealTime(item.consumedAt)} • ${item.mealType}',
+                                    style: const TextStyle(
                                       fontSize: 12,
-                                      color: Colors.white70)),
-                            ],
-                          ),
-                          const SizedBox(width: 24),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('${item.servingSize.toInt()} gram',
-                                  style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white)),
-                              Text(
-                                  '(${item.calories.toInt()} kkal/100g)',
-                                  style: const TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.white70)),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        _macroCard('Protein', item.protein,
-                            const Color(0xFFFFEBEE),
-                            const Color(0xFFE53935),
-                            Icons.fitness_center),
-                        const SizedBox(width: 10),
-                        _macroCard('Karbo', item.carbs,
-                            const Color(0xFFFFF8E1),
-                            const Color(0xFFF59E0B), Icons.grain),
-                        const SizedBox(width: 10),
-                        _macroCard('Lemak', item.fat,
-                            const Color(0xFFFFF3E0),
-                            const Color(0xFFFF8C00), Icons.water_drop),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF4F6F0),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.access_time,
-                              size: 16, color: Color(0xFF5A7A5A)),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Dikonsumsi pukul ${_controller.formatMealTime(item.consumedAt)} • ${item.mealType}',
-                            style: const TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF5A7A5A),
-                                fontWeight: FontWeight.w500),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        // TODO: hapus dari riwayat
-                      },
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFEBEE),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                              color: const Color(0xFFEF9A9A), width: 1.5),
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.delete_outline,
-                                color: Color(0xFFE53935), size: 18),
-                            SizedBox(width: 8),
-                            Text('Hapus dari Riwayat',
-                                style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFFE53935))),
+                                      color: Color(0xFF5A7A5A),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.pop(ctx);
+                                // TODO: hapus dari riwayat
+                              },
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFEBEE),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: const Color(0xFFEF9A9A),
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.delete_outline,
+                                      color: Color(0xFFE53935),
+                                      size: 18,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Hapus dari Riwayat',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFFE53935),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
           ),
-        ),
-      ),
     );
   }
 
@@ -863,12 +927,17 @@ class _DashboardBodyState extends State<DashboardBody> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-          color: bg, borderRadius: BorderRadius.circular(6)),
-      child: Text(label,
-          style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: textColor)),
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: textColor,
+        ),
+      ),
     );
   }
 
@@ -879,14 +948,24 @@ class _DashboardBodyState extends State<DashboardBody> {
         color: color.withOpacity(0.12),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(text,
-          style: TextStyle(
-              fontSize: 10, fontWeight: FontWeight.w700, color: color)),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: color,
+        ),
+      ),
     );
   }
 
-  Widget _macroCard(String label, double value, Color bg, Color color,
-      IconData icon) {
+  Widget _macroCard(
+    String label,
+    double value,
+    Color bg,
+    Color color,
+    IconData icon,
+  ) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -898,14 +977,18 @@ class _DashboardBodyState extends State<DashboardBody> {
           children: [
             Icon(icon, color: color, size: 18),
             const SizedBox(height: 6),
-            Text('${value.toStringAsFixed(1)}g',
-                style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: color)),
-            Text(label,
-                style: TextStyle(
-                    fontSize: 10, color: color.withOpacity(0.7))),
+            Text(
+              '${value.toStringAsFixed(1)}g',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
+            ),
+            Text(
+              label,
+              style: TextStyle(fontSize: 10, color: color.withOpacity(0.7)),
+            ),
           ],
         ),
       ),
@@ -914,13 +997,20 @@ class _DashboardBodyState extends State<DashboardBody> {
 
   Color _categoryColor(String category) {
     switch (category.toLowerCase()) {
-      case 'lauk':           return const Color(0xFF4CAF50);
-      case 'makanan pokok':  return const Color(0xFFF59E0B);
-      case 'sayuran':        return const Color(0xFF43A047);
-      case 'buah':           return const Color(0xFFE91E63);
-      case 'minuman':        return const Color(0xFF1E88E5);
-      case 'snack':          return const Color(0xFF9C27B0);
-      default:               return const Color(0xFF78909C);
+      case 'lauk':
+        return const Color(0xFF4CAF50);
+      case 'makanan pokok':
+        return const Color(0xFFF59E0B);
+      case 'sayuran':
+        return const Color(0xFF43A047);
+      case 'buah':
+        return const Color(0xFFE91E63);
+      case 'minuman':
+        return const Color(0xFF1E88E5);
+      case 'snack':
+        return const Color(0xFF9C27B0);
+      default:
+        return const Color(0xFF78909C);
     }
   }
 }

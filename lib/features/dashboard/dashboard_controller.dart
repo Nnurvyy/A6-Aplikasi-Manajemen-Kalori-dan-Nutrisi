@@ -127,6 +127,44 @@ class DashboardController {
     ),
   ];
 
+  // ── Nutrisi items dengan target kustom (dari profil user) ──
+  List<NutrisiItem> nutrisiItemsWithTargets({
+    required double protein,
+    required double carbs,
+    required double fat,
+  }) => [
+    NutrisiItem(
+      name: 'Protein',
+      consumed: nutrisiItems[0].consumed,
+      target: protein,
+      icon: Icons.fitness_center,
+      bgColor: const Color(0xFFFFEBEE),
+      fillColor: const Color(0xFFFFCDD2),
+      borderColor: const Color(0xFFEF9A9A),
+      iconColor: const Color(0xFFE53935),
+    ),
+    NutrisiItem(
+      name: 'Karbohidrat',
+      consumed: nutrisiItems[1].consumed,
+      target: carbs,
+      icon: Icons.grain,
+      bgColor: const Color(0xFFFFF8E1),
+      fillColor: const Color(0xFFFFF9C4),
+      borderColor: const Color(0xFFFFE082),
+      iconColor: const Color(0xFFF59E0B),
+    ),
+    NutrisiItem(
+      name: 'Lemak',
+      consumed: nutrisiItems[2].consumed,
+      target: fat,
+      icon: Icons.water_drop,
+      bgColor: const Color(0xFFFFF3E0),
+      fillColor: const Color(0xFFFFE0B2),
+      borderColor: const Color(0xFFFFCC80),
+      iconColor: const Color(0xFFFF8C00),
+    ),
+  ];
+
   // ── Food History — 3 makanan terakhir (dummy) ──
   // Ganti list ini dengan data dari Hive/API saat integrasi.
   // Untuk menguji empty state, kosongkan list ini: []
