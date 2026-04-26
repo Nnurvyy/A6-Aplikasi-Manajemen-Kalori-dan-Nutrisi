@@ -32,7 +32,7 @@ class AuthController extends ChangeNotifier {
 
     await Future.delayed(const Duration(milliseconds: 500));
 
-    final user = HiveService.users.values.firstWhere(
+    final user = HiveService.users.values.whereType<UserModel>().firstWhere(
       (u) => u.email.toLowerCase() == email.toLowerCase() &&
              u.password == password,
       orElse: () => UserModel(
@@ -71,7 +71,6 @@ class AuthController extends ChangeNotifier {
     required int age,
     required String gender,
     required String activityLevel,
-    required String medicalHistory,
     required DateTime birthDate,
     double targetWeightGainPerMonth = 0,
   }) async {
@@ -108,7 +107,6 @@ class AuthController extends ChangeNotifier {
       age: age,
       gender: gender,
       activityLevel: activityLevel,
-      medicalHistory: medicalHistory,
       birthDate: birthDate,
       dailyCalorieNeed: dailyCalorieNeed,
       targetWeightGainPerMonth: targetWeightGainPerMonth,

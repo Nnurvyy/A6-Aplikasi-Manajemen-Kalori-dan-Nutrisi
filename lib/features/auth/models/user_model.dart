@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import '../../../helpers/calorie_helper.dart';
 
 class UserModel extends HiveObject {
   String id;
@@ -14,7 +15,6 @@ class UserModel extends HiveObject {
   int? age;
   String? gender;     // 'Laki-laki' | 'Perempuan'
   String? activityLevel;
-  String? medicalHistory;
   double? dailyCalorieNeed;
   DateTime? birthDate;
   bool isBlocked;
@@ -31,21 +31,16 @@ class UserModel extends HiveObject {
     this.age,
     this.gender,
     this.activityLevel,
-    this.medicalHistory,
     this.dailyCalorieNeed,
     this.birthDate,
     this.isBlocked = false,
     this.targetWeightGainPerMonth,
   });
 
-  /// Target makro harian (gram)
+  /// Target makro harian (gram) - Menggunakan logic baru dari CalorieHelper
   Map<String, double> get macroTargets {
-    final cal = dailyCalorieNeed ?? 2000;
-    return {
-      'protein': (cal * 0.30) / 4,
-      'carbs': (cal * 0.50) / 4,
-      'fat': (cal * 0.20) / 9,
-    };
+    final cal = dailyCalorieNeed ?? 2000.0;
+    return CalorieHelper.calculateMacros(cal);
   }
 }
 
@@ -70,18 +65,17 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
       age: f[7] as int?,
       gender: f[8] as String?,
       activityLevel: f[9] as String?,
-      medicalHistory: f[10] as String?,
-      dailyCalorieNeed: f[11] as double?,
+      dailyCalorieNeed: (f[11] as num?)?.toDouble(),
       birthDate: f[12] as DateTime?,
       isBlocked: f[13] as bool? ?? false,
-      targetWeightGainPerMonth: f[14] as double?,
+      targetWeightGainPerMonth: (f[14] as num?)?.toDouble(),
     );
   }
 
   @override
   void write(BinaryWriter writer, UserModel obj) {
     writer
-      ..writeByte(15)
+      ..writeByte(14) // 15 - 1 (medicalHistory removed)
       ..writeByte(0)..write(obj.id)
       ..writeByte(1)..write(obj.name)
       ..writeByte(2)..write(obj.email)
@@ -92,7 +86,7 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
       ..writeByte(7)..write(obj.age)
       ..writeByte(8)..write(obj.gender)
       ..writeByte(9)..write(obj.activityLevel)
-      ..writeByte(10)..write(obj.medicalHistory)
+      // Index 10 (medicalHistory) skipped/removed
       ..writeByte(11)..write(obj.dailyCalorieNeed)
       ..writeByte(12)..write(obj.birthDate)
       ..writeByte(13)..write(obj.isBlocked)

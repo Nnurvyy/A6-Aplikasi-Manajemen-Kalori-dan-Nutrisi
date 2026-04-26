@@ -18,11 +18,11 @@ class _ProfileViewState extends State<ProfileView> {
   static const _bg = Color(0xFFF4FAF4);
 
   final List<String> _activityLevels = [
-    'Jarang olahraga',
-    'Olahraga ringan (1-3 kali seminggu)',
-    'Olahraga sedang (3-5 kali seminggu)',
-    'Olahraga berat (6-7 hari seminggu / ngegym)',
-    'Sangat berat (latihan fisik ekstra / atlet)',
+    'Sedikit aktif atau tidak berolahraga',
+    'Olahraga ringan (1-3 hari/minggu)',
+    'Cukup aktif (olahraga sekitar 3-5 hari/minggu)',
+    'Sangat aktif (olahraga berat/olahraga 6-7 hari seminggu)',
+    'Ekstra aktif (Berolahraga secara berat disertai pekerjaan fisik)',
   ];
 
   void _editProfil(UserModel user) {
@@ -254,7 +254,6 @@ class _ProfileViewState extends State<ProfileView> {
                                 age: a ?? user.age,
                                 weight: w ?? user.weight,
                                 activityLevel: selectedActivity,
-                                medicalHistory: user.medicalHistory,
                                 birthDate: user.birthDate,
                                 dailyCalorieNeed: newCal,
                                 targetWeightGainPerMonth: target,
@@ -344,7 +343,7 @@ class _ProfileViewState extends State<ProfileView> {
             body: Center(child: CircularProgressIndicator()),
           );
         }
-        final kaloriTarget = user.dailyCalorieNeed ?? 2000;
+        final kaloriTarget = user.dailyCalorieNeed ?? 2000.0;
         final macros = user.macroTargets;
 
         return Scaffold(
