@@ -6,6 +6,7 @@ import 'package:intl/date_symbol_data_local.dart';
 
 import 'features/auth/models/user_model.dart';
 import 'features/food/models/food_model.dart';
+import 'features/food/models/log_model.dart';
 
 import 'services/hive_service.dart';
 import 'helpers/seed_helper.dart';
@@ -17,7 +18,6 @@ import 'features/auth/splash_view.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Transparent status bar
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -25,26 +25,21 @@ void main() async {
     ),
   );
 
-  // Lock to portrait
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
 
-  // Locale for intl (Bahasa Indonesia)
   await initializeDateFormatting('id', null);
 
-  // Initialize Hive
   await Hive.initFlutter();
 
-  // Register adapters
+  // Register semua adapter di sini (HiveService TIDAK register lagi)
   Hive.registerAdapter(UserModelAdapter());
   Hive.registerAdapter(FoodModelAdapter());
+  Hive.registerAdapter(LogModelAdapter());
 
-  // Open configured boxes
   await HiveService.initBoxes();
-
-  // Seed default data if empty
   await SeedHelper.seedIfEmpty();
 
   runApp(const NutriTrackApp());
@@ -63,7 +58,10 @@ class NutriTrackApp extends StatelessWidget {
       child: MaterialApp(
         title: 'NutriTrack',
         debugShowCheckedModeBanner: false,
-        themeMode: ThemeMode.system, // simplified
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2E7D32)),
+          useMaterial3: true,
+        ),
         home: const SplashView(),
       ),
     );
