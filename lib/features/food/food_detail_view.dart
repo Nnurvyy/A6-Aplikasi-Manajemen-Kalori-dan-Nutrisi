@@ -3,9 +3,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../helpers/app_colors.dart';
 import 'models/food_model.dart';
+import 'models/log_model.dart';
 import '../auth/auth_controller.dart';
 import '../shared/widgets/nt_button.dart';
 import 'package:intl/intl.dart';
+import 'food_controller.dart';
 
 class FoodDetailView extends StatefulWidget {
   final FoodModel food;
@@ -28,10 +30,10 @@ class _FoodDetailViewState extends State<FoodDetailView> {
     
     // Auto-select meal type based on time
     final hour = DateTime.now().hour;
-    if (hour >= 4 && hour < 11) _mealType = 'Breakfast';
-    else if (hour >= 11 && hour < 16) _mealType = 'Lunch';
-    else if (hour >= 16 && hour < 21) _mealType = 'Dinner';
-    else _mealType = 'Snack';
+    if (hour >= 4 && hour < 11) _mealType = 'Sarapan';
+    else if (hour >= 11 && hour < 16) _mealType = 'Makan Siang';
+    else if (hour >= 16 && hour < 21) _mealType = 'Makan Malam';
+    else _mealType = 'Camilan';
   }
 
   @override
@@ -297,17 +299,41 @@ class _FoodDetailViewState extends State<FoodDetailView> {
             final userId = auth.currentUser?.id;
             if (userId == null) return;
 
+            final foodCtrl = context.read<FoodController>();
+
+            bool success = await foodCtrl.addFoodToDailyLog(
+              userId: userId,
+              foodName: widget.food.name,
+              category: widget.food.category,
+              calories: nutrition['calories']!,
+              protein: nutrition['protein']!,
+              carbs: nutrition['carbs']!,
+              fat: nutrition['fat']!,
+              mealType: _mealType,
+              dateConsumed: DateTime.now(), 
+            );
+
             // HistoryController removed for now
-            if (mounted) {
+            if (!context.mounted) return;
+
+              if (success) {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Berhasil ditambahkan ke $_mealType'),
+                  content: Text('Berhasil ditambahkan ke $_mealType! Status: Pending'),
                   backgroundColor: AppColors.primary,
                 ),
               );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Gagal! Tidak bisa menambah log lebih dari 3 hari yang lalu.'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
             }
-          },
+          
         ),
       ),
     );
