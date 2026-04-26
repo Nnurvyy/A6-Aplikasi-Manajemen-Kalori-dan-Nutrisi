@@ -29,10 +29,8 @@ class _DashboardBodyState extends State<DashboardBody> {
 
   @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
     // Tidak ada bottomNavigationBar / floatingActionButton di sini.
     // Keduanya dikelola oleh UserMainView (shell).
-=======
     final user = context.watch<AuthController>().currentUser;
     final kaloriTarget = user?.dailyCalorieNeed ?? 2000;
     final macros = user?.macroTargets;
@@ -40,7 +38,6 @@ class _DashboardBodyState extends State<DashboardBody> {
     // Update controller target dari data user
     _controller.kaloriTarget = kaloriTarget;
 
->>>>>>> 19056787287e5d0a854be200e215defecca53f6d
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F0),
       body: SafeArea(
@@ -52,16 +49,11 @@ class _DashboardBodyState extends State<DashboardBody> {
               _buildDaySelector(),
               _buildKaloriCard(),
               const SizedBox(height: 8),
-<<<<<<< HEAD
               _buildNutriGrid(),
               const SizedBox(height: 8),
               _buildRiwayatHeader(),
               _buildRiwayatList(),
               const SizedBox(height: 100), // ruang agar tidak ketutup navbar
-=======
-              _buildNutriGrid(macros),
-              const SizedBox(height: 24),
->>>>>>> 19056787287e5d0a854be200e215defecca53f6d
             ],
           ),
         ),
@@ -76,7 +68,6 @@ class _DashboardBodyState extends State<DashboardBody> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-<<<<<<< HEAD
           const Text(
             'NutriTrack',
             style: TextStyle(
@@ -125,39 +116,6 @@ class _DashboardBodyState extends State<DashboardBody> {
                 ),
               ),
             ],
-=======
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'NutriTrack',
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF1B2A1B),
-                  letterSpacing: -0.5,
-                ),
-              ),
-              if (nama != null)
-                Text(
-                  'Halo, $nama 👋',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF5A7A5A),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-            ],
-          ),
-          Container(
-            width: 38,
-            height: 38,
-            decoration: const BoxDecoration(
-              color: Color(0xFF4CAF50),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.settings, color: Colors.white, size: 20),
->>>>>>> 19056787287e5d0a854be200e215defecca53f6d
           ),
         ],
       ),
@@ -257,7 +215,6 @@ class _DashboardBodyState extends State<DashboardBody> {
   }
 
   Widget _buildBatteryBar(double percentage) {
-<<<<<<< HEAD
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -287,51 +244,6 @@ class _DashboardBodyState extends State<DashboardBody> {
                             borderRadius: BorderRadius.only(
                               topLeft: Radius.circular(12),
                               bottomLeft: Radius.circular(12),
-=======
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            height: 64,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE8F5E9),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFA5D6A7), width: 2),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Stack(
-                children: [
-                  FractionallySizedBox(
-                    widthFactor: percentage,
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF66BB6A), Color(0xFF4CAF50)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(12),
-                          bottomLeft: Radius.circular(12),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.local_fire_department,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${(percentage * 100).toInt()}%',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
->>>>>>> 19056787287e5d0a854be200e215defecca53f6d
                             ),
                           ),
                         ),
@@ -494,12 +406,8 @@ class _DashboardBodyState extends State<DashboardBody> {
                       ),
                     ),
                     Center(
-<<<<<<< HEAD
                       child: Icon(item.icon,
                           color: item.iconColor, size: 20),
-=======
-                      child: Icon(item.icon, color: item.iconColor, size: 20),
->>>>>>> 19056787287e5d0a854be200e215defecca53f6d
                     ),
                   ],
                 ),
@@ -512,7 +420,6 @@ class _DashboardBodyState extends State<DashboardBody> {
   }
 }
 
-<<<<<<< HEAD
   // ─── SEPARATOR "Riwayat Makanan" ──────────────────────────────────────────
 
   Widget _buildRiwayatHeader() {
@@ -1019,7 +926,3 @@ class _DashboardBodyState extends State<DashboardBody> {
     }
   }
 }
-=======
-// ─── BACKWARD COMPAT: alias lama masih bisa compile ─────────────────────────
-typedef DashboardView = DashboardBody;
->>>>>>> 19056787287e5d0a854be200e215defecca53f6d
