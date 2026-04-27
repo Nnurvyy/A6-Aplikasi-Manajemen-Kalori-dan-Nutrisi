@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../food/food_controller.dart';
 import '../food/models/log_model.dart';
 import 'FormTambahMakananManual.dart';
+import 'package:flutter/services.dart';
+import 'food_item_model.dart';
 
 class PilihMakananManual extends StatefulWidget {
   const PilihMakananManual({super.key});
@@ -22,10 +24,11 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
   @override
   Widget build(BuildContext context) {
     final foodCtrl = context.watch<FoodController>();
-    // Filter manual logs (you might want to filter by user too if needed, 
+    // Filter manual logs (you might want to filter by user too if needed,
     // but FoodController notifyListeners usually handles the global log state for now)
-    final manualLogs = foodCtrl.allLogs.where((log) => log.isManual).toList()
-      ..sort((a, b) => b.consumedAt.compareTo(a.consumedAt));
+    final manualLogs =
+        foodCtrl.allLogs.where((log) => log.isManual).toList()
+          ..sort((a, b) => b.consumedAt.compareTo(a.consumedAt));
 
     return Scaffold(
       backgroundColor: _bg,
@@ -38,16 +41,22 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
         ),
         title: const Text(
           'Tambah Log Manual',
-          style: TextStyle(color: _textDark, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(
+            color: _textDark,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
         ),
       ),
-      body: manualLogs.isEmpty
-          ? _buildEmptyState()
-          : ListView.builder(
-              padding: const EdgeInsets.all(20),
-              itemCount: manualLogs.length,
-              itemBuilder: (context, index) => _buildManualLogCard(manualLogs[index]),
-            ),
+      body:
+          manualLogs.isEmpty
+              ? _buildEmptyState()
+              : ListView.builder(
+                padding: const EdgeInsets.all(20),
+                itemCount: manualLogs.length,
+                itemBuilder:
+                    (context, index) => _buildManualLogCard(manualLogs[index]),
+              ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           final result = await Navigator.push(
@@ -72,32 +81,63 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
         color: _surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: _primary.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-            child: const Icon(Icons.history_edu_rounded, color: _primary, size: 24),
+            decoration: BoxDecoration(
+              color: _primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.history_edu_rounded,
+              color: _primary,
+              size: 24,
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(log.foodName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: _textDark)),
+                Text(
+                  log.foodName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: _textDark,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text('${log.category} • ${log.servingSize.toStringAsFixed(0)}g', style: const TextStyle(color: _textMuted, fontSize: 12)),
+                Text(
+                  '${log.category} • ${log.servingSize.toStringAsFixed(0)}g',
+                  style: const TextStyle(color: _textMuted, fontSize: 12),
+                ),
               ],
             ),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('${log.calories.toStringAsFixed(0)} kcal', style: const TextStyle(fontWeight: FontWeight.bold, color: _calColor, fontSize: 14)),
-              Text(log.formattedTime, style: const TextStyle(color: _textMuted, fontSize: 11)),
+              Text(
+                '${log.calories.toStringAsFixed(0)} kcal',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: _calColor,
+                  fontSize: 14,
+                ),
+              ),
+              Text(
+                log.formattedTime,
+                style: const TextStyle(color: _textMuted, fontSize: 11),
+              ),
             ],
           ),
         ],
@@ -110,11 +150,21 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.note_add_rounded, size: 64, color: _textMuted.withOpacity(0.5)),
+          Icon(
+            Icons.note_add_rounded,
+            size: 64,
+            color: _textMuted.withOpacity(0.5),
+          ),
           const SizedBox(height: 16),
-          const Text('Belum ada log manual', style: TextStyle(color: _textMuted, fontWeight: FontWeight.bold)),
+          const Text(
+            'Belum ada log manual',
+            style: TextStyle(color: _textMuted, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 8),
-          const Text('Klik + untuk menambah log baru', style: TextStyle(color: _textMuted, fontSize: 12)),
+          const Text(
+            'Klik + untuk menambah log baru',
+            style: TextStyle(color: _textMuted, fontSize: 12),
+          ),
         ],
       ),
     );

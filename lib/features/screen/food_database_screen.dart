@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../services/hive_service.dart';
+import 'package:uuid/uuid.dart';
+import 'food_item_model.dart';
+import 'PilihMakananManual.dart';
 import '../food/models/food_model.dart';
-import '../food/food_detail_view.dart';
+import '../../services/hive_service.dart';
+
+// FoodItem lokal dihapus — sekarang pakai FoodModel (Hive) supaya persisten.
 
 class FoodDatabaseScreen extends StatefulWidget {
   const FoodDatabaseScreen({super.key});
@@ -12,8 +16,12 @@ class FoodDatabaseScreen extends StatefulWidget {
 
 class _FoodDatabaseScreenState extends State<FoodDatabaseScreen> {
   final TextEditingController _searchController = TextEditingController();
-  List<FoodModel> _dbFoods = [];
-  
+
+  // Baca langsung dari Hive — hanya tampilkan food milik user (isApproved=false = custom)
+  List<FoodModel> get _myIngredients =>
+      HiveService.foods.values.where((f) => !f.isApproved).toList()
+        ..sort((a, b) => a.name.compareTo(b.name));
+
   static const Color _primary = Color(0xFF2ECC71);
   static const Color _bg = Color(0xFFF4FAF6);
   static const Color _surface = Colors.white;
@@ -59,6 +67,75 @@ class _FoodDatabaseScreenState extends State<FoodDatabaseScreen> {
     super.dispose();
   }
 
+  void _deleteIngredient(FoodModel item) {
+    showDialog(
+      context: context,
+      builder:
+          (_) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Text(
+              'Hapus Bahan?',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            content: Text('Yakin ingin menghapus "${item.name}"?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Batal', style: TextStyle(color: _textMuted)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                onPressed: () async {
+                  await HiveService.foods.delete(item.id);
+                  if (mounted) {
+                    setState(() {});
+                    Navigator.pop(context);
+                  }
+                },
+                child: const Text(
+                  'Hapus',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void _openAddIngredient() async {
+    final result = await Navigator.push<FoodItem>(
+      context,
+      MaterialPageRoute(builder: (_) => const PilihMakananManual()),
+    );
+    if (result != null && mounted) {
+      // Konversi FoodItem (dari PilihMakananManual) → FoodModel lalu simpan ke Hive
+      final food = FoodModel(
+        id: const Uuid().v4(),
+        name: result.name,
+        category: 'Lainnya',
+        calories: result.calories,
+        protein: result.protein,
+        carbs: result.carbs,
+        fat: result.fat,
+        defaultServingSize: result.servingSize,
+        isApproved:
+            false, // false = bahan custom milik user (bukan dari database resmi)
+        createdAt: DateTime.now(),
+        description:
+            result.unit, // simpan satuan (gram/butir/dll) di description
+      );
+      await HiveService.foods.put(food.id, food);
+      setState(() {});
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -86,6 +163,39 @@ class _FoodDatabaseScreenState extends State<FoodDatabaseScreen> {
                     itemCount: _dbFoods.length,
                     itemBuilder: (context, index) => _buildFoodCard(_dbFoods[index]),
                   ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Cari makanan di database',
+                    style: TextStyle(color: _textMuted, fontSize: 15),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMyIngredientsTab() {
+    final items = _myIngredients;
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          _buildSearchBar(),
+          const SizedBox(height: 12),
+          _buildAddCustomButton(),
+          const SizedBox(height: 16),
+          Expanded(
+            child:
+                items.isEmpty
+                    ? _buildEmptyState()
+                    : ListView.separated(
+                      itemCount: items.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (_, i) => _buildIngredientCard(items[i]),
+                    ),
           ),
         ],
       ),
@@ -114,7 +224,12 @@ class _FoodDatabaseScreenState extends State<FoodDatabaseScreen> {
     );
   }
 
-  Widget _buildFoodCard(FoodModel food) {
+  Widget _buildIngredientCard(FoodModel item) {
+    // unit tersimpan di description saat save dari PilihMakananManual
+    final unit =
+        (item.description != null && item.description!.isNotEmpty)
+            ? item.description!
+            : 'gram';
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -141,12 +256,13 @@ class _FoodDatabaseScreenState extends State<FoodDatabaseScreen> {
                   color: _primary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.restaurant_menu_rounded, color: _primary, size: 24),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                const SizedBox(height: 2),
+                Text(
+                  '${item.defaultServingSize.toStringAsFixed(0)} $unit',
+                  style: TextStyle(color: _textMuted, fontSize: 12),
+                ),
+                const SizedBox(height: 6),
+                Row(
                   children: [
                     Text(
                       food.name,
@@ -173,6 +289,37 @@ class _FoodDatabaseScreenState extends State<FoodDatabaseScreen> {
                     ),
                   ],
                 ),
+              ],
+            ),
+          ),
+          Column(
+            children: [
+              IconButton(
+                icon: const Icon(
+                  Icons.add_shopping_cart_rounded,
+                  color: _primary,
+                  size: 22,
+                ),
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('${item.name} ditambahkan ke log!'),
+                      backgroundColor: _primary,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              IconButton(
+                icon: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: Colors.redAccent,
+                  size: 22,
+                ),
+                onPressed: () => _deleteIngredient(item),
               ),
               const Icon(Icons.chevron_right_rounded, color: _textMuted),
             ],

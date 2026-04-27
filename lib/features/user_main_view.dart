@@ -97,7 +97,7 @@ class _UserMainViewState extends State<UserMainView>
   @override
   void initState() {
     super.initState();
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userId = context.read<AuthController>().currentUser?.id;
       if (userId != null) {
@@ -352,16 +352,20 @@ class _UserMainViewState extends State<UserMainView>
         color: const Color(0xFF2E7D32),
         shape: const CircularNotchedRectangle(),
         notchMargin: 8,
-        child: SizedBox(
-          height: 70,
-          child: Row(
-            children: [
-              _buildNavBtn(0),
-              _buildNavBtn(1),
-              const SizedBox(width: 64), // notch space
-              _buildNavBtn(2),
-              _buildNavBtn(3),
-            ],
+        padding: EdgeInsets.zero,
+        child: SafeArea(
+          top: false,
+          child: SizedBox(
+            height: 60,
+            child: Row(
+              children: [
+                _buildNavBtn(0),
+                _buildNavBtn(1),
+                const SizedBox(width: 64), // notch space
+                _buildNavBtn(2),
+                _buildNavBtn(3),
+              ],
+            ),
           ),
         ),
       ),
@@ -632,7 +636,8 @@ class _SavedFoodSheet extends StatelessWidget {
                 shrinkWrap: true,
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 itemCount: items.length,
-                itemBuilder: (context, index) => _buildSavedItem(context, items[index]),
+                itemBuilder:
+                    (context, index) => _buildSavedItem(context, items[index]),
               ),
             ),
           const SizedBox(height: 20),
@@ -657,7 +662,11 @@ class _SavedFoodSheet extends StatelessWidget {
             color: const Color(0xFF7C4DFF).withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: const Icon(Icons.bookmark_rounded, color: Color(0xFF7C4DFF), size: 20),
+          child: const Icon(
+            Icons.bookmark_rounded,
+            color: Color(0xFF7C4DFF),
+            size: 20,
+          ),
         ),
         title: Text(
           item.food.name,
@@ -684,7 +693,11 @@ class _SavedFoodSheet extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 40),
       child: Column(
         children: [
-          Icon(Icons.bookmark_border_rounded, size: 48, color: Colors.grey.withOpacity(0.4)),
+          Icon(
+            Icons.bookmark_border_rounded,
+            size: 48,
+            color: Colors.grey.withOpacity(0.4),
+          ),
           const SizedBox(height: 16),
           const Text(
             'Belum ada makanan tersimpan',
