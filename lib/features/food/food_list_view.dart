@@ -5,7 +5,6 @@ import '../../helpers/app_colors.dart';
 import '../food/food_controller.dart';
 import '../food/models/food_model.dart';
 import 'food_detail_view.dart';
-import '../auth/auth_controller.dart';
 
 class FoodListView extends StatefulWidget {
   final String? initialSearch;

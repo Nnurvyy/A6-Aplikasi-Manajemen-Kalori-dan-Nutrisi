@@ -124,7 +124,6 @@ class ScanController extends ChangeNotifier {
 
   @override
   void dispose() {
-    // Note: Don't dispose ScanService here as it's likely a singleton shared
     super.dispose();
   }
 }

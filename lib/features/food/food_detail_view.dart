@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../helpers/app_colors.dart';
 import 'models/food_model.dart';
-import 'models/log_model.dart';
 import '../auth/auth_controller.dart';
 import '../shared/widgets/nt_button.dart';
 import 'package:intl/intl.dart';

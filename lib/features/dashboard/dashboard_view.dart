@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../auth/auth_controller.dart';
 import 'dashboard_controller.dart';
 import '../food/models/log_model.dart';
-import '../../services/hive_service.dart';
 import '../food/food_controller.dart';
 
 /// Widget murni isi dashboard — TANPA Scaffold/BottomNav sendiri.
@@ -862,7 +861,6 @@ class _DashboardBodyState extends State<DashboardBody> {
                             GestureDetector(
                               onTap: () {
                                 Navigator.pop(ctx);
-                                // TODO: hapus dari riwayat
                               },
                               child: Container(
                                 width: double.infinity,
