@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../auth/auth_controller.dart';
-import '../../models/submission_model.dart';
+import 'submission_model.dart';
 
 class AddSubmissionScreen extends StatefulWidget {
   const AddSubmissionScreen({super.key});

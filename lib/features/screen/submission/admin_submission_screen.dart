@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../models/submission_model.dart';
+import 'submission_model.dart';
 import '../../widgets/submission/submission_card.dart';
 
 class AdminSubmissionScreen extends StatefulWidget {

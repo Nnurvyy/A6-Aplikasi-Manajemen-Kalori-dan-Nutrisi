@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../../models/submission_model.dart';
+import 'submission_model.dart';
 
 class SubmissionDetailScreen extends StatelessWidget {
   final SubmissionModel submission;
