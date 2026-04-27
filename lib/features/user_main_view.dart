@@ -13,6 +13,7 @@ import 'screen/PilihMakananManual.dart';
 import 'auth/auth_controller.dart';
 import 'food/watchlist_controller.dart';
 import 'food/models/watchlist_model.dart';
+import 'food/watchlist_view.dart';
 import 'food/food_detail_view.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -201,7 +202,7 @@ class _UserMainViewState extends State<UserMainView>
         );
         break;
       case 'saved':
-        _showSavedSheet();
+        Navigator.of(context).push(_upRoute(const WatchlistView()));
         break;
       case 'db':
         Navigator.of(context).push(_upRoute(const FoodDatabaseScreen()));
@@ -229,13 +230,6 @@ class _UserMainViewState extends State<UserMainView>
     );
   }
 
-  void _showSavedSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _SavedFoodSheet(),
-    );
-  }
 
   // ── BUILD ─────────────────────────────────────────────────────────────────
 
