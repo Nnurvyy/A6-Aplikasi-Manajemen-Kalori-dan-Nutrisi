@@ -30,9 +30,8 @@ class _RegisterViewState extends State<RegisterView> {
   final _ageCtrl = TextEditingController();
   final _weightCtrl = TextEditingController();
   final _heightCtrl = TextEditingController();
-  String _activityLevel = 'Jarang olahraga';
-  final _medHistory = TextEditingController();
-  final _targetCtrl = TextEditingController(text: '0');
+  String _activityLevel = 'Sedikit aktif atau tidak berolahraga';
+  double _targetWeight = 0;
   final _form2Key = GlobalKey<FormState>();
 
   // Step 3 – Tanggal Lahir
@@ -41,11 +40,11 @@ class _RegisterViewState extends State<RegisterView> {
   int _selectedDay = 1;
 
   final List<String> _activityLevels = [
-    'Jarang olahraga',
-    'Olahraga ringan (1-3 kali seminggu)',
-    'Olahraga sedang (3-5 kali seminggu)',
-    'Olahraga berat (6-7 hari seminggu / ngegym)',
-    'Sangat berat (latihan fisik ekstra / atlet)',
+    'Sedikit aktif atau tidak berolahraga',
+    'Olahraga ringan (1-3 hari/minggu)',
+    'Cukup aktif (olahraga sekitar 3-5 hari/minggu)',
+    'Sangat aktif (olahraga berat/olahraga 6-7 hari seminggu)',
+    'Ekstra aktif (Berolahraga secara berat disertai pekerjaan fisik)',
   ];
 
   final List<String> _months = [
@@ -63,8 +62,6 @@ class _RegisterViewState extends State<RegisterView> {
     _ageCtrl.dispose();
     _weightCtrl.dispose();
     _heightCtrl.dispose();
-    _medHistory.dispose();
-    _targetCtrl.dispose();
     super.dispose();
   }
 
@@ -105,9 +102,8 @@ class _RegisterViewState extends State<RegisterView> {
       age: int.tryParse(_ageCtrl.text) ?? 20,
       gender: _gender,
       activityLevel: _activityLevel,
-      medicalHistory: _medHistory.text.isEmpty ? 'Tidak ada' : _medHistory.text,
       birthDate: DateTime(_selectedYear, _selectedMonth, _selectedDay),
-      targetWeightGainPerMonth: double.tryParse(_targetCtrl.text) ?? 0,
+      targetWeightGainPerMonth: _targetWeight,
     );
     if (!mounted) return;
     if (ok) {
@@ -408,21 +404,52 @@ class _RegisterViewState extends State<RegisterView> {
               ),
             ),
             const SizedBox(height: 14),
-            NtTextField(
-              label: 'Riwayat Penyakit',
-              hint: 'Misal: diabetes, hipertensi (isi "Tidak ada" jika sehat)',
-              controller: _medHistory,
-              maxLines: 2,
-              prefixIcon: Icons.medical_information_outlined,
+            Text('Target Perubahan BB/bulan (kg)',
+                style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.lightTextPrimary)),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: Slider(
+                    value: _targetWeight,
+                    min: -5,
+                    max: 5,
+                    divisions: 20,
+                    label: _targetWeight > 0 
+                        ? '+${_targetWeight.toStringAsFixed(1)} kg (Naik)' 
+                        : _targetWeight < 0 
+                            ? '${_targetWeight.toStringAsFixed(1)} kg (Turun)' 
+                            : '0 kg (Tetap)',
+                    activeColor: _targetWeight > 0 ? AppColors.primary : (_targetWeight < 0 ? Colors.orange : Colors.grey),
+                    onChanged: (v) => setState(() => _targetWeight = v),
+                  ),
+                ),
+                SizedBox(
+                  width: 50,
+                  child: Text(
+                    _targetWeight > 0 
+                        ? '+${_targetWeight.toStringAsFixed(1)}' 
+                        : _targetWeight.toStringAsFixed(1),
+                    textAlign: TextAlign.right,
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      color: _targetWeight > 0 ? AppColors.primary : (_targetWeight < 0 ? Colors.orange : AppColors.lightTextPrimary),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 14),
-            NtTextField(
-              label: 'Target Kenaikan BB/bulan (kg)',
-              hint: '0 = pertahankan, positif = naik, negatif = turun',
-              controller: _targetCtrl,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true, signed: true),
-              prefixIcon: Icons.trending_up_rounded,
+            const SizedBox(height: 4),
+            Text(
+              _targetWeight > 0 
+                  ? 'Surplus kalori untuk menaikkan berat badan.'
+                  : _targetWeight < 0 
+                      ? 'Defisit kalori untuk menurunkan berat badan.'
+                      : 'Maintenance kalori untuk mempertahankan berat badan.',
+              style: GoogleFonts.poppins(fontSize: 12, color: AppColors.lightTextSecondary),
             ),
             const SizedBox(height: 28),
             NtButton(label: 'Lanjut', onPressed: _next),

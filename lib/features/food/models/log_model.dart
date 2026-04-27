@@ -13,6 +13,7 @@ class LogModel extends HiveObject {
   String syncStatus; // pending or synced
   double servingSize; 
   String category;
+  bool isManual;
 
   LogModel({
     required this.id,
@@ -27,6 +28,7 @@ class LogModel extends HiveObject {
     this.syncStatus = 'pending', // Default
     required this.servingSize,
     required this.category,
+    this.isManual = false,
   });
 
   String get formattedTime {
@@ -57,13 +59,14 @@ class LogModelAdapter extends TypeAdapter<LogModel> {
       syncStatus: f[9] as String,
       servingSize: (f[10] as double?) ?? 100.0,
       category: (f[11] as String?) ?? '',
+      isManual: (f[12] as bool?) ?? false,
     );
   }
 
   @override
   void write(BinaryWriter writer, LogModel obj) {
     writer
-      ..writeByte(12)
+      ..writeByte(13)
       ..writeByte(0)..write(obj.id)
       ..writeByte(1)..write(obj.userId)
       ..writeByte(2)..write(obj.foodName)
@@ -75,6 +78,7 @@ class LogModelAdapter extends TypeAdapter<LogModel> {
       ..writeByte(8)..write(obj.consumedAt)
       ..writeByte(9)..write(obj.syncStatus)
       ..writeByte(10)..write(obj.servingSize)
-      ..writeByte(11)..write(obj.category);
+      ..writeByte(11)..write(obj.category)
+      ..writeByte(12)..write(obj.isManual);
   }
 }
