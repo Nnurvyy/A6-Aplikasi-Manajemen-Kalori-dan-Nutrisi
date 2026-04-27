@@ -10,6 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
+  uuid: ^4.5.1 
 
   # Database
   hive: ^2.2.3

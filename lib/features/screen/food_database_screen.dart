@@ -67,9 +67,7 @@ class _FoodDatabaseScreenState extends State<FoodDatabaseScreen> {
   void _navigateToDetail(FoodModel food) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => FoodDetailView(food: food),
-      ),
+      MaterialPageRoute(builder: (context) => FoodDetailView(food: food)),
     );
   }
 
