@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../auth/auth_controller.dart';
-import '../../models/submission_model.dart';
+import 'submission_model.dart';
 import '../../widgets/submission/submission_card.dart';
 import '../../widgets/submission/submission_info_dialog.dart';
 import 'add_submission_screen.dart';
