@@ -13,6 +13,7 @@ import 'screen/PilihMakananManual.dart';
 import 'auth/auth_controller.dart';
 import 'food/watchlist_controller.dart';
 import 'food/models/watchlist_model.dart';
+import 'food/watchlist_view.dart';
 import 'food/food_detail_view.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -201,7 +202,7 @@ class _UserMainViewState extends State<UserMainView>
         );
         break;
       case 'saved':
-        _showSavedSheet();
+        Navigator.of(context).push(_upRoute(const WatchlistView()));
         break;
       case 'db':
         Navigator.of(context).push(_upRoute(const FoodDatabaseScreen()));
@@ -229,13 +230,6 @@ class _UserMainViewState extends State<UserMainView>
     );
   }
 
-  void _showSavedSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _SavedFoodSheet(),
-    );
-  }
 
   // ── BUILD ─────────────────────────────────────────────────────────────────
 
@@ -584,123 +578,6 @@ class _DialCardState extends State<_DialCard> {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// SAVED FOOD SHEET (placeholder cantik)
-// ═══════════════════════════════════════════════════════════════════════════
-
-class _SavedFoodSheet extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final watchlist = context.watch<WatchlistController>();
-    final items = watchlist.items;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 24),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'Makanan Tersimpan',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1A2E22),
-            ),
-          ),
-          const SizedBox(height: 16),
-          if (items.isEmpty)
-            _buildEmptyState()
-          else
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.6,
-              ),
-              child: ListView.builder(
-                shrinkWrap: true,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: items.length,
-                itemBuilder: (context, index) => _buildSavedItem(context, items[index]),
-              ),
-            ),
-          const SizedBox(height: 20),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSavedItem(BuildContext context, WatchlistModel item) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF9FBF9),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE8F1EC)),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        leading: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: const Color(0xFF7C4DFF).withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Icon(Icons.bookmark_rounded, color: Color(0xFF7C4DFF), size: 20),
-        ),
-        title: Text(
-          item.food.name,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-        ),
-        subtitle: Text(
-          '${item.food.category} • ${item.food.calories.toStringAsFixed(0)} kkal',
-          style: const TextStyle(fontSize: 12, color: Color(0xFF7A9485)),
-        ),
-        trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
-        onTap: () {
-          Navigator.pop(context);
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => FoodDetailView(food: item.food)),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 40),
-      child: Column(
-        children: [
-          Icon(Icons.bookmark_border_rounded, size: 48, color: Colors.grey.withOpacity(0.4)),
-          const SizedBox(height: 16),
-          const Text(
-            'Belum ada makanan tersimpan',
-            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Simpan makanan favoritmu untuk akses cepat di sini.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey, fontSize: 12),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // RIWAYAT PLACEHOLDER
