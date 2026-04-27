@@ -9,6 +9,11 @@ import 'scan/scan_view.dart';
 import 'scan/scan_controller.dart';
 import 'screen/submission/submission_screen.dart';
 import 'screen/food_database_screen.dart';
+import 'screen/PilihMakananManual.dart';
+import 'auth/auth_controller.dart';
+import 'food/watchlist_controller.dart';
+import 'food/models/watchlist_model.dart';
+import 'food/food_detail_view.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // USER MAIN VIEW
@@ -48,6 +53,7 @@ class _UserMainViewState extends State<UserMainView>
   late final AnimationController _item0Ctrl; // Scan
   late final AnimationController _item1Ctrl; // Tersimpan
   late final AnimationController _item2Ctrl; // Database
+  late final AnimationController _item3Ctrl; // Manual
 
   late final Animation<double> _rotateAnim;
   late final Animation<double> _backdropAnim;
@@ -73,16 +79,31 @@ class _UserMainViewState extends State<UserMainView>
     _DialItemData(
       icon: Icons.menu_book_rounded,
       label: 'Database Makanan',
-      sublabel: 'Cari & tambah bahan sendiri',
+      sublabel: 'Cari makanan di database',
       startColor: Color(0xFFFF6B6B),
       endColor: Color(0xFFCC4444),
       tag: 'db',
+    ),
+    _DialItemData(
+      icon: Icons.create_rounded,
+      label: 'Tambah Log Manual',
+      sublabel: 'Buat catatan makanan sendiri',
+      startColor: Color(0xFFFF9800),
+      endColor: Color(0xFFF57C00),
+      tag: 'manual',
     ),
   ];
 
   @override
   void initState() {
     super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userId = context.read<AuthController>().currentUser?.id;
+      if (userId != null) {
+        context.read<WatchlistController>().loadWatchlist(userId);
+      }
+    });
 
     _mainCtrl = AnimationController(
       vsync: this,
@@ -98,6 +119,10 @@ class _UserMainViewState extends State<UserMainView>
       duration: const Duration(milliseconds: 350),
     );
     _item2Ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    );
+    _item3Ctrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 350),
     );
@@ -118,6 +143,7 @@ class _UserMainViewState extends State<UserMainView>
     _item0Ctrl.dispose();
     _item1Ctrl.dispose();
     _item2Ctrl.dispose();
+    _item3Ctrl.dispose();
     super.dispose();
   }
 
@@ -125,6 +151,7 @@ class _UserMainViewState extends State<UserMainView>
     _item0Ctrl,
     _item1Ctrl,
     _item2Ctrl,
+    _item3Ctrl,
   ];
 
   void _openDial() {
@@ -178,6 +205,9 @@ class _UserMainViewState extends State<UserMainView>
         break;
       case 'db':
         Navigator.of(context).push(_upRoute(const FoodDatabaseScreen()));
+        break;
+      case 'manual':
+        Navigator.of(context).push(_upRoute(const PilihMakananManual()));
         break;
     }
   }
@@ -262,6 +292,12 @@ class _UserMainViewState extends State<UserMainView>
                     data: _dialItems[2],
                     ctrl: _item2Ctrl,
                     onTap: () => _onDialItemTap(_dialItems[2].tag),
+                  ),
+                  const SizedBox(height: 10),
+                  _DialCard(
+                    data: _dialItems[3],
+                    ctrl: _item3Ctrl,
+                    onTap: () => _onDialItemTap(_dialItems[3].tag),
                   ),
                 ],
               ),
@@ -559,103 +595,120 @@ class _DialCardState extends State<_DialCard> {
 class _SavedFoodSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final watchlist = context.watch<WatchlistController>();
+    final items = watchlist.items;
+
     return Container(
+      padding: const EdgeInsets.symmetric(vertical: 24),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 40),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // handle
           Container(
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey[300],
+              color: Colors.grey.withOpacity(0.3),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          const SizedBox(height: 28),
-
-          // Ikon
-          Container(
-            width: 88,
-            height: 88,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF7C4DFF), Color(0xFF5C35CC)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF7C4DFF).withOpacity(0.35),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: const Icon(
-              Icons.bookmark_rounded,
-              color: Colors.white,
-              size: 40,
-            ),
-          ),
           const SizedBox(height: 20),
-
           const Text(
             'Makanan Tersimpan',
             style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF1A2E1A),
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1A2E22),
             ),
+          ),
+          const SizedBox(height: 16),
+          if (items.isEmpty)
+            _buildEmptyState()
+          else
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.6,
+              ),
+              child: ListView.builder(
+                shrinkWrap: true,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: items.length,
+                itemBuilder:
+                    (context, index) => _buildSavedItem(context, items[index]),
+              ),
+            ),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSavedItem(BuildContext context, WatchlistModel item) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9FBF9),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE8F1EC)),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        leading: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: const Color(0xFF7C4DFF).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Icon(
+            Icons.bookmark_rounded,
+            color: Color(0xFF7C4DFF),
+            size: 20,
+          ),
+        ),
+        title: Text(
+          item.food.name,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+        subtitle: Text(
+          '${item.food.category} • ${item.food.calories.toStringAsFixed(0)} kkal',
+          style: const TextStyle(fontSize: 12, color: Color(0xFF7A9485)),
+        ),
+        trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+        onTap: () {
+          Navigator.pop(context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => FoodDetailView(food: item.food)),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 40),
+      child: Column(
+        children: [
+          Icon(
+            Icons.bookmark_border_rounded,
+            size: 48,
+            color: Colors.grey.withOpacity(0.4),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Belum ada makanan tersimpan',
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
           ),
           const SizedBox(height: 8),
           const Text(
-            'Simpan makanan favorit kamu di sini\nagar mudah ditemukan lagi.',
+            'Simpan makanan favoritmu untuk akses cepat di sini.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: Color(0xFF7A9485),
-              height: 1.6,
-            ),
+            style: TextStyle(color: Colors.grey, fontSize: 12),
           ),
-          const SizedBox(height: 28),
-
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF3F0FF),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: const Color(0xFF7C4DFF).withOpacity(0.25),
-              ),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.rocket_launch_rounded,
-                  color: Color(0xFF7C4DFF),
-                  size: 18,
-                ),
-                SizedBox(width: 8),
-                Text(
-                  'Segera hadir di versi berikutnya!',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF7C4DFF),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
         ],
       ),
     );

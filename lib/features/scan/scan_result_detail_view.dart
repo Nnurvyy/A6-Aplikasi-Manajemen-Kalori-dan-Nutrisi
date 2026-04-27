@@ -5,8 +5,10 @@ import 'dart:io';
 import '../../helpers/app_colors.dart';
 import '../food/models/food_model.dart';
 import '../auth/auth_controller.dart';
+import '../food/food_controller.dart';
 import '../shared/widgets/nt_button.dart';
 import 'package:intl/intl.dart';
+import '../food/watchlist_controller.dart';
 
 class ScanResultDetailView extends StatefulWidget {
   final FoodModel food;
@@ -50,7 +52,9 @@ class _ScanResultDetailViewState extends State<ScanResultDetailView> {
       'fat': baseNutrition['fat']! * _quantity,
     };
     
-    // Watchlist removed for now
+    final watchlist = context.watch<WatchlistController>();
+    final userId = auth.currentUser?.id;
+    final isSaved = userId != null && watchlist.isInWatchlist(userId, widget.food.id);
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
@@ -66,7 +70,22 @@ class _ScanResultDetailViewState extends State<ScanResultDetailView> {
               onPressed: () => Navigator.pop(context),
             ),
             actions: [
-              // Bookmark icon removed
+              if (userId != null && widget.food.id != 'unknown')
+                IconButton(
+                  icon: Icon(
+                    isSaved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+                    color: Colors.white,
+                  ),
+                  onPressed: () {
+                    watchlist.toggleWatchlist(userId, widget.food);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(isSaved ? 'Dihapus dari simpanan' : 'Disimpan ke watchlist'),
+                        duration: const Duration(seconds: 1),
+                      ),
+                    );
+                  },
+                ),
             ],
             flexibleSpace: FlexibleSpaceBar(
               background: widget.imageFile != null
@@ -304,25 +323,40 @@ class _ScanResultDetailViewState extends State<ScanResultDetailView> {
                 onPressed: () async {
                   final userId = context.read<AuthController>().currentUser?.id;
                   if (userId == null) return;
+                  
+                  final foodCtrl = context.read<FoodController>();
 
-                  // Tentukan tipe makan berdasarkan jam
-                  String mealType = 'Snack';
-                  final hour = DateTime.now().hour;
-                  if (hour >= 4 && hour < 11) mealType = 'Breakfast';
-                  else if (hour >= 11 && hour < 16) mealType = 'Lunch';
-                  else if (hour >= 16 && hour < 21) mealType = 'Dinner';
+                  bool success = await foodCtrl.addFoodToDailyLog(
+                    userId: userId,
+                    foodName: widget.food.name,
+                    category: widget.food.category,
+                    calories: nutrition['calories']!,
+                    protein: nutrition['protein']!,
+                    carbs: nutrition['carbs']!,
+                    fat: nutrition['fat']!,
+                    mealType: '',
+                    dateConsumed: DateTime.now(),
+                    servingSize: _currentGrams * _quantity,
+                  );
 
-                  // HistoryController removed for now
-                  // await context.read<HistoryController>().addEntry(...)
                   if (mounted) {
-                    Navigator.pop(context); // Close detail
-                    Navigator.pop(context); // Close scan view
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Berhasil ditambahkan ke $mealType'),
-                        backgroundColor: AppColors.primary,
-                      ),
-                    );
+                    if (success) {
+                      Navigator.pop(context); // Close detail
+                      Navigator.pop(context); // Close scan view
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('${widget.food.name} berhasil ditambahkan ke log'),
+                          backgroundColor: AppColors.primary,
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Gagal menambahkan ke log.'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
                   }
                 },
               ),

@@ -165,6 +165,44 @@ class _ScanFoodViewState extends State<ScanFoodView> {
                 ),
               ],
             ),
+          ] else if (ctrl.selectedImage != null && !ctrl.isScanning) ...[
+            const Icon(Icons.search_off_rounded, color: Colors.orange, size: 48),
+            const SizedBox(height: 12),
+            Text(
+              'Mohon maaf untuk makanan ini belum bisa terdeteksi',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.orange.shade800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Sistem kami masih belajar mendeteksi berbagai jenis makanan.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: _actionButton(
+                    Icons.camera_alt_rounded, 'Coba Lagi', 
+                    () => ctrl.pickImage(ImageSource.camera),
+                    AppColors.primary,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _actionButton(
+                    Icons.photo_library_rounded, 'Batal', 
+                    () => ctrl.clearResult(),
+                    Colors.grey,
+                  ),
+                ),
+              ],
+            ),
           ] else ...[
             Text('Scan Makanan', 
               style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),

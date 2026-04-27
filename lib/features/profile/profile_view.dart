@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../auth/auth_controller.dart';
 import '../auth/models/user_model.dart';
 import '../../helpers/calorie_helper.dart';
+import '../auth/login_view.dart';
 
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
@@ -17,11 +18,11 @@ class _ProfileViewState extends State<ProfileView> {
   static const _bg = Color(0xFFF4FAF4);
 
   final List<String> _activityLevels = [
-    'Jarang olahraga',
-    'Olahraga ringan (1-3 kali seminggu)',
-    'Olahraga sedang (3-5 kali seminggu)',
-    'Olahraga berat (6-7 hari seminggu / ngegym)',
-    'Sangat berat (latihan fisik ekstra / atlet)',
+    'Sedikit aktif atau tidak berolahraga',
+    'Olahraga ringan (1-3 hari/minggu)',
+    'Cukup aktif (olahraga sekitar 3-5 hari/minggu)',
+    'Sangat aktif (olahraga berat/olahraga 6-7 hari seminggu)',
+    'Ekstra aktif (Berolahraga secara berat disertai pekerjaan fisik)',
   ];
 
   void _editProfil(UserModel user) {
@@ -253,7 +254,6 @@ class _ProfileViewState extends State<ProfileView> {
                                 age: a ?? user.age,
                                 weight: w ?? user.weight,
                                 activityLevel: selectedActivity,
-                                medicalHistory: user.medicalHistory,
                                 birthDate: user.birthDate,
                                 dailyCalorieNeed: newCal,
                                 targetWeightGainPerMonth: target,
@@ -343,7 +343,7 @@ class _ProfileViewState extends State<ProfileView> {
             body: Center(child: CircularProgressIndicator()),
           );
         }
-        final kaloriTarget = user.dailyCalorieNeed ?? 2000;
+        final kaloriTarget = user.dailyCalorieNeed ?? 2000.0;
         final macros = user.macroTargets;
 
         return Scaffold(
@@ -393,32 +393,73 @@ class _ProfileViewState extends State<ProfileView> {
                   color: Colors.white,
                 ),
               ),
-              GestureDetector(
-                onTap: () => _editProfil(user),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 7,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.edit_outlined, color: Colors.white, size: 14),
-                      SizedBox(width: 5),
-                      Text(
-                        'Edit',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => _editProfil(user),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 7,
                       ),
-                    ],
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.edit_outlined, color: Colors.white, size: 14),
+                          SizedBox(width: 5),
+                          Text(
+                            'Edit',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () async {
+                      final auth = context.read<AuthController>();
+                      await auth.logout();
+                      if (!mounted) return;
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (_) => const LoginView()),
+                        (route) => false,
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 7,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.8),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.logout, color: Colors.white, size: 14),
+                          SizedBox(width: 5),
+                          Text(
+                            'Keluar',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

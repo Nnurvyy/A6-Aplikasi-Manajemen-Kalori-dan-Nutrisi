@@ -10,8 +10,12 @@ class FoodController extends ChangeNotifier {
   String _selectedCategory = 'Semua';
   bool _isLoading = false;
 
-  List<LogModel> get getAllLogs => HiveService.logs.values.toList().cast<LogModel>();
-
+  List<LogModel> getUserLogs(String userId) {
+    return HiveService.logs.values
+        .cast<LogModel>()
+        .where((log) => log.userId == userId)
+        .toList();
+  }
   List<FoodModel> get foods => _filtered;
   List<FoodModel> get allApproved =>
       _allFoods.where((f) => f.isApproved).toList();
@@ -23,8 +27,8 @@ class FoodController extends ChangeNotifier {
     'Semua', 'Makanan Pokok', 'Lauk', 'Sayuran', 'Buah', 'Minuman', 'Snack', 'Lainnya'
   ];
 
-  double get totalCaloriesToday {
-    return getAllLogs.fold(0, (sum, item) => sum + item.calories);
+  double totalCaloriesToday(String userId) {
+    return getUserLogs(userId).fold(0, (sum, item) => sum + item.calories);
   }
 
   void loadFoods({bool approvedOnly = true}) {
@@ -80,6 +84,8 @@ class FoodController extends ChangeNotifier {
 
   FoodModel? findById(String id) => HiveService.foods.get(id);
 
+  List<LogModel> get allLogs => HiveService.logs.values.toList();
+
   Future<bool> addFoodToDailyLog({
     required String userId,
     required String foodName,
@@ -90,6 +96,8 @@ class FoodController extends ChangeNotifier {
     required double fat,
     required String mealType,
     required DateTime dateConsumed, 
+    required double servingSize,
+    bool isManual = false,
   }) async {
     //max 3 hari yg lalu
     final now = DateTime.now();
@@ -112,8 +120,9 @@ class FoodController extends ChangeNotifier {
       mealType: mealType,
       consumedAt: dateConsumed,
       syncStatus: 'pending', 
-      servingSize: 100.0,
+      servingSize: servingSize,
       category: category,
+      isManual: isManual,
     );
 
     await HiveService.logs.put(newLog.id, newLog);

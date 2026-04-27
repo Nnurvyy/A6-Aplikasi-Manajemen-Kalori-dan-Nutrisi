@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../auth/auth_controller.dart';
 import 'dashboard_controller.dart';
-import '../auth/login_view.dart';
 import '../food/models/log_model.dart';
-import '../../services/hive_service.dart';
 import '../food/food_controller.dart';
 
 /// Widget murni isi dashboard — TANPA Scaffold/BottomNav sendiri.
@@ -27,14 +25,32 @@ class _DashboardBodyState extends State<DashboardBody> {
 
   @override
   Widget build(BuildContext context) {
-    // Tidak ada bottomNavigationBar / floatingActionButton di sini.
-    // Keduanya dikelola oleh UserMainView (shell).
     final user = context.watch<AuthController>().currentUser;
-    final kaloriTarget = user?.dailyCalorieNeed ?? 2000;
+    final foodController = context.watch<FoodController>();
+
+    final kaloriTarget = user?.dailyCalorieNeed ?? 2000.0;
     final macros = user?.macroTargets;
 
-    // Update controller target dari data user
+    // Filter history by selected date
+    List<LogModel> history = [];
+    if (user != null) {
+      history = foodController.getUserLogs(user.id);
+    }
+    
+    final selectedDate = _controller.days[_controller.selectedDayIndex].date;
+    final filteredHistory = history.where((log) {
+      final logDate = DateTime(log.consumedAt.year, log.consumedAt.month, log.consumedAt.day);
+      return logDate.isAtSameMomentAs(selectedDate);
+    }).toList();
+
+    // Calculate consumed macros
+    final kaloriConsumed = filteredHistory.fold(0.0, (s, i) => s + i.calories);
+    final proteinConsumed = filteredHistory.fold(0.0, (s, i) => s + i.protein);
+    final carbsConsumed = filteredHistory.fold(0.0, (s, i) => s + i.carbs);
+    final fatConsumed = filteredHistory.fold(0.0, (s, i) => s + i.fat);
+
     _controller.kaloriTarget = kaloriTarget;
+    _controller.kaloriConsumed = kaloriConsumed;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F0),
@@ -43,14 +59,14 @@ class _DashboardBodyState extends State<DashboardBody> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(user?.name),
+              _buildHeader(selectedDate),
               _buildDaySelector(),
               _buildKaloriCard(),
               const SizedBox(height: 8),
-              _buildNutriGrid(),
+              _buildNutriGrid(proteinConsumed, carbsConsumed, fatConsumed, macros),
               const SizedBox(height: 8),
               _buildRiwayatHeader(),
-              _buildRiwayatList(),
+              _buildRiwayatList(filteredHistory),
               const SizedBox(height: 100), // ruang agar tidak ketutup navbar
             ],
           ),
@@ -60,7 +76,11 @@ class _DashboardBodyState extends State<DashboardBody> {
   }
 
   // ─── HEADER ───────────────────────────────────────────────────────────────
-  Widget _buildHeader(String? nama) {
+  Widget _buildHeader(DateTime selectedDate) {
+    final List<String> hari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+    final List<String> bulan = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    final dateStr = '${hari[selectedDate.weekday - 1]}, ${selectedDate.day} ${bulan[selectedDate.month - 1]}';
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
       child: Row(
@@ -75,51 +95,26 @@ class _DashboardBodyState extends State<DashboardBody> {
               letterSpacing: -0.5,
             ),
           ),
-          Row(
-            children: [
-              GestureDetector(
-                onTap: _controller.onSettingsTapped,
-                child: Container(
-                  width: 38,
-                  height: 38,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF4CAF50),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.settings,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              GestureDetector(
-                onTap: () async {
-                  final auth = context.read<AuthController>();
-                  await auth.logout();
-                  if (!mounted) return;
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (_) => const LoginView()),
-                    (route) => false,
-                  );
-                },
-                child: Container(
-                  width: 38,
-                  height: 38,
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.logout,
-                    color: Colors.white,
-                    size: 20,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF4CAF50).withOpacity(0.12),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.calendar_today_rounded, color: Color(0xFF2E7D32), size: 14),
+                const SizedBox(width: 6),
+                Text(
+                  dateStr,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF2E7D32),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -221,7 +216,7 @@ class _DashboardBodyState extends State<DashboardBody> {
   Widget _buildBatteryBar(double percentage) {
     return IntrinsicHeight(
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
             child: Container(
@@ -255,22 +250,22 @@ class _DashboardBodyState extends State<DashboardBody> {
                     ),
                     Center(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: 24),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const Icon(
                               Icons.local_fire_department,
                               color: Colors.white,
-                              size: 18,
+                              size: 24,
                             ),
-                            const SizedBox(width: 4),
+                            const SizedBox(width: 6),
                             Text(
                               '${(percentage * 100).toInt()}%',
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
                               ),
                             ),
                           ],
@@ -284,10 +279,11 @@ class _DashboardBodyState extends State<DashboardBody> {
           ),
           const SizedBox(width: 6),
           Container(
-            width: 10,
+            width: 8,
+            height: 36,
             decoration: BoxDecoration(
               color: const Color(0xFFA5D6A7),
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(4),
             ),
           ),
         ],
@@ -296,16 +292,15 @@ class _DashboardBodyState extends State<DashboardBody> {
   }
 
   // ─── NUTRISI GRID ─────────────────────────────────────────────────────────
-  Widget _buildNutriGrid([Map<String, double>? macros]) {
-    // Gunakan target dari user jika ada, fallback ke controller default
-    final items =
-        macros != null
-            ? _controller.nutrisiItemsWithTargets(
-              protein: macros['protein'] ?? 80,
-              carbs: macros['carbs'] ?? 250,
-              fat: macros['fat'] ?? 65,
-            )
-            : _controller.nutrisiItems;
+  Widget _buildNutriGrid(double consumedProtein, double consumedCarbs, double consumedFat, [Map<String, double>? macros]) {
+    final items = _controller.nutrisiItemsWithTargets(
+      consumedProtein: consumedProtein,
+      targetProtein: macros?['protein'] ?? 80,
+      consumedCarbs: consumedCarbs,
+      targetCarbs: macros?['carbs'] ?? 250,
+      consumedFat: consumedFat,
+      targetFat: macros?['fat'] ?? 65,
+    );
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -468,14 +463,11 @@ class _DashboardBodyState extends State<DashboardBody> {
 
   // ─── RIWAYAT LIST ─────────────────────────────────────────────────────────
 
-  Widget _buildRiwayatList() {
-    final foodController = context.watch<FoodController>();
+  Widget _buildRiwayatList(List<LogModel> history) {
+    final sortedHistory = List<LogModel>.from(history)
+      ..sort((a, b) => b.consumedAt.compareTo(a.consumedAt));
 
-    final history = foodController.getAllLogs;
-
-    history.sort((a, b) => b.consumedAt.compareTo(a.consumedAt));
-
-    if (history.isEmpty) {
+    if (sortedHistory.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         child: Container(
@@ -529,7 +521,7 @@ class _DashboardBodyState extends State<DashboardBody> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
-        children: history.map((item) => _buildFoodHistoryCard(item)).toList(),
+        children: sortedHistory.map((item) => _buildFoodHistoryCard(item)).toList(),
       ),
     );
   }
@@ -591,8 +583,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${item.category} • ${item.mealType}',
-                    //'${item.category} • ${item.mealTime}',
+                    item.category,
                     style: const TextStyle(
                       fontSize: 11,
                       color: Color(0xFF5A7A5A),
@@ -659,7 +650,7 @@ class _DashboardBodyState extends State<DashboardBody> {
   // ─── MODAL DETAIL ─────────────────────────────────────────────────────────
 
   void _showFoodDetailModal(LogModel item) {
-    final Color accentColor = _categoryColor(item.mealType);
+    final Color accentColor = _categoryColor(item.category);
 
     showModalBottomSheet(
       context: context,
@@ -737,11 +728,6 @@ class _DashboardBodyState extends State<DashboardBody> {
                                           _pillBadge(
                                             item.category,
                                             accentColor,
-                                          ),
-                                          const SizedBox(width: 6),
-                                          _pillBadge(
-                                            item.mealType,
-                                            const Color(0xFF4CAF50),
                                           ),
                                         ],
                                       ),
@@ -875,7 +861,6 @@ class _DashboardBodyState extends State<DashboardBody> {
                             GestureDetector(
                               onTap: () {
                                 Navigator.pop(ctx);
-                                // TODO: hapus dari riwayat
                               },
                               child: Container(
                                 width: double.infinity,
