@@ -75,7 +75,7 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
   @override
   void write(BinaryWriter writer, UserModel obj) {
     writer
-      ..writeByte(14) // 15 - 1 (medicalHistory removed)
+      ..writeByte(14) 
       ..writeByte(0)..write(obj.id)
       ..writeByte(1)..write(obj.name)
       ..writeByte(2)..write(obj.email)
@@ -86,7 +86,6 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
       ..writeByte(7)..write(obj.age)
       ..writeByte(8)..write(obj.gender)
       ..writeByte(9)..write(obj.activityLevel)
-      // Index 10 (medicalHistory) skipped/removed
       ..writeByte(11)..write(obj.dailyCalorieNeed)
       ..writeByte(12)..write(obj.birthDate)
       ..writeByte(13)..write(obj.isBlocked)
