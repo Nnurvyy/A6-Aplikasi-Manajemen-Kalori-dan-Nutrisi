@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../food/food_controller.dart';
 import '../food/models/log_model.dart';
+import '../food/models/food_model.dart';
+import '../food/food_detail_view.dart';
 import '../auth/auth_controller.dart';
 import 'FormTambahMakananManual.dart';
+import '../../helpers/date_controller.dart';
 
 class PilihMakananManual extends StatefulWidget {
   const PilihMakananManual({super.key});
@@ -24,10 +27,19 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
     final authCtrl = context.watch<AuthController>();
     final userId = authCtrl.currentUser?.id ?? '';
     
-    // Filter manual logs for current user
-    final manualLogs = foodCtrl.allLogs
-        .where((log) => log.isManual && log.userId == userId)
-        .toList()
+    // Filter manual logs for current user and unique-ify by name
+    final Map<String, LogModel> uniqueManuals = {};
+    for (var log in foodCtrl.allLogs) {
+      if (log.isManual && log.userId == userId) {
+        // Simpan yang terbaru (consumedAt paling baru)
+        final existing = uniqueManuals[log.foodName.toLowerCase()];
+        if (existing == null || log.consumedAt.isAfter(existing.consumedAt)) {
+          uniqueManuals[log.foodName.toLowerCase()] = log;
+        }
+      }
+    }
+
+    final manualLogs = uniqueManuals.values.toList()
       ..sort((a, b) => b.consumedAt.compareTo(a.consumedAt));
 
     return Scaffold(
@@ -173,11 +185,24 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
   }
 
   void _showLogDetail(LogModel log) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _LogDetailSheet(log: log),
+    // Convert LogModel to FoodModel for FoodDetailView
+    // Total nutrition in LogModel is for log.servingSize, we need per 100g
+    final factor = 100 / log.servingSize;
+    final food = FoodModel(
+      id: 'manual_${log.foodName.replaceAll(' ', '_').toLowerCase()}',
+      name: log.foodName,
+      category: log.category,
+      calories: log.calories * factor,
+      protein: log.protein * factor,
+      carbs: log.carbs * factor,
+      fat: log.fat * factor,
+      defaultServingSize: log.servingSize,
+      createdAt: log.consumedAt,
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => FoodDetailView(food: food, isManual: true)),
     );
   }
 
@@ -223,186 +248,6 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
             style: TextStyle(color: _textMuted, fontSize: 13),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _LogDetailSheet extends StatelessWidget {
-  final LogModel log;
-  const _LogDetailSheet({required this.log});
-
-  @override
-  Widget build(BuildContext context) {
-    final accentColor = _getCategoryColor(log.category);
-
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE0E0E0),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: accentColor.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Center(
-                  child: Text(
-                    log.foodName.isNotEmpty ? log.foodName[0].toUpperCase() : '?',
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: accentColor),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      log.foodName,
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF1B2A1B)),
-                    ),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: accentColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        log.category,
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: accentColor),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 32),
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF4CAF50), Color(0xFF66BB6A)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF4CAF50).withOpacity(0.3),
-                  blurRadius: 12,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.local_fire_department, color: Colors.white, size: 32),
-                const SizedBox(width: 12),
-                Column(
-                  children: [
-                    Text(
-                      '${log.calories.toInt()}',
-                      style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.white),
-                    ),
-                    const Text('kkal total', style: TextStyle(fontSize: 12, color: Colors.white70)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              _macroItem('Protein', log.protein, const Color(0xFFFFEBEE), const Color(0xFFE53935), Icons.fitness_center),
-              const SizedBox(width: 12),
-              _macroItem('Karbo', log.carbs, const Color(0xFFFFF8E1), const Color(0xFFF59E0B), Icons.grain),
-              const SizedBox(width: 12),
-              _macroItem('Lemak', log.fat, const Color(0xFFFFF3E0), const Color(0xFFFF8C00), Icons.water_drop),
-            ],
-          ),
-          const SizedBox(height: 32),
-          SizedBox(
-            width: double.infinity,
-            height: 54,
-            child: ElevatedButton(
-              onPressed: () async {
-                final foodCtrl = context.read<FoodController>();
-                final authCtrl = context.read<AuthController>();
-                final user = authCtrl.currentUser;
-                if (user == null) return;
-
-                final success = await foodCtrl.addFoodToDailyLog(
-                  userId: user.id,
-                  foodName: log.foodName,
-                  category: log.category,
-                  calories: log.calories,
-                  protein: log.protein,
-                  carbs: log.carbs,
-                  fat: log.fat,
-                  mealType: 'Snack',
-                  dateConsumed: DateTime.now(),
-                  servingSize: log.servingSize,
-                  isManual: true,
-                );
-
-                if (success && context.mounted) {
-                  Navigator.pop(context); // Close sheet
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Berhasil menambahkan ${log.foodName} ke log hari ini'),
-                      backgroundColor: const Color(0xFF2E7D32),
-                    ),
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2E7D32),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                elevation: 2,
-              ),
-              child: const Text('Tambah ke Log Hari Ini', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _macroItem(String label, double value, Color bg, Color color, IconData icon) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(16)),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(height: 8),
-            Text('${value.toStringAsFixed(1)}g', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: color)),
-            Text(label, style: TextStyle(fontSize: 10, color: color.withOpacity(0.7))),
-          ],
-        ),
       ),
     );
   }

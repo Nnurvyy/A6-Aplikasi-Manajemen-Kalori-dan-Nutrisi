@@ -15,6 +15,7 @@ import 'food/watchlist_controller.dart';
 import 'food/models/watchlist_model.dart';
 import 'food/watchlist_view.dart';
 import 'food/food_detail_view.dart';
+import 'progress/progress_view.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // USER MAIN VIEW
@@ -34,17 +35,17 @@ class _UserMainViewState extends State<UserMainView>
 
   static const List<_NavItem> _navItems = [
     _NavItem(icon: Icons.home_rounded, label: 'Home'),
-    _NavItem(icon: Icons.history_rounded, label: 'Riwayat'),
+    _NavItem(icon: Icons.bar_chart_rounded, label: 'Progress'),
     _NavItem(icon: Icons.assignment_rounded, label: 'Pengajuan'),
     _NavItem(icon: Icons.person_rounded, label: 'Profile'),
   ];
 
-  // Pages — gunakan const agar IndexedStack tidak rebuild
-  static const List<Widget> _pages = [
-    DashboardView(),
-    _RiwayatPlaceholder(),
-    SubmissionScreen(),
-    ProfileView(),
+  // Pages
+  static final List<Widget> _pages = [
+    const DashboardView(),
+    const ProgressView(),
+    const SubmissionScreen(),
+    const ProfileView(),
   ];
 
   // ── Speed Dial ───────────────────────────────────────────────────────────
@@ -100,10 +101,12 @@ class _UserMainViewState extends State<UserMainView>
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final userId = context.read<AuthController>().currentUser?.id;
+      final authCtrl = context.read<AuthController>();
+      final userId = authCtrl.currentUser?.id;
       if (userId != null) {
         context.read<WatchlistController>().loadWatchlist(userId);
       }
+      // Cek apakah perlu modal input BB (handled inside ProgressView)
     });
 
     _mainCtrl = AnimationController(

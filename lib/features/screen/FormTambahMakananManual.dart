@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:provider/provider.dart';
 import '../auth/auth_controller.dart';
 import '../food/food_controller.dart';
+import '../../helpers/date_controller.dart';
 
 class FormTambahMakananManual extends StatefulWidget {
   const FormTambahMakananManual({super.key});
@@ -103,7 +104,7 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
       carbs: carbs,
       fat: fat,
       mealType: '',
-      dateConsumed: DateTime.now(),
+      dateConsumed: context.read<DateController>().selectedDate,
       servingSize: servingSize,
       isManual: true,
     );
@@ -165,7 +166,7 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
             _buildNutritionSection(),
             const SizedBox(height: 20),
             _buildLivePreview(),
-            const SizedBox(height: 28),
+            const SizedBox(height: 16),
             _buildSaveButton(),
             const SizedBox(height: 20),
           ],
@@ -303,6 +304,8 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
       ),
     );
   }
+
+
 
   Widget _buildLivePreview() {
     final cal = double.tryParse(_calCtrl.text) ?? 0;

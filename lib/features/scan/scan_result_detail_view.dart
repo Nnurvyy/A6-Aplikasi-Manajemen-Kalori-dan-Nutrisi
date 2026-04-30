@@ -9,6 +9,7 @@ import '../food/food_controller.dart';
 import '../shared/widgets/nt_button.dart';
 import 'package:intl/intl.dart';
 import '../food/watchlist_controller.dart';
+import '../../helpers/date_controller.dart';
 
 class ScanResultDetailView extends StatefulWidget {
   final FoodModel food;
@@ -335,7 +336,7 @@ class _ScanResultDetailViewState extends State<ScanResultDetailView> {
                     carbs: nutrition['carbs']!,
                     fat: nutrition['fat']!,
                     mealType: '',
-                    dateConsumed: DateTime.now(),
+                    dateConsumed: context.read<DateController>().selectedDate,
                     servingSize: _currentGrams * _quantity,
                   );
 
@@ -347,6 +348,7 @@ class _ScanResultDetailViewState extends State<ScanResultDetailView> {
                         SnackBar(
                           content: Text('${widget.food.name} berhasil ditambahkan ke log'),
                           backgroundColor: AppColors.primary,
+                          duration: const Duration(seconds: 2),
                         ),
                       );
                     } else {

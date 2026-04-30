@@ -9,6 +9,8 @@ import 'features/food/models/food_model.dart';
 import 'features/food/models/log_model.dart';
 import 'features/food/models/watchlist_model.dart';
 import 'features/food/watchlist_controller.dart';
+import 'features/progress/models/weight_log_model.dart';
+import 'helpers/date_controller.dart';
 
 import 'services/hive_service.dart';
 import 'helpers/seed_helper.dart';
@@ -41,6 +43,7 @@ void main() async {
   Hive.registerAdapter(FoodModelAdapter());
   Hive.registerAdapter(LogModelAdapter());
   Hive.registerAdapter(WatchlistModelAdapter());
+  Hive.registerAdapter(WeightLogModelAdapter());
 
   await HiveService.initBoxes();
   await SeedHelper.seedIfEmpty();
@@ -58,6 +61,7 @@ class NutriTrackApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthController()),
         ChangeNotifierProvider(create: (_) => FoodController()),
         ChangeNotifierProvider(create: (_) => WatchlistController()),
+        ChangeNotifierProvider(create: (_) => DateController()),
       ],
       child: MaterialApp(
         title: 'NutriTrack',

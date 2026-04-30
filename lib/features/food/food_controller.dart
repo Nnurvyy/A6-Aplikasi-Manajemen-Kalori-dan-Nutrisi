@@ -99,16 +99,6 @@ class FoodController extends ChangeNotifier {
     required double servingSize,
     bool isManual = false,
   }) async {
-    //max 3 hari yg lalu
-    final now = DateTime.now();
-    final threeDaysAgo = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 3));
-    final inputDateOnly = DateTime(dateConsumed.year, dateConsumed.month, dateConsumed.day);
-
-    if (inputDateOnly.isBefore(threeDaysAgo)) {
-      // reject >3 hari lalu
-      return false; 
-    }
-
     final newLog = LogModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       userId: userId,
