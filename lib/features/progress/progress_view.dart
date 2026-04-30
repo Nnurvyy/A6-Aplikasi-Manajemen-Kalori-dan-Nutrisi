@@ -602,6 +602,10 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
     final bmi = ctrl.currentBMI;
     if (bmi == null) return;
 
+    final weight = ctrl.user?.weight ?? 0.0;
+    final height = ctrl.user?.height ?? 0.0;
+    final ideal = ctrl.idealWeight;
+
     // Tentukan kategori dan range
     String category;
     String rangeInfo;
@@ -633,7 +637,6 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
       advice = 'Kamu mengalami obesitas. Selisih dari batas atas normal: ${surplus.toStringAsFixed(1)} kg/m². Konsultasikan dengan dokter atau ahli gizi.';
     }
 
-    // Rentang BMI
     final bmiRanges = [
       _BMIRange('Kurus', '< 18.5', const Color(0xFF1E88E5)),
       _BMIRange('Normal', '18.5 – 24.9', const Color(0xFF2E7D32)),
@@ -646,82 +649,109 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         contentPadding: EdgeInsets.zero,
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Header
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [catColor, catColor.withOpacity(0.7)]),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                decoration: BoxDecoration(
+                  color: catColor,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                child: Column(
+                  children: [
+                    Text(category, style: GoogleFonts.poppins(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 4),
+                    Text('Skor BMI: ${bmi.toStringAsFixed(1)}', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 13)),
+                  ],
+                ),
               ),
-              child: Column(
-                children: [
-                  Text('Indeks Massa Tubuh', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 13)),
-                  const SizedBox(height: 4),
-                  Text('${bmi.toStringAsFixed(1)} kg/m²', style: GoogleFonts.poppins(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
-                    child: Text(category, style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
-                  ),
-                ],
-              ),
-            ),
-            // Content
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Satuan info
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: catColor.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
-                    child: Text(rangeInfo, style: GoogleFonts.poppins(fontSize: 13, color: catColor, fontWeight: FontWeight.w600)),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(advice, style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade700, height: 1.5)),
-                  const SizedBox(height: 16),
-                  // Tabel kategori
-                  Text('Tabel Klasifikasi BMI', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 13)),
-                  const SizedBox(height: 8),
-                  ...bmiRanges.map((r) => Container(
-                    margin: const EdgeInsets.only(bottom: 6),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: r.color.withOpacity(bmi >= _bmiRangeStart(r.label) && bmi < _bmiRangeEnd(r.label) ? 0.15 : 0.05),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: r.color.withOpacity(bmi >= _bmiRangeStart(r.label) && bmi < _bmiRangeEnd(r.label) ? 0.5 : 0.1), width: 1.5),
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _infoRow('Berat Badan Saat Ini', '${weight.toStringAsFixed(1)} kg'),
+                    const SizedBox(height: 12),
+                    _infoRow('Tinggi Badan', '${height.toStringAsFixed(0)} cm'),
+                    const SizedBox(height: 12),
+                    _infoRow('Berat Badan Ideal', '${ideal.toStringAsFixed(1)} kg', isHighlighted: true),
+                    const Divider(height: 32),
+                    Text('Analisis', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 14)),
+                    const SizedBox(height: 8),
+                    Text(rangeInfo, style: GoogleFonts.poppins(fontSize: 13, color: Colors.black87)),
+                    const SizedBox(height: 8),
+                    Text(advice, style: GoogleFonts.poppins(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.w500)),
+                    const Divider(height: 32),
+                    Text('Bagaimana Cara Menghitungnya?', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 14)),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12)),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Rumus Berat Ideal:', style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black54)),
+                          Text('22 × (Tinggi/100)²', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF2E7D32))),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Korelasinya: BMI (Body Mass Index) adalah perbandingan berat terhadap tinggi. Angka 22 dianggap sebagai titik tengah BMI normal yang paling sehat. Dengan mengalikan angka 22 dengan kuadrat tinggi badan, kita mendapatkan estimasi berat badan yang paling proporsional untuk tubuhmu.',
+                            style: GoogleFonts.poppins(fontSize: 11, color: Colors.black54, height: 1.4),
+                          ),
+                        ],
+                      ),
                     ),
-                    child: Row(
-                      children: [
-                        Container(width: 8, height: 8, decoration: BoxDecoration(color: r.color, shape: BoxShape.circle)),
-                        const SizedBox(width: 10),
-                        Expanded(child: Text(r.label, style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600))),
-                        Text(r.range, style: GoogleFonts.poppins(fontSize: 12, color: r.color, fontWeight: FontWeight.w700)),
-                        Text(' kg/m²', style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey)),
-                      ],
-                    ),
-                  )),
-                  const SizedBox(height: 4),
-                  Text('*BMI dihitung: Berat (kg) ÷ Tinggi² (m)', style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey)),
-                ],
+                    const SizedBox(height: 24),
+                    Text('Klasifikasi BMI:', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 14)),
+                    const SizedBox(height: 12),
+                    ...bmiRanges.map((r) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        children: [
+                          Container(width: 12, height: 12, decoration: BoxDecoration(color: r.color, shape: BoxShape.circle)),
+                          const SizedBox(width: 12),
+                          Expanded(child: Text(r.label, style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w500))),
+                          Text(r.range, style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey)),
+                        ],
+                      ),
+                    )),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-        actions: [
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: catColor, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Tutup'),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 14)),
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Tutup'),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
+    );
+  }
+
+  Widget _infoRow(String label, String value, {bool isHighlighted = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey.shade600)),
+        Text(
+          value, 
+          style: GoogleFonts.poppins(
+            fontSize: 15, 
+            fontWeight: FontWeight.w700, 
+            color: isHighlighted ? const Color(0xFF2E7D32) : Colors.black87
+          )
+        ),
+      ],
     );
   }
 
