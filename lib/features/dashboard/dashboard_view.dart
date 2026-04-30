@@ -4,6 +4,7 @@ import '../auth/auth_controller.dart';
 import 'dashboard_controller.dart';
 import '../food/models/log_model.dart';
 import '../food/food_controller.dart';
+import '../../helpers/date_controller.dart';
 
 /// Widget murni isi dashboard — TANPA Scaffold/BottomNav sendiri.
 /// Dibungkus oleh UserMainView yang sudah punya satu BottomAppBar.
@@ -21,6 +22,13 @@ class _DashboardBodyState extends State<DashboardBody> {
   void initState() {
     super.initState();
     _controller.init();
+    // Sync initial today's date to global controller
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final initialDate = _controller.days[_controller.selectedDayIndex].date;
+        context.read<DateController>().setDate(initialDate);
+      }
+    });
   }
 
   @override
@@ -134,7 +142,10 @@ class _DashboardBodyState extends State<DashboardBody> {
           final day = _controller.days[index];
           final isActive = index == _controller.selectedDayIndex;
           return GestureDetector(
-            onTap: () => setState(() => _controller.selectDay(index)),
+            onTap: () {
+              setState(() => _controller.selectDay(index));
+              context.read<DateController>().setDate(day.date);
+            },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               width: 38,
@@ -791,9 +802,9 @@ class _DashboardBodyState extends State<DashboardBody> {
                                           color: Colors.white,
                                         ),
                                       ),
-                                      Text(
-                                        '(${item.calories.toInt()} kkal/100g)',
-                                        style: const TextStyle(
+                                      const Text(
+                                        'total porsi',
+                                        style: TextStyle(
                                           fontSize: 11,
                                           color: Colors.white70,
                                         ),

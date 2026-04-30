@@ -8,11 +8,13 @@ import '../shared/widgets/nt_button.dart';
 import 'package:intl/intl.dart';
 import 'food_controller.dart';
 import 'watchlist_controller.dart';
+import '../../helpers/date_controller.dart';
 
 class FoodDetailView extends StatefulWidget {
   final FoodModel food;
+  final bool isManual;
 
-  const FoodDetailView({super.key, required this.food});
+  const FoodDetailView({super.key, required this.food, this.isManual = false});
 
   @override
   State<FoodDetailView> createState() => _FoodDetailViewState();
@@ -293,55 +295,60 @@ class _FoodDetailViewState extends State<FoodDetailView> {
         ],
       ),
       bottomSheet: Container(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkSurface : Colors.white,
           boxShadow: [
             BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, -5))
           ],
         ),
-        child: NtButton(
-          label: 'Tambah ke Log Hari Ini',
-          onPressed: () async {
-            final userId = auth.currentUser?.id;
-            if (userId == null) return;
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            NtButton(
+              label: 'Tambah ke Log',
+              onPressed: () async {
+                final userId = auth.currentUser?.id;
+                if (userId == null) return;
 
-            final foodCtrl = context.read<FoodController>();
+                final foodCtrl = context.read<FoodController>();
+                final selectedDate = context.read<DateController>().selectedDate;
 
-            bool success = await foodCtrl.addFoodToDailyLog(
-              userId: userId,
-              foodName: widget.food.name,
-              category: widget.food.category,
-              calories: nutrition['calories']!,
-              protein: nutrition['protein']!,
-              carbs: nutrition['carbs']!,
-              fat: nutrition['fat']!,
-              mealType: '',
-              dateConsumed: DateTime.now(), 
-              servingSize: _currentGrams * _quantity,
-            );
-
-            // HistoryController removed for now
-            if (!context.mounted) return;
-
-              if (success) {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('${widget.food.name} berhasil ditambahkan ke log'),
-                  backgroundColor: AppColors.primary,
-                ),
-              );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Gagal! Tidak bisa menambah log lebih dari 3 hari yang lalu.'),
-                    backgroundColor: Colors.red,
-                  ),
+                bool success = await foodCtrl.addFoodToDailyLog(
+                  userId: userId,
+                  foodName: widget.food.name,
+                  category: widget.food.category,
+                  calories: nutrition['calories']!,
+                  protein: nutrition['protein']!,
+                  carbs: nutrition['carbs']!,
+                  fat: nutrition['fat']!,
+                  mealType: '',
+                  dateConsumed: selectedDate,
+                  servingSize: _currentGrams * _quantity,
+                  isManual: widget.isManual,
                 );
-              }
-            }
-          
+
+                if (!context.mounted) return;
+                if (success) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('${widget.food.name} berhasil ditambahkan ke log'),
+                      backgroundColor: AppColors.primary,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Gagal menambahkan log.'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+            ),
+          ],
         ),
       ),
     );
