@@ -260,8 +260,6 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
     
     final selected = await _showMonthYearPicker(initialDate: initial, title: 'Pilih Bulan Input BB');
     if (selected != null) {
-      // Navigasi chart juga ke bulan tersebut agar user merasa progresnya sinkron
-      _ctrl.setViewMonthYear(selected.year, selected.month);
       _showWeightModal(selected);
     }
   }
@@ -354,6 +352,7 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
               SliverToBoxAdapter(child: _buildBMICard(ctrl)),
               SliverToBoxAdapter(child: _buildNutritionSection(ctrl)),
               SliverToBoxAdapter(child: _buildWeightSection(ctrl)),
+              SliverToBoxAdapter(child: _buildActivityGrid(ctrl)),
               const SliverToBoxAdapter(child: SizedBox(height: 32)),
             ],
           ),
@@ -388,6 +387,8 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
 
   Widget _buildBMICard(ProgressController ctrl) {
     final bmi = ctrl.currentBMI;
+    final statusMsg = ctrl.weightStatusMessage;
+    
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       child: GestureDetector(
@@ -400,37 +401,200 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
             boxShadow: [BoxShadow(color: const Color(0xFF2E7D32).withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 6))],
           ),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Row(
                       children: [
-                        Text('Indeks Massa Tubuh', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12)),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
-                          child: const Icon(Icons.info_outline_rounded, color: Colors.white70, size: 12),
-                        ),
+                        Text('Status Berat Badan', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11)),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.info_outline_rounded, color: Colors.white70, size: 10),
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text(bmi != null ? bmi.toStringAsFixed(1) : '-', style: GoogleFonts.poppins(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w800)),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
-                      child: Text(ctrl.bmiCategory, style: GoogleFonts.poppins(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                    Text(
+                      statusMsg, 
+                      style: GoogleFonts.poppins(
+                        color: Colors.white, 
+                        fontSize: 18, 
+                        fontWeight: FontWeight.w700,
+                        height: 1.1,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
+                          child: Text(ctrl.bmiCategory, style: GoogleFonts.poppins(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600)),
+                        ),
+                        Text(
+                          'BMI: ${bmi != null ? bmi.toStringAsFixed(1) : "-"}',
+                          style: GoogleFonts.poppins(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w500),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
+              const SizedBox(width: 12),
               _buildBMIGauge(bmi),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildActivityGrid(ProgressController ctrl) {
+    final monthName = DateFormat('MMMM yyyy', 'id').format(DateTime(ctrl.viewYearActivity, ctrl.viewMonthActivity));
+    final data = ctrl.activityData;
+    
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Aktivitas Nutrisi', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.black87)),
+                      Text(monthName, style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey)),
+                    ],
+                  ),
+                ),
+                _navBadge(
+                  label: DateFormat('MMM yy', 'id').format(DateTime(ctrl.viewYearActivity, ctrl.viewMonthActivity)),
+                  onTap: () => _handleActivityNavClick(ctrl),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 7,
+                mainAxisSpacing: 8,
+                crossAxisSpacing: 8,
+              ),
+              itemCount: data.length,
+              itemBuilder: (context, index) {
+                final dayData = data[index];
+                final status = ctrl.getCalorieStatus(dayData);
+                
+                Color color;
+                switch (status) {
+                  case 1: color = const Color(0xFF4CAF50); break; // Green
+                  case 2: color = const Color(0xFFFFC107); break; // Yellow
+                  case 3: color = const Color(0xFFEF5350); break; // Red
+                  default: color = Colors.grey.withOpacity(0.15); // Empty/Gray
+                }
+                
+                return Container(
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${index + 1}',
+                      style: GoogleFonts.poppins(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: status == 0 ? Colors.grey : Colors.white,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 20),
+            _buildGridLegendDetailed(),
+            const SizedBox(height: 16),
+            Text(
+              'Tips: Jaga rantai kotak hijau agar tetap konsisten!',
+              style: GoogleFonts.poppins(fontSize: 11, color: const Color(0xFF2E7D32), fontWeight: FontWeight.w500, fontStyle: FontStyle.italic),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGridLegendDetailed() {
+    return Column(
+      children: [
+        _legendItemDetailed(const Color(0xFF4CAF50), 'Sesuai Target (90-110%)'),
+        const SizedBox(height: 4),
+        _legendItemDetailed(const Color(0xFFFFC107), 'Hampir Target (70-130%)'),
+        const SizedBox(height: 4),
+        _legendItemDetailed(const Color(0xFFEF5350), 'Jauh dari Target / Terlewat'),
+      ],
+    );
+  }
+
+  Widget _legendItemDetailed(Color color, String label) {
+    return Row(
+      children: [
+        Container(
+          width: 12, height: 12,
+          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3)),
+        ),
+        const SizedBox(width: 8),
+        Text(label, style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey.shade600)),
+      ],
+    );
+  }
+
+  Future<void> _handleActivityNavClick(ProgressController ctrl) async {
+    final selected = await _showMonthYearPicker(
+      initialDate: DateTime(ctrl.viewYearActivity, ctrl.viewMonthActivity),
+      title: 'Pilih Periode Aktivitas',
+    );
+    if (selected != null) {
+      ctrl.setViewMonthYearActivity(selected.year, selected.month);
+    }
+  }
+
+  Widget _buildGridLegend() {
+    return Row(
+      children: [
+        _legendItem(const Color(0xFF4CAF50)),
+        const SizedBox(width: 4),
+        _legendItem(const Color(0xFFFFC107)),
+        const SizedBox(width: 4),
+        _legendItem(const Color(0xFFEF5350)),
+      ],
+    );
+  }
+
+  Widget _legendItem(Color color) {
+    return Container(
+      width: 10,
+      height: 10,
+      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2)),
     );
   }
 
@@ -810,7 +974,7 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
           Row(
             children: [
               Expanded(child: Text('Grafik Berat Badan', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w700, color: const Color(0xFF1A2E1A)))),
-              Text('${DateTime.now().year}', style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey)),
+              _buildWeightYearSelector(ctrl),
             ],
           ),
           const SizedBox(height: 8),
@@ -839,10 +1003,100 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
   Widget _legendDot(Color color, String label) {
     return Row(
       children: [
-        Container(width: 12, height: 12, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
         const SizedBox(width: 6),
-        Text(label, style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade700)),
+        Text(label, style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey)),
       ],
+    );
+  }
+
+  Widget _buildWeightYearSelector(ProgressController ctrl) {
+    return _navBadge(
+      label: '${ctrl.viewYearWeight}',
+      onTap: () async {
+        final now = DateTime.now();
+        int selectedYear = ctrl.viewYearWeight;
+
+        final year = await showDialog<int>(
+          context: context,
+          builder: (ctx) => StatefulBuilder(
+            builder: (ctx, setS) => AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              title: Text('Pilih Tahun BB', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 18)),
+              content: SizedBox(
+                width: 240,
+                height: 200,
+                child: ListView.builder(
+                  itemCount: 10,
+                  itemBuilder: (_, i) {
+                    final year = now.year - i;
+                    final isSelected = year == selectedYear;
+                    return GestureDetector(
+                      onTap: () => setS(() => selectedYear = year),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        margin: const EdgeInsets.symmetric(vertical: 4),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          color: isSelected ? const Color(0xFF2E7D32) : const Color(0xFFF4F6F0),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          '$year',
+                          style: GoogleFonts.poppins(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: isSelected ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  onPressed: () => Navigator.pop(ctx, selectedYear),
+                  child: const Text('Pilih'),
+                ),
+              ],
+            ),
+          ),
+        );
+
+        if (year != null) {
+          ctrl.setViewYearWeight(year);
+        }
+      },
+    );
+  }
+
+  Widget _navBadge({required String label, required VoidCallback onTap}) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFF2E7D32).withOpacity(0.08),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFF2E7D32).withOpacity(0.3)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(label, style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF2E7D32))),
+              const SizedBox(width: 4),
+              const Icon(Icons.arrow_drop_down_rounded, color: Color(0xFF2E7D32), size: 18),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

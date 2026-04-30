@@ -39,6 +39,7 @@ class WeightDataPoint {
 // ─── CONTROLLER ───────────────────────────────────────────────────────────────
 class ProgressController extends ChangeNotifier {
   UserModel? _user;
+  UserModel? get user => _user;
   StreamSubscription? _logSub;
   StreamSubscription? _weightSub;
 
@@ -55,12 +56,25 @@ class ProgressController extends ChangeNotifier {
   int _viewYearMonthly = DateTime.now().year;
   int get viewYearMonthly => _viewYearMonthly;
 
+  // Tahun yang sedang dilihat untuk chart berat badan
+  int _viewYearWeight = DateTime.now().year;
+  int get viewYearWeight => _viewYearWeight;
+
+  // Bulan/tahun untuk Aktivitas Nutrisi (Grid)
+  int _viewMonthActivity = DateTime.now().month;
+  int _viewYearActivity = DateTime.now().year;
+  int get viewMonthActivity => _viewMonthActivity;
+  int get viewYearActivity => _viewYearActivity;
+
   // Tab nutrisi aktif: 0=Kalori, 1=Protein, 2=Karbohidrat, 3=Lemak
   int _activeNutrientTab = 0;
   int get activeNutrientTab => _activeNutrientTab;
 
   List<NutritionDataPoint> _nutritionData = [];
   List<NutritionDataPoint> get nutritionData => _nutritionData;
+
+  List<NutritionDataPoint> _activityData = [];
+  List<NutritionDataPoint> get activityData => _activityData;
 
   List<WeightDataPoint> _weightData = [];
   List<WeightDataPoint> get weightData => _weightData;
@@ -76,10 +90,12 @@ class ProgressController extends ChangeNotifier {
     _checkWeightModalNeeded();
     _buildNutritionData();
     _buildWeightData();
+    _buildActivityData();
 
     _logSub?.cancel();
     _logSub = HiveService.logs.watch().listen((_) {
       _buildNutritionData();
+      _buildActivityData();
       notifyListeners();
     });
 
@@ -250,6 +266,19 @@ class ProgressController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setViewYearWeight(int year) {
+    _viewYearWeight = year;
+    _buildWeightData();
+    notifyListeners();
+  }
+
+  void setViewMonthYearActivity(int year, int month) {
+    _viewYearActivity = year;
+    _viewMonthActivity = month;
+    _buildActivityData();
+    notifyListeners();
+  }
+
   // ─── BUILD DATA ─────────────────────────────────────────────────────────────
 
   void _buildNutritionData() {
@@ -269,6 +298,42 @@ class ProgressController extends ChangeNotifier {
     } else {
       _buildMonthlyData(allLogs);
     }
+  }
+
+  void _buildActivityData() {
+    final user = _user;
+    if (user == null) {
+      _activityData = [];
+      return;
+    }
+
+    final allLogs = HiveService.logs.values
+        .whereType<LogModel>()
+        .where((l) => l.userId == user.id)
+        .toList();
+
+    final daysInMonth = _daysInMonth(_viewYearActivity, _viewMonthActivity);
+    final Map<int, List<LogModel>> byDay = {};
+    for (var d = 1; d <= daysInMonth; d++) byDay[d] = [];
+
+    for (final log in allLogs) {
+      if (log.consumedAt.year == _viewYearActivity &&
+          log.consumedAt.month == _viewMonthActivity) {
+        byDay[log.consumedAt.day]?.add(log);
+      }
+    }
+
+    _activityData = List.generate(daysInMonth, (i) {
+      final day = i + 1;
+      final dayLogs = byDay[day]!;
+      return NutritionDataPoint(
+        label: '$day',
+        calories: dayLogs.fold(0.0, (s, l) => s + l.calories),
+        protein: dayLogs.fold(0.0, (s, l) => s + l.protein),
+        carbs: dayLogs.fold(0.0, (s, l) => s + l.carbs),
+        fat: dayLogs.fold(0.0, (s, l) => s + l.fat),
+      );
+    });
   }
 
   void _buildDailyData(List<LogModel> logs) {
@@ -351,7 +416,7 @@ class ProgressController extends ChangeNotifier {
     final result = <WeightDataPoint>[];
 
     for (int m = 1; m <= 12; m++) {
-      final monthDate = DateTime(now.year, m, 1);
+      final monthDate = DateTime(_viewYearWeight, m, 1);
       // Hitung berapa bulan dari saat akun dibuat ke bulan ini
       final monthsFromStart = _monthsBetween(
         DateTime(accountCreated!.year, accountCreated.month, 1),
@@ -460,6 +525,8 @@ class ProgressController extends ChangeNotifier {
     return (min * 0.85).floorToDouble().clamp(0, double.infinity);
   }
 
+  // ─── BMI & IDEAL WEIGHT ─────────────────────────────────────────────────────
+
   /// BMI saat ini
   double? get currentBMI {
     final user = _user;
@@ -468,6 +535,32 @@ class ProgressController extends ChangeNotifier {
     final h = user.height;
     if (w == null || h == null || h == 0) return null;
     return w / ((h / 100) * (h / 100));
+  }
+
+  /// Berat badan ideal berdasarkan BMI 22
+  double get idealWeight {
+    final user = _user;
+    if (user == null || user.height == null || user.height == 0) return 0;
+    return 22 * (user.height! / 100) * (user.height! / 100);
+  }
+
+  /// Pesan status berat badan (Kekurangan/Kelebihan kg)
+  String get weightStatusMessage {
+    final user = _user;
+    if (user == null || user.weight == null || user.height == null) return "-";
+    final current = user.weight!;
+    final ideal = idealWeight;
+    final diff = (current - ideal).abs();
+    
+    final bmi = currentBMI;
+    if (bmi == null) return "-";
+    if (bmi < 18.5) {
+      return "Kurang ${diff.toStringAsFixed(1)} kg untuk berat ideal";
+    } else if (bmi >= 25) {
+      return "Kelebihan ${diff.toStringAsFixed(1)} kg dari berat ideal";
+    } else {
+      return "Berat badan kamu sudah ideal! ✨";
+    }
   }
 
   String get bmiCategory {
@@ -486,5 +579,22 @@ class ProgressController extends ChangeNotifier {
     if (bmi < 25) return const Color(0xFF2E7D32);
     if (bmi < 30) return const Color(0xFFF59E0B);
     return const Color(0xFFE53935);
+  }
+
+  // ─── CALORIE CONTRIBUTION GRID ─────────────────────────────────────────────
+
+  /// Status pencapaian kalori harian untuk grid (0: Gray, 1: Green, 2: Yellow, 3: Red)
+  int getCalorieStatus(NutritionDataPoint p) {
+    final target = _user?.dailyCalorieNeed ?? 2000;
+    final actual = p.calories;
+    if (actual == 0) return 0; // Tidak ada data / Lupa tracking
+    
+    final ratio = actual / target;
+    // Berhasil jika dalam rentang 90% - 110% target
+    if (ratio >= 0.9 && ratio <= 1.1) return 1;
+    // Kurang sedikit/Kelebihan sedikit (70% - 130%)
+    if (ratio >= 0.7 && ratio <= 1.3) return 2;
+    // Jauh dari target
+    return 3;
   }
 }
