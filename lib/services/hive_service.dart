@@ -1,7 +1,8 @@
 import 'package:hive_flutter/hive_flutter.dart';
-import '../features/auth/models/user_model.dart';
-import '../features/food/models/food_model.dart';
-import '../features/food/models/log_model.dart';
+import '../features/general/auth/models/user_model.dart';
+import '../features/general/food/models/food_model.dart';
+import '../features/general/food/models/log_model.dart';
+import '../features/user/progress/models/weight_log_model.dart';
 
 class HiveService {
   static const String userBox = 'users';
@@ -9,6 +10,7 @@ class HiveService {
   static const String logBox = 'logs';
   static const String settingsBox = 'settings';
   static const String watchlistBox = 'watchlists';
+  static const String weightLogBox = 'weight_logs';
 
   /// Adapter sudah di-register di main.dart — di sini hanya buka box.
   static Future<void> initBoxes() async {
@@ -16,8 +18,8 @@ class HiveService {
     await Hive.openBox<FoodModel>(foodBox);
     await Hive.openBox<LogModel>(logBox);
     await Hive.openBox<dynamic>(settingsBox);
-    // Kita gunakan dynamic/WatchlistModel jika adapter sdh siap
     await Hive.openBox<dynamic>(watchlistBox);
+    await Hive.openBox<WeightLogModel>(weightLogBox);
   }
 
   static Box<UserModel> get users => Hive.box<UserModel>(userBox);
@@ -25,4 +27,5 @@ class HiveService {
   static Box<LogModel> get logs => Hive.box<LogModel>(logBox);
   static Box get settings => Hive.box(settingsBox);
   static Box get watchlists => Hive.box(watchlistBox);
+  static Box<WeightLogModel> get weightLogs => Hive.box<WeightLogModel>(weightLogBox);
 }
