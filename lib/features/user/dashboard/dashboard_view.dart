@@ -17,6 +17,8 @@ class DashboardBody extends StatefulWidget {
 
 class _DashboardBodyState extends State<DashboardBody> {
   final DashboardController _controller = DashboardController();
+  int _riwayatPage = 0;
+  static const int _riwayatItemsPerPage = 7;
 
   @override
   void initState() {
@@ -143,7 +145,10 @@ class _DashboardBodyState extends State<DashboardBody> {
           final isActive = index == _controller.selectedDayIndex;
           return GestureDetector(
             onTap: () {
-              setState(() => _controller.selectDay(index));
+              setState(() {
+                _controller.selectDay(index);
+                _riwayatPage = 0;
+              });
               context.read<DateController>().setDate(day.date);
             },
             child: AnimatedContainer(
@@ -531,8 +536,95 @@ class _DashboardBodyState extends State<DashboardBody> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        children: sortedHistory.map((item) => _buildFoodHistoryCard(item)).toList(),
+      child: _buildRiwayatPaginated(sortedHistory),
+    );
+  }
+
+  // ─── RIWAYAT PAGINATED ───────────────────────────────────────────────────
+
+  Widget _buildRiwayatPaginated(List<LogModel> sortedHistory) {
+    final totalPages = sortedHistory.isEmpty ? 1 : (sortedHistory.length / _riwayatItemsPerPage).ceil();
+    final safeCurrentPage = _riwayatPage.clamp(0, totalPages - 1);
+    final startIndex = safeCurrentPage * _riwayatItemsPerPage;
+    final endIndex = (startIndex + _riwayatItemsPerPage).clamp(0, sortedHistory.length);
+    final pageItems = sortedHistory.isEmpty ? <LogModel>[] : sortedHistory.sublist(startIndex, endIndex);
+
+    return Column(
+      children: [
+        if (totalPages > 1)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                Text('${sortedHistory.length} entri', style: const TextStyle(fontSize: 11, color: Color(0xFF5A7A5A))),
+                const Spacer(),
+                Text('Hal. ${safeCurrentPage + 1}/$totalPages', style: const TextStyle(fontSize: 11, color: Color(0xFF5A7A5A))),
+              ],
+            ),
+          ),
+        ...pageItems.map((item) => _buildFoodHistoryCard(item)).toList(),
+        if (totalPages > 1) _buildRiwayatPagination(safeCurrentPage, totalPages),
+      ],
+    );
+  }
+
+  Widget _buildRiwayatPagination(int current, int total) {
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFD0E8D0)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _riwayatPageBtn(Icons.chevron_left_rounded, current > 0, () => setState(() => _riwayatPage--)),
+          const SizedBox(width: 8),
+          ...List.generate(total, (i) {
+            final isActive = i == current;
+            return GestureDetector(
+              onTap: () => setState(() => _riwayatPage = i),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: 30, height: 30,
+                decoration: BoxDecoration(
+                  color: isActive ? const Color(0xFF4CAF50) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: isActive ? const Color(0xFF4CAF50) : const Color(0xFFD0E8D0)),
+                ),
+                child: Center(
+                  child: Text(
+                    '${i + 1}',
+                    style: TextStyle(
+                      fontSize: 11, fontWeight: FontWeight.w700,
+                      color: isActive ? Colors.white : const Color(0xFF5A7A5A),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).take(7).toList(),
+          const SizedBox(width: 8),
+          _riwayatPageBtn(Icons.chevron_right_rounded, current < total - 1, () => setState(() => _riwayatPage++)),
+        ],
+      ),
+    );
+  }
+
+  Widget _riwayatPageBtn(IconData icon, bool enabled, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: Container(
+        width: 30, height: 30,
+        decoration: BoxDecoration(
+          color: enabled ? const Color(0xFFE8F5E9) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: enabled ? const Color(0xFFD0E8D0) : Colors.transparent),
+        ),
+        child: Icon(icon, size: 16, color: enabled ? const Color(0xFF4CAF50) : const Color(0xFF5A7A5A).withValues(alpha: 0.3)),
       ),
     );
   }

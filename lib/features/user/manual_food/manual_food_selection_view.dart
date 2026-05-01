@@ -20,6 +20,9 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
   static const Color _textDark = Color(0xFF1B2A1B);
   static const Color _textMuted = Color(0xFF5A7A5A);
 
+  static const int _itemsPerPage = 10;
+  int _currentPage = 0;
+
   @override
   Widget build(BuildContext context) {
     final foodCtrl = context.watch<FoodController>();
@@ -41,6 +44,12 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
     final manualLogs = uniqueManuals.values.toList()
       ..sort((a, b) => b.consumedAt.compareTo(a.consumedAt));
 
+    final totalPages = manualLogs.isEmpty ? 1 : (manualLogs.length / _itemsPerPage).ceil();
+    final safeCurrentPage = _currentPage.clamp(0, totalPages - 1);
+    final startIndex = safeCurrentPage * _itemsPerPage;
+    final endIndex = (startIndex + _itemsPerPage).clamp(0, manualLogs.length);
+    final pageItems = manualLogs.isEmpty ? <LogModel>[] : manualLogs.sublist(startIndex, endIndex);
+
     return Scaffold(
       backgroundColor: _bg,
       appBar: AppBar(
@@ -55,13 +64,45 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
           'Tambah Log Manual',
           style: TextStyle(color: _textDark, fontWeight: FontWeight.w800, fontSize: 18),
         ),
+        actions: [
+          if (manualLogs.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: Center(
+                child: Text(
+                  '${manualLogs.length} item',
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF5A7A5A), fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+        ],
       ),
       body: manualLogs.isEmpty
           ? _buildEmptyState()
-          : ListView.builder(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
-              itemCount: manualLogs.length,
-              itemBuilder: (context, index) => _buildManualLogCard(manualLogs[index]),
+          : Column(
+              children: [
+                if (manualLogs.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
+                    child: Row(
+                      children: [
+                        const Text('Log manual saya', style: TextStyle(fontSize: 12, color: _textMuted, fontWeight: FontWeight.w600)),
+                        const Spacer(),
+                        if (totalPages > 1)
+                          Text('Hal. ${safeCurrentPage + 1}/$totalPages', style: const TextStyle(fontSize: 12, color: _textMuted)),
+                      ],
+                    ),
+                  ),
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(20, 6, 20, 8),
+                    itemCount: pageItems.length,
+                    itemBuilder: (context, index) => _buildManualLogCard(pageItems[index]),
+                  ),
+                ),
+                if (totalPages > 1) _buildPagination(safeCurrentPage, totalPages),
+                const SizedBox(height: 80),
+              ],
             ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
@@ -77,6 +118,62 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
         elevation: 4,
         icon: const Icon(Icons.add_rounded, color: Colors.white),
         label: const Text('Tambah Baru', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      ),
+    );
+  }
+
+  Widget _buildPagination(int current, int total) {
+    return Container(
+      color: _surface,
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _pageBtn(Icons.chevron_left_rounded, current > 0, () => setState(() => _currentPage--)),
+          const SizedBox(width: 8),
+          ...List.generate(total, (i) {
+            final isActive = i == current;
+            return GestureDetector(
+              onTap: () => setState(() => _currentPage = i),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: 32, height: 32,
+                decoration: BoxDecoration(
+                  color: isActive ? const Color(0xFF2E7D32) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: isActive ? const Color(0xFF2E7D32) : const Color(0xFFD0E8D0)),
+                ),
+                child: Center(
+                  child: Text(
+                    '${i + 1}',
+                    style: TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.w700,
+                      color: isActive ? Colors.white : _textMuted,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).take(7).toList(),
+          const SizedBox(width: 8),
+          _pageBtn(Icons.chevron_right_rounded, current < total - 1, () => setState(() => _currentPage++)),
+        ],
+      ),
+    );
+  }
+
+  Widget _pageBtn(IconData icon, bool enabled, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: Container(
+        width: 32, height: 32,
+        decoration: BoxDecoration(
+          color: enabled ? const Color(0xFFE8F5E9) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: enabled ? const Color(0xFFD0E8D0) : Colors.transparent),
+        ),
+        child: Icon(icon, size: 18, color: enabled ? const Color(0xFF2E7D32) : _textMuted.withValues(alpha: 0.3)),
       ),
     );
   }
