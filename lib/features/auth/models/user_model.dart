@@ -19,6 +19,8 @@ class UserModel extends HiveObject {
   DateTime? birthDate;
   bool isBlocked;
   double? targetWeightGainPerMonth; // kg/bulan (pos = naik, neg = turun)
+  double? initialWeight; // kg (saat pertama kali mendaftar)
+  Map<String, double>? targetHistory; // Key: "yyyy-MM", Value: target
 
   UserModel({
     required this.id,
@@ -35,6 +37,8 @@ class UserModel extends HiveObject {
     this.birthDate,
     this.isBlocked = false,
     this.targetWeightGainPerMonth,
+    this.initialWeight,
+    this.targetHistory,
   });
 
   /// Target makro harian (gram) - Menggunakan logic baru dari CalorieHelper
@@ -69,13 +73,15 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
       birthDate: f[12] as DateTime?,
       isBlocked: f[13] as bool? ?? false,
       targetWeightGainPerMonth: (f[14] as num?)?.toDouble(),
+      initialWeight: (f[15] as num?)?.toDouble(),
+      targetHistory: f[16] != null ? Map<String, double>.from(f[16] as Map) : null,
     );
   }
 
   @override
   void write(BinaryWriter writer, UserModel obj) {
     writer
-      ..writeByte(14) 
+      ..writeByte(16) 
       ..writeByte(0)..write(obj.id)
       ..writeByte(1)..write(obj.name)
       ..writeByte(2)..write(obj.email)
@@ -89,6 +95,8 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
       ..writeByte(11)..write(obj.dailyCalorieNeed)
       ..writeByte(12)..write(obj.birthDate)
       ..writeByte(13)..write(obj.isBlocked)
-      ..writeByte(14)..write(obj.targetWeightGainPerMonth);
+      ..writeByte(14)..write(obj.targetWeightGainPerMonth)
+      ..writeByte(15)..write(obj.initialWeight)
+      ..writeByte(16)..write(obj.targetHistory);
   }
 }

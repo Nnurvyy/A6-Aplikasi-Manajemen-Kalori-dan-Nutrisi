@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'models/user_model.dart';
 import '../../services/hive_service.dart';
 import '../../helpers/calorie_helper.dart';
+import 'package:intl/intl.dart';
 
 class AuthController extends ChangeNotifier {
   UserModel? _currentUser;
@@ -110,6 +111,10 @@ class AuthController extends ChangeNotifier {
       birthDate: birthDate,
       dailyCalorieNeed: dailyCalorieNeed,
       targetWeightGainPerMonth: targetWeightGainPerMonth,
+      initialWeight: weight,
+      targetHistory: {
+        DateFormat('yyyy-MM').format(DateTime.now()): targetWeightGainPerMonth,
+      },
     );
 
     await HiveService.users.put(id, newUser);
