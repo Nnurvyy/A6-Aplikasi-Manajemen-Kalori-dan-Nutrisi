@@ -1,8 +1,8 @@
 import 'package:hive_flutter/hive_flutter.dart';
-import '../features/auth/models/user_model.dart';
-import '../features/food/models/food_model.dart';
-import '../features/food/models/log_model.dart';
-import '../features/progress/models/weight_log_model.dart';
+import '../features/general/auth/models/user_model.dart';
+import '../features/general/food/models/food_model.dart';
+import '../features/general/food/models/log_model.dart';
+import '../features/user/progress/models/weight_log_model.dart';
 
 class HiveService {
   static const String userBox = 'users';

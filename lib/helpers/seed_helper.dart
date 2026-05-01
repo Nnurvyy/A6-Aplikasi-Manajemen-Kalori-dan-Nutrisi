@@ -1,5 +1,5 @@
-import '../features/auth/models/user_model.dart';
-import '../features/food/models/food_model.dart';
+import '../features/general/auth/models/user_model.dart';
+import '../features/general/food/models/food_model.dart';
 import '../services/hive_service.dart';
 
 class SeedHelper {
