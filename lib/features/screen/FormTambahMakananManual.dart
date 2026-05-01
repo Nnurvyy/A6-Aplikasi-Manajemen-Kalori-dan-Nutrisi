@@ -5,10 +5,12 @@ import 'dart:io';
 import 'package:provider/provider.dart';
 import '../auth/auth_controller.dart';
 import '../food/food_controller.dart';
+import '../food/models/log_model.dart';
 import '../../helpers/date_controller.dart';
 
 class FormTambahMakananManual extends StatefulWidget {
-  const FormTambahMakananManual({super.key});
+  final LogModel? initialLog;
+  const FormTambahMakananManual({super.key, this.initialLog});
 
   @override
   State<FormTambahMakananManual> createState() => _FormTambahMakananManualState();
@@ -63,6 +65,25 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
   static const Color _borderColor = Color(0xFFD5EDE0);
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.initialLog != null) {
+      final log = widget.initialLog!;
+      _nameCtrl.text = log.foodName;
+      _servingSizeCtrl.text = log.servingSize.toInt().toString();
+      _calCtrl.text = log.calories.toStringAsFixed(1);
+      _proteinCtrl.text = log.protein.toStringAsFixed(1);
+      _carbsCtrl.text = log.carbs.toStringAsFixed(1);
+      _fatCtrl.text = log.fat.toStringAsFixed(1);
+      
+      // Ensure category exists in list
+      if (_categories.contains(log.category)) {
+        _selectedCategory = log.category;
+      }
+    }
+  }
+
+  @override
   void dispose() {
     _nameCtrl.dispose();
     _servingSizeCtrl.dispose();
@@ -95,37 +116,60 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
     final fat = double.tryParse(_fatCtrl.text) ?? 0;
     final servingSize = double.tryParse(_servingSizeCtrl.text) ?? 100.0;
 
-    final success = await context.read<FoodController>().addFoodToDailyLog(
-      userId: userId,
-      foodName: foodName,
-      category: _selectedCategory,
-      calories: calories,
-      protein: protein,
-      carbs: carbs,
-      fat: fat,
-      mealType: '',
-      dateConsumed: context.read<DateController>().selectedDate,
-      servingSize: servingSize,
-      isManual: true,
-    );
-
-    if (mounted) {
-      setState(() => _isSaving = false);
-      if (success) {
+    final foodCtrl = context.read<FoodController>();
+    
+    if (widget.initialLog != null) {
+      // MODE EDIT
+      final updatedTemplate = widget.initialLog!.copyWith(
+        foodName: foodName,
+        category: _selectedCategory,
+        calories: calories,
+        protein: protein,
+        carbs: carbs,
+        fat: fat,
+        servingSize: servingSize,
+      );
+      
+      await foodCtrl.updateManualFood(userId, widget.initialLog!.foodName, updatedTemplate);
+      if (mounted) {
+        setState(() => _isSaving = false);
         Navigator.pop(context, true);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$foodName berhasil ditambahkan ke log'),
-            backgroundColor: _primary,
-          ),
+          const SnackBar(content: Text('Berhasil memperbarui data makanan'), duration: Duration(seconds: 2)),
         );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Gagal menyimpan ke log.'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
+      }
+    } else {
+      // MODE TAMBAH BARU
+      final success = await foodCtrl.addFoodToDailyLog(
+        userId: userId,
+        foodName: foodName,
+        category: _selectedCategory,
+        calories: calories,
+        protein: protein,
+        carbs: carbs,
+        fat: fat,
+        mealType: 'Snack',
+        dateConsumed: context.read<DateController>().selectedDate,
+        servingSize: servingSize,
+        isManual: true,
+      );
+
+      if (mounted) {
+        setState(() => _isSaving = false);
+        if (success) {
+          Navigator.pop(context, true);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$foodName berhasil ditambahkan ke daftar'),
+              backgroundColor: _primary,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Gagal menyimpan ke log.'), backgroundColor: Colors.redAccent),
+          );
+        }
       }
     }
   }
@@ -141,9 +185,9 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _textDark),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Tambah Log Baru',
-          style: TextStyle(color: _textDark, fontWeight: FontWeight.bold, fontSize: 18),
+        title: Text(
+          widget.initialLog == null ? 'Tambah Log Baru' : 'Edit Log Makanan',
+          style: const TextStyle(color: _textDark, fontWeight: FontWeight.bold, fontSize: 18),
         ),
       ),
       body: Form(
@@ -164,9 +208,7 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
             _buildServingSizeRow(),
             const SizedBox(height: 24),
             _buildNutritionSection(),
-            const SizedBox(height: 20),
-            _buildLivePreview(),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             _buildSaveButton(),
             const SizedBox(height: 20),
           ],

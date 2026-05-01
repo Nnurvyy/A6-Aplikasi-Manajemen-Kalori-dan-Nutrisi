@@ -170,6 +170,8 @@ class ProgressController extends ChangeNotifier {
   }) async {
     final user = _user;
     if (user == null) return;
+    
+    // Simpan ke log berat badan untuk grafik
     final key = _weightLogKey(user.id, month);
     final log = WeightLogModel(
       id: key,
@@ -178,6 +180,14 @@ class ProgressController extends ChangeNotifier {
       actualWeight: weight,
     );
     await HiveService.weightLogs.put(key, log);
+
+    // SINKRONISASI: Jika yang diinput adalah bulan saat ini, update juga berat di profile user
+    final now = DateTime.now();
+    if (month.year == now.year && month.month == now.month) {
+      user.weight = weight;
+      await user.save(); // Simpan perubahan ke box users
+    }
+
     _shouldShowWeightModal = false;
     _pendingWeightMonth = null;
     _buildWeightData();
@@ -537,11 +547,20 @@ class ProgressController extends ChangeNotifier {
     return w / ((h / 100) * (h / 100));
   }
 
-  /// Berat badan ideal berdasarkan BMI 22
+  /// Berat badan ideal berdasarkan rumus:
+  /// Laki-laki: (Tinggi - 100) - (Tinggi - 100) * 10%
+  /// Perempuan: (Tinggi - 100) + (Tinggi - 100) * 15%
   double get idealWeight {
     final user = _user;
     if (user == null || user.height == null || user.height == 0) return 0;
-    return 22 * (user.height! / 100) * (user.height! / 100);
+    
+    final base = user.height! - 100;
+    if (user.gender == 'Laki-laki') {
+      return base - (base * 0.10);
+    } else {
+      // Mengikuti rumus user: + 15%
+      return base + (base * 0.15);
+    }
   }
 
   /// Pesan status berat badan (Kekurangan/Kelebihan kg)

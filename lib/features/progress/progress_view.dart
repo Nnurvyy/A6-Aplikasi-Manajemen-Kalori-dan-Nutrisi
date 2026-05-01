@@ -375,13 +375,7 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
           ),
         ),
       ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.monitor_weight_outlined, color: Colors.white),
-          tooltip: 'Input Berat Badan',
-          onPressed: _handleWeightInputClick,
-        ),
-      ],
+      actions: const [],
     );
   }
 
@@ -684,7 +678,6 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
                     Text(rangeInfo, style: GoogleFonts.poppins(fontSize: 13, color: Colors.black87)),
                     const SizedBox(height: 8),
                     Text(advice, style: GoogleFonts.poppins(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.w500)),
-                    const Divider(height: 32),
                     Text('Bagaimana Cara Menghitungnya?', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 14)),
                     const SizedBox(height: 8),
                     Container(
@@ -694,10 +687,15 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('Rumus Berat Ideal:', style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black54)),
-                          Text('22 × (Tinggi/100)²', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF2E7D32))),
+                          Text(
+                            ctrl.user?.gender == 'Laki-laki' 
+                              ? '(Tinggi - 100) - 10%'
+                              : '(Tinggi - 100) + 15%', 
+                            style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF2E7D32))
+                          ),
                           const SizedBox(height: 8),
                           Text(
-                            'Korelasinya: BMI (Body Mass Index) adalah perbandingan berat terhadap tinggi. Angka 22 dianggap sebagai titik tengah BMI normal yang paling sehat. Dengan mengalikan angka 22 dengan kuadrat tinggi badan, kita mendapatkan estimasi berat badan yang paling proporsional untuk tubuhmu.',
+                            'Korelasinya: Angka ini didapat dari rumus indeks Broca yang disesuaikan. Berat ideal ini menjadi target sehat kamu, sementara BMI tetap digunakan sebagai indikator medis untuk mengukur proporsi tubuh secara umum.',
                             style: GoogleFonts.poppins(fontSize: 11, color: Colors.black54, height: 1.4),
                           ),
                         ],

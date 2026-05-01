@@ -4,6 +4,8 @@ import '../auth/auth_controller.dart';
 import '../auth/models/user_model.dart';
 import '../../helpers/calorie_helper.dart';
 import '../auth/login_view.dart';
+import '../../services/hive_service.dart';
+import '../progress/models/weight_log_model.dart';
 
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
@@ -262,6 +264,20 @@ class _ProfileViewState extends State<ProfileView> {
                               await context
                                   .read<AuthController>()
                                   .updateProfile(updated);
+                              
+                              // SINKRONISASI: Update juga di log berat badan bulan ini jika berat diinput
+                              if (w != null) {
+                                final now = DateTime.now();
+                                final key = '${user.id}_${now.year}_${now.month}';
+                                final log = WeightLogModel(
+                                  id: key,
+                                  userId: user.id,
+                                  month: DateTime(now.year, now.month, 1),
+                                  actualWeight: w,
+                                );
+                                await HiveService.weightLogs.put(key, log);
+                              }
+
                               if (mounted) Navigator.pop(context);
                             },
                             style: ElevatedButton.styleFrom(

@@ -34,6 +34,38 @@ class LogModel extends HiveObject {
   String get formattedTime {
     return "${consumedAt.hour.toString().padLeft(2, '0')}:${consumedAt.minute.toString().padLeft(2, '0')}";
   }
+
+  LogModel copyWith({
+    String? id,
+    String? userId,
+    String? foodName,
+    double? calories,
+    double? protein,
+    double? carbs,
+    double? fat,
+    String? mealType,
+    DateTime? consumedAt,
+    String? syncStatus,
+    double? servingSize,
+    String? category,
+    bool? isManual,
+  }) {
+    return LogModel(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      foodName: foodName ?? this.foodName,
+      calories: calories ?? this.calories,
+      protein: protein ?? this.protein,
+      carbs: carbs ?? this.carbs,
+      fat: fat ?? this.fat,
+      mealType: mealType ?? this.mealType,
+      consumedAt: consumedAt ?? this.consumedAt,
+      syncStatus: syncStatus ?? this.syncStatus,
+      servingSize: servingSize ?? this.servingSize,
+      category: category ?? this.category,
+      isManual: isManual ?? this.isManual,
+    );
+  }
 }
 
 class LogModelAdapter extends TypeAdapter<LogModel> {
