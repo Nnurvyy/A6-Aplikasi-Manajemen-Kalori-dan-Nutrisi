@@ -130,4 +130,44 @@ class FoodController extends ChangeNotifier {
 
     return true; 
   }
+
+  Future<void> deleteManualFood(String userId, String foodName) async {
+    final keysToDelete = HiveService.logs.keys.where((key) {
+      final log = HiveService.logs.get(key);
+      return log is LogModel && 
+             log.userId == userId && 
+             log.foodName.toLowerCase() == foodName.toLowerCase() && 
+             log.isManual;
+    }).toList();
+
+    for (var key in keysToDelete) {
+      await HiveService.logs.delete(key);
+    }
+    notifyListeners();
+  }
+
+  Future<void> updateManualFood(String userId, String oldName, LogModel updatedTemplate) async {
+    final keysToUpdate = HiveService.logs.keys.where((key) {
+      final log = HiveService.logs.get(key);
+      return log is LogModel && 
+             log.userId == userId && 
+             log.foodName.toLowerCase() == oldName.toLowerCase() && 
+             log.isManual;
+    }).toList();
+
+    for (var key in keysToUpdate) {
+      final oldLog = HiveService.logs.get(key) as LogModel;
+      final newLog = oldLog.copyWith(
+        foodName: updatedTemplate.foodName,
+        category: updatedTemplate.category,
+        calories: updatedTemplate.calories,
+        protein: updatedTemplate.protein,
+        carbs: updatedTemplate.carbs,
+        fat: updatedTemplate.fat,
+        servingSize: updatedTemplate.servingSize,
+      );
+      await HiveService.logs.put(key, newLog);
+    }
+    notifyListeners();
+  }
 }

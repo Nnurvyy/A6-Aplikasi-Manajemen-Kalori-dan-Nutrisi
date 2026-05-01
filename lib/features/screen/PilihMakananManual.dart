@@ -85,101 +85,185 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
   Widget _buildManualLogCard(LogModel log) {
     final Color accentColor = _getCategoryColor(log.category);
 
-    return GestureDetector(
-      onTap: () => _showLogDetail(log),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
           children: [
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: accentColor.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: Text(
-                  log.foodName.isNotEmpty ? log.foodName[0].toUpperCase() : '?',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: accentColor,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    log.foodName,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: _textDark,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${log.category} • ${log.servingSize.toInt()}g',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: _textMuted,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => _showLogDetail(log),
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Row(
                     children: [
-                      _nutriChip('P ${log.protein.toStringAsFixed(1)}g', const Color(0xFFFFEBEE), const Color(0xFFE53935)),
-                      const SizedBox(width: 4),
-                      _nutriChip('K ${log.carbs.toStringAsFixed(1)}g', const Color(0xFFFFF8E1), const Color(0xFFF59E0B)),
-                      const SizedBox(width: 4),
-                      _nutriChip('L ${log.fat.toStringAsFixed(1)}g', const Color(0xFFFFF3E0), const Color(0xFFFF8C00)),
+                      Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: accentColor.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: Text(
+                            log.foodName.isNotEmpty ? log.foodName[0].toUpperCase() : '?',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              color: accentColor,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              log.foodName,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: _textDark,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${log.category} • ${log.servingSize.toInt()}g',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: _textMuted,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                _nutriChip('P ${log.protein.toStringAsFixed(1)}g', const Color(0xFFFFEBEE), const Color(0xFFE53935)),
+                                const SizedBox(width: 4),
+                                _nutriChip('K ${log.carbs.toStringAsFixed(1)}g', const Color(0xFFFFF8E1), const Color(0xFFF59E0B)),
+                                const SizedBox(width: 4),
+                                _nutriChip('L ${log.fat.toStringAsFixed(1)}g', const Color(0xFFFFF3E0), const Color(0xFFFF8C00)),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            '${log.calories.toInt()}',
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF4CAF50),
+                            ),
+                          ),
+                          const Text(
+                            'kkal',
+                            style: TextStyle(fontSize: 10, color: _textMuted),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            log.formattedTime,
+                            style: const TextStyle(fontSize: 10, color: Color(0xFF9E9E9E)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 24), // Buffer for the menu button
                     ],
                   ),
-                ],
+                ),
               ),
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '${log.calories.toInt()}',
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF4CAF50),
-                  ),
-                ),
-                const Text(
-                  'kkal',
-                  style: TextStyle(fontSize: 10, color: _textMuted),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  log.formattedTime,
-                  style: const TextStyle(fontSize: 10, color: Color(0xFF9E9E9E)),
-                ),
-              ],
+            Positioned(
+              top: 4,
+              right: 4,
+              child: _buildMoreAction(context, log),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildMoreAction(BuildContext context, LogModel log) {
+    return PopupMenuButton<String>(
+      icon: const Icon(Icons.more_vert_rounded, color: _textMuted, size: 20),
+      onSelected: (val) {
+        if (val == 'edit') {
+          _editManualLog(context, log);
+        } else if (val == 'delete') {
+          _confirmDeleteManualLog(context, log);
+        }
+      },
+      itemBuilder: (context) => [
+        const PopupMenuItem(
+          value: 'edit',
+          child: Row(
+            children: [
+              Icon(Icons.edit_rounded, size: 18, color: Colors.blue),
+              SizedBox(width: 10),
+              Text('Edit Definisi'),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'delete',
+          child: Row(
+            children: [
+              Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
+              SizedBox(width: 10),
+              Text('Hapus Item', style: TextStyle(color: Colors.red)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _editManualLog(BuildContext context, LogModel log) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => FormTambahMakananManual(initialLog: log)),
+    );
+    if (result == true) {
+      // Refresh handled by Provider
+    }
+  }
+
+  void _confirmDeleteManualLog(BuildContext context, LogModel log) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hapus Makanan?'),
+        content: Text('Semua catatan riwayat untuk "${log.foodName}" juga akan ikut terhapus. Lanjutkan?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+          TextButton(
+            onPressed: () async {
+              final authCtrl = context.read<AuthController>();
+              final foodCtrl = context.read<FoodController>();
+              await foodCtrl.deleteManualFood(authCtrl.currentUser?.id ?? '', log.foodName);
+              if (context.mounted) Navigator.pop(ctx);
+            },
+            child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+          ),
+        ],
       ),
     );
   }
