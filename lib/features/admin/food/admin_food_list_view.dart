@@ -123,9 +123,46 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
       body: Column(
         children: [
           _buildSearchAndFilter(),
+          // ─── Tambah Makanan button (inline) ───
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+            child: GestureDetector(
+              onTap: () => _navigateToAddEdit(),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                decoration: BoxDecoration(
+                  color: _primary,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _primary.withValues(alpha: 0.35),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      'Tambah Makanan Baru',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
           // Results info
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
             child: Row(
               children: [
                 Text(
@@ -135,7 +172,7 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
                 if (foods.isNotEmpty) ...[
                   const Spacer(),
                   Text(
-                    'Hal. ${safeCurrentPage + 1}/${ totalPages < 1 ? 1 : totalPages}',
+                    'Hal. ${safeCurrentPage + 1}/${totalPages < 1 ? 1 : totalPages}',
                     style: const TextStyle(fontSize: 12, color: _textMuted),
                   ),
                 ]
@@ -149,7 +186,7 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
                     children: [
                       Expanded(
                         child: ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+                          padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
                           itemCount: pageItems.length,
                           itemBuilder: (context, index) => _buildFoodCard(pageItems[index]),
                         ),
@@ -159,12 +196,6 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
                   ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _navigateToAddEdit(),
-        backgroundColor: _primary,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Tambah Makanan', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
     );
   }
