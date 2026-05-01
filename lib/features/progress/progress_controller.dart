@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:intl/intl.dart';
 import '../../services/hive_service.dart';
 import '../auth/models/user_model.dart';
 import '../food/models/log_model.dart';
@@ -42,6 +43,7 @@ class ProgressController extends ChangeNotifier {
   UserModel? get user => _user;
   StreamSubscription? _logSub;
   StreamSubscription? _weightSub;
+  StreamSubscription? _userSub;
 
   ChartPeriod _period = ChartPeriod.daily;
   ChartPeriod get period => _period;
@@ -105,6 +107,17 @@ class ProgressController extends ChangeNotifier {
       notifyListeners();
     });
 
+    _userSub?.cancel();
+    _userSub = HiveService.users.watch().listen((event) {
+      final updated = HiveService.users.get(_user?.id);
+      if (updated != null) {
+        _user = updated;
+        _buildWeightData();
+        _checkWeightModalNeeded();
+        notifyListeners();
+      }
+    });
+
     notifyListeners();
   }
 
@@ -112,6 +125,7 @@ class ProgressController extends ChangeNotifier {
   void dispose() {
     _logSub?.cancel();
     _weightSub?.cancel();
+    _userSub?.cancel();
     super.dispose();
   }
 
@@ -405,7 +419,6 @@ class ProgressController extends ChangeNotifier {
       return;
     }
 
-    // Hitung berat sistem awal
     DateTime? accountCreated;
     try {
       final ms = int.parse(user.id.replaceAll('user_', ''));
@@ -414,42 +427,61 @@ class ProgressController extends ChangeNotifier {
       accountCreated = DateTime.now();
     }
 
-    final startWeight = user.weight ?? 60.0;
-    final targetDelta = user.targetWeightGainPerMonth ?? 0.0;
-    const monthNames = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
-    ];
+    final startWeight = user.initialWeight ?? user.weight ?? 60.0;
+    final targetHistory = user.targetHistory ?? {};
+    final currentTarget = user.targetWeightGainPerMonth ?? 0.0;
 
+    double getTargetForMonth(DateTime month) {
+      final key = DateFormat('yyyy-MM').format(month);
+      if (targetHistory.containsKey(key)) return targetHistory[key]!;
+      final sortedKeys = targetHistory.keys.toList()..sort();
+      String latestKey = "";
+      for (final k in sortedKeys) {
+        if (k.compareTo(key) <= 0) latestKey = k;
+        else break;
+      }
+      return latestKey.isNotEmpty ? targetHistory[latestKey]! : currentTarget;
+    }
+
+    double getProjectionFor(DateTime targetMonth) {
+      final refMonth = DateTime(accountCreated!.year, accountCreated.month, 1);
+      final targetM = DateTime(targetMonth.year, targetMonth.month, 1);
+      double val = startWeight;
+      
+      if (targetM.isAfter(refMonth)) {
+        DateTime curr = refMonth;
+        while (curr.isBefore(targetM)) {
+          val += getTargetForMonth(curr);
+          curr = DateTime(curr.year, curr.month + 1, 1);
+        }
+      } else if (targetM.isBefore(refMonth)) {
+        DateTime curr = refMonth;
+        while (curr.isAfter(targetM)) {
+          curr = DateTime(curr.year, curr.month - 1, 1);
+          val -= getTargetForMonth(curr);
+        }
+      }
+      return val;
+    }
+
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
     final now = DateTime.now();
-    final yearStart = DateTime(now.year, 1, 1);
     final result = <WeightDataPoint>[];
 
     for (int m = 1; m <= 12; m++) {
       final monthDate = DateTime(_viewYearWeight, m, 1);
-      // Hitung berapa bulan dari saat akun dibuat ke bulan ini
-      final monthsFromStart = _monthsBetween(
-        DateTime(accountCreated!.year, accountCreated.month, 1),
-        monthDate,
-      );
-      final systemWeight = startWeight + (targetDelta * monthsFromStart);
+      final systemWeight = getProjectionFor(monthDate);
 
       final key = _weightLogKey(user.id, monthDate);
-      final log = HiveService.weightLogs.get(key);
-      final actual = log?.actualWeight;
-
-      // Jika bulan belum terjadi (masa depan), tidak tampilkan titik aktual
+      final actual = HiveService.weightLogs.get(key)?.actualWeight;
       final isFuture = monthDate.isAfter(now);
 
-      result.add(
-        WeightDataPoint(
-          label: monthNames[m - 1],
-          actualWeight: isFuture ? null : actual,
-          systemWeight: systemWeight < 0 ? 0 : systemWeight,
-        ),
-      );
+      result.add(WeightDataPoint(
+        label: monthNames[m - 1],
+        actualWeight: isFuture ? null : actual,
+        systemWeight: systemWeight < 0 ? 0 : systemWeight,
+      ));
     }
-
     _weightData = result;
   }
 
@@ -563,22 +595,34 @@ class ProgressController extends ChangeNotifier {
     }
   }
 
-  /// Pesan status berat badan (Kekurangan/Kelebihan kg)
-  String get weightStatusMessage {
+  /// Pesan status berat badan ideal
+  String get idealWeightStatusMessage {
     final user = _user;
     if (user == null || user.weight == null || user.height == null) return "-";
     final current = user.weight!;
     final ideal = idealWeight;
     final diff = (current - ideal).abs();
     
+    // Anggap ideal jika selisih < 0.5kg
+    if (diff < 0.5) {
+      return "Berat badan kamu sudah ideal! ✨";
+    } else if (current < ideal) {
+      return "Kurang ${diff.toStringAsFixed(1)} kg untuk berat ideal";
+    } else {
+      return "Kelebihan ${diff.toStringAsFixed(1)} kg dari berat ideal";
+    }
+  }
+
+  /// Pesan status BMI
+  String get bmiStatusMessage {
     final bmi = currentBMI;
     if (bmi == null) return "-";
-    if (bmi < 18.5) {
-      return "Kurang ${diff.toStringAsFixed(1)} kg untuk berat ideal";
-    } else if (bmi >= 25) {
-      return "Kelebihan ${diff.toStringAsFixed(1)} kg dari berat ideal";
+    if (bmi >= 18.5 && bmi < 25) {
+      return "BMI kamu normal! ✨";
+    } else if (bmi < 18.5) {
+      return "BMI kamu di bawah normal";
     } else {
-      return "Berat badan kamu sudah ideal! ✨";
+      return "BMI kamu di atas normal";
     }
   }
 

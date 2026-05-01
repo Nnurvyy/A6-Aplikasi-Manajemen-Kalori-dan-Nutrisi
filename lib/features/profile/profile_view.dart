@@ -5,6 +5,7 @@ import '../auth/models/user_model.dart';
 import '../../helpers/calorie_helper.dart';
 import '../auth/login_view.dart';
 import '../../services/hive_service.dart';
+import 'package:intl/intl.dart';
 import '../progress/models/weight_log_model.dart';
 
 class ProfileView extends StatefulWidget {
@@ -36,6 +37,9 @@ class _ProfileViewState extends State<ProfileView> {
     final umurCtrl = TextEditingController(text: user.age?.toString() ?? '');
     final beratCtrl = TextEditingController(
       text: user.weight?.toStringAsFixed(1) ?? '',
+    );
+    final initialBeratCtrl = TextEditingController(
+      text: user.initialWeight?.toStringAsFixed(1) ?? '',
     );
     final targetCtrl = TextEditingController(
       text: user.targetWeightGainPerMonth?.toStringAsFixed(1) ?? '0',
@@ -158,10 +162,22 @@ class _ProfileViewState extends State<ProfileView> {
                                 isNumber: true,
                               ),
                             ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _inputField(
+                                'BB Awal (kg)',
+                                initialBeratCtrl,
+                                isDecimal: true,
+                              ),
+                            ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: _inputField(
-                                'Berat (kg)',
+                                'BB Saat Ini (kg)',
                                 beratCtrl,
                                 isDecimal: true,
                               ),
@@ -228,6 +244,7 @@ class _ProfileViewState extends State<ProfileView> {
                               final h = double.tryParse(tinggiCtrl.text.trim());
                               final a = int.tryParse(umurCtrl.text.trim());
                               final w = double.tryParse(beratCtrl.text.trim());
+                              final initW = double.tryParse(initialBeratCtrl.text.trim());
                               final target =
                                   double.tryParse(targetCtrl.text.trim()) ?? 0;
                               final newCal =
@@ -241,6 +258,11 @@ class _ProfileViewState extends State<ProfileView> {
                                         targetWeightGainPerMonth: target,
                                       )
                                       : user.dailyCalorieNeed;
+
+                              final history = Map<String, double>.from(user.targetHistory ?? {});
+                              if (target != user.targetWeightGainPerMonth) {
+                                history[DateFormat('yyyy-MM').format(DateTime.now())] = target;
+                              }
 
                               final updated = UserModel(
                                 id: user.id,
@@ -259,6 +281,8 @@ class _ProfileViewState extends State<ProfileView> {
                                 birthDate: user.birthDate,
                                 dailyCalorieNeed: newCal,
                                 targetWeightGainPerMonth: target,
+                                initialWeight: initW ?? user.initialWeight,
+                                targetHistory: history,
                                 isBlocked: user.isBlocked,
                               );
                               await context
@@ -735,12 +759,23 @@ class _ProfileViewState extends State<ProfileView> {
                 _divider(),
                 _chevron(
                   Icons.monitor_weight_rounded,
-                  'Berat Badan',
-                  user.weight != null
-                      ? '${user.weight!.toStringAsFixed(1)} kg'
+                  'BB Awal',
+                  user.initialWeight != null
+                      ? '${user.initialWeight!.toStringAsFixed(1)} kg'
                       : '-',
                   const Color(0xFFFFEBEE),
                   const Color(0xFFEF5350),
+                  user: user,
+                ),
+                _divider(),
+                _chevron(
+                  Icons.history_rounded,
+                  'BB Saat Ini',
+                  user.weight != null
+                      ? '${user.weight!.toStringAsFixed(1)} kg'
+                      : '-',
+                  const Color(0xFFE8F5E9),
+                  const Color(0xFF2E7D32),
                   user: user,
                 ),
                 _divider(),

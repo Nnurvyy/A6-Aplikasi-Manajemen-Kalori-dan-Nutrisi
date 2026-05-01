@@ -349,7 +349,7 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
           body: CustomScrollView(
             slivers: [
               _buildAppBar(ctrl),
-              SliverToBoxAdapter(child: _buildBMICard(ctrl)),
+              SliverToBoxAdapter(child: _buildStatsSection(ctrl)),
               SliverToBoxAdapter(child: _buildNutritionSection(ctrl)),
               SliverToBoxAdapter(child: _buildWeightSection(ctrl)),
               SliverToBoxAdapter(child: _buildActivityGrid(ctrl)),
@@ -379,72 +379,93 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
     );
   }
 
-  Widget _buildBMICard(ProgressController ctrl) {
-    final bmi = ctrl.currentBMI;
-    final statusMsg = ctrl.weightStatusMessage;
-    
+  Widget _buildStatsSection(ProgressController ctrl) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      child: GestureDetector(
-        onTap: () => _showBMIDetail(ctrl),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF2E7D32), Color(0xFF1B5E20)]),
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [BoxShadow(color: const Color(0xFF2E7D32).withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 6))],
+      child: Row(
+        children: [
+          // Ideal Weight Card
+          Expanded(
+            child: _statCard(
+              title: 'Berat Ideal',
+              value: ctrl.idealWeightStatusMessage,
+              subtitle: 'Target: ${ctrl.idealWeight.toStringAsFixed(1)} kg',
+              icon: Icons.star_rounded,
+              onTap: () => _showIdealWeightDetail(ctrl),
+            ),
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Text('Status Berat Badan', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11)),
-                        const SizedBox(width: 4),
-                        const Icon(Icons.info_outline_rounded, color: Colors.white70, size: 10),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      statusMsg, 
-                      style: GoogleFonts.poppins(
-                        color: Colors.white, 
-                        fontSize: 18, 
-                        fontWeight: FontWeight.w700,
-                        height: 1.1,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
-                          child: Text(ctrl.bmiCategory, style: GoogleFonts.poppins(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600)),
-                        ),
-                        Text(
-                          'BMI: ${bmi != null ? bmi.toStringAsFixed(1) : "-"}',
-                          style: GoogleFonts.poppins(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w500),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+          const SizedBox(width: 12),
+          // BMI Card
+          Expanded(
+            child: _statCard(
+              title: 'Status BMI',
+              value: ctrl.bmiStatusMessage,
+              subtitle: 'BMI: ${ctrl.currentBMI?.toStringAsFixed(1) ?? "-"}',
+              icon: Icons.monitor_weight_rounded,
+              onTap: () => _showBMIDetail(ctrl),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statCard({
+    required String title,
+    required String value,
+    required String subtitle,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF2E7D32), Color(0xFF1B5E20)],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF2E7D32).withOpacity(0.2),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: Colors.white70, size: 14),
+                const SizedBox(width: 4),
+                Text(title, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w500)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700, height: 1.2),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(10),
               ),
-              const SizedBox(width: 12),
-              _buildBMIGauge(bmi),
-            ],
-          ),
+              child: Text(
+                subtitle,
+                style: GoogleFonts.poppins(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -587,49 +608,104 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
   Widget _legendItem(Color color) {
     return Container(
       width: 10,
-      height: 10,
+    height: 10,
       decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2)),
     );
   }
 
-  void _showBMIDetail(ProgressController ctrl) {
-    final bmi = ctrl.currentBMI;
-    if (bmi == null) return;
+  void _showIdealWeightDetail(ProgressController ctrl) {
+    final weight = ctrl.user?.weight ?? 0.0;
+    final ideal = ctrl.idealWeight;
+    final diff = (weight - ideal).abs();
+    final status = ctrl.idealWeightStatusMessage;
 
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        contentPadding: EdgeInsets.zero,
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(colors: [Color(0xFF2E7D32), Color(0xFF1B5E20)]),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                child: Column(
+                  children: [
+                    Text('Analisis Berat Ideal', style: GoogleFonts.poppins(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 4),
+                    Text(status, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 13)),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _infoRow('BB Saat Ini', '${weight.toStringAsFixed(1)} kg'),
+                    const SizedBox(height: 12),
+                    _infoRow('BB Ideal', '${ideal.toStringAsFixed(1)} kg', isHighlighted: true),
+                    const SizedBox(height: 12),
+                    _infoRow('Selisih', '${diff.toStringAsFixed(1)} kg'),
+                    const Divider(height: 32),
+                    Text('Bagaimana Cara Menghitungnya?', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 14)),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12)),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Rumus Berat Ideal:', style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black54)),
+                          const SizedBox(height: 4),
+                          Text(
+                            ctrl.user?.gender == 'Laki-laki' 
+                              ? 'Berat badan ideal (kg) = [tinggi badan (cm) - 100] - [(tinggi badan (cm) - 100) x 10%]'
+                              : 'Berat badan ideal (kg) = [tinggi badan (cm) - 100] + [(tinggi badan (cm) - 100) x 15%]', 
+                            style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF2E7D32))
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Keterangan: Rumus ini menggunakan indeks Broca yang disesuaikan dengan jenis kelamin. Untuk laki-laki dikurangi 10% dan untuk perempuan ditambah 15% dari selisih tinggi terhadap 100.',
+                            style: GoogleFonts.poppins(fontSize: 11, color: Colors.black54, height: 1.4),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 14)),
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Tutup'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showBMIDetail(ProgressController ctrl) {
+    final bmi = ctrl.currentBMI ?? 0.0;
     final weight = ctrl.user?.weight ?? 0.0;
     final height = ctrl.user?.height ?? 0.0;
-    final ideal = ctrl.idealWeight;
 
     // Tentukan kategori dan range
-    String category;
-    String rangeInfo;
-    String advice;
-    Color catColor;
-
-    if (bmi < 18.5) {
-      category = 'Kekurangan Berat Badan';
-      catColor = const Color(0xFF1E88E5);
-      rangeInfo = 'BMI kamu ${bmi.toStringAsFixed(1)} kg/m² — di bawah rentang normal (18.5–24.9 kg/m²)';
-      final deficit = 18.5 - bmi;
-      advice = 'Kamu perlu meningkatkan berat badan. Selisih dari batas bawah normal: ${deficit.toStringAsFixed(1)} kg/m².';
-    } else if (bmi < 25.0) {
-      category = 'Normal';
-      catColor = const Color(0xFF2E7D32);
-      rangeInfo = 'BMI kamu ${bmi.toStringAsFixed(1)} kg/m² — dalam rentang normal (18.5–24.9 kg/m²)';
-      advice = 'Berat badan kamu ideal! Pertahankan pola makan sehat dan olahraga rutin.';
-    } else if (bmi < 30.0) {
-      category = 'Kelebihan Berat Badan';
-      catColor = const Color(0xFFF59E0B);
-      rangeInfo = 'BMI kamu ${bmi.toStringAsFixed(1)} kg/m² — di atas rentang normal (18.5–24.9 kg/m²)';
-      final surplus = bmi - 24.9;
-      advice = 'Kamu kelebihan berat badan. Selisih dari batas atas normal: ${surplus.toStringAsFixed(1)} kg/m².';
-    } else {
-      category = 'Obesitas';
-      catColor = const Color(0xFFE53935);
-      rangeInfo = 'BMI kamu ${bmi.toStringAsFixed(1)} kg/m² — jauh di atas rentang normal (18.5–24.9 kg/m²)';
-      final surplus = bmi - 24.9;
-      advice = 'Kamu mengalami obesitas. Selisih dari batas atas normal: ${surplus.toStringAsFixed(1)} kg/m². Konsultasikan dengan dokter atau ahli gizi.';
-    }
+    String category = ctrl.bmiCategory;
+    Color catColor = ctrl.bmiColor;
+    String advice = ctrl.bmiStatusMessage;
 
     final bmiRanges = [
       _BMIRange('Kurus', '< 18.5', const Color(0xFF1E88E5)),
@@ -667,17 +743,14 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _infoRow('Berat Badan Saat Ini', '${weight.toStringAsFixed(1)} kg'),
+                    _infoRow('BB Saat Ini', '${weight.toStringAsFixed(1)} kg'),
                     const SizedBox(height: 12),
                     _infoRow('Tinggi Badan', '${height.toStringAsFixed(0)} cm'),
-                    const SizedBox(height: 12),
-                    _infoRow('Berat Badan Ideal', '${ideal.toStringAsFixed(1)} kg', isHighlighted: true),
                     const Divider(height: 32),
                     Text('Analisis', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 14)),
                     const SizedBox(height: 8),
-                    Text(rangeInfo, style: GoogleFonts.poppins(fontSize: 13, color: Colors.black87)),
-                    const SizedBox(height: 8),
                     Text(advice, style: GoogleFonts.poppins(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 24),
                     Text('Bagaimana Cara Menghitungnya?', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 14)),
                     const SizedBox(height: 8),
                     Container(
@@ -686,18 +759,8 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Rumus Berat Ideal:', style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black54)),
-                          Text(
-                            ctrl.user?.gender == 'Laki-laki' 
-                              ? '(Tinggi - 100) - 10%'
-                              : '(Tinggi - 100) + 15%', 
-                            style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF2E7D32))
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Korelasinya: Angka ini didapat dari rumus indeks Broca yang disesuaikan. Berat ideal ini menjadi target sehat kamu, sementara BMI tetap digunakan sebagai indikator medis untuk mengukur proporsi tubuh secara umum.',
-                            style: GoogleFonts.poppins(fontSize: 11, color: Colors.black54, height: 1.4),
-                          ),
+                          Text('Rumus BMI:', style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black54)),
+                          Text('Berat (kg) / (Tinggi/100)²', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF2E7D32))),
                         ],
                       ),
                     ),
@@ -715,18 +778,16 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
                         ],
                       ),
                     )),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 14)),
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Tutup'),
+                      ),
+                    ),
                   ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 14)),
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Tutup'),
-                  ),
                 ),
               ),
             ],
@@ -735,7 +796,6 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
       ),
     );
   }
-
   Widget _infoRow(String label, String value, {bool isHighlighted = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
