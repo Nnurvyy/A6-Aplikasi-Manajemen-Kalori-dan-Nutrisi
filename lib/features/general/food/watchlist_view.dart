@@ -5,18 +5,32 @@ import './models/watchlist_model.dart';
 import './food_detail_view.dart';
 import '../auth/auth_controller.dart';
 
-class WatchlistView extends StatelessWidget {
+class WatchlistView extends StatefulWidget {
   const WatchlistView({super.key});
 
+  @override
+  State<WatchlistView> createState() => _WatchlistViewState();
+}
+
+class _WatchlistViewState extends State<WatchlistView> {
   static const Color _bg = Color(0xFFF4F6F0);
   static const Color _surface = Colors.white;
   static const Color _textDark = Color(0xFF1B2A1B);
   static const Color _textMuted = Color(0xFF5A7A5A);
 
+  static const int _itemsPerPage = 10;
+  int _currentPage = 0;
+
   @override
   Widget build(BuildContext context) {
     final watchlist = context.watch<WatchlistController>();
     final items = watchlist.items;
+
+    final totalPages = items.isEmpty ? 1 : (items.length / _itemsPerPage).ceil();
+    final safeCurrentPage = _currentPage.clamp(0, totalPages - 1);
+    final startIndex = safeCurrentPage * _itemsPerPage;
+    final endIndex = (startIndex + _itemsPerPage).clamp(0, items.length);
+    final pageItems = items.isEmpty ? <WatchlistModel>[] : items.sublist(startIndex, endIndex);
 
     return Scaffold(
       backgroundColor: _bg,
@@ -30,20 +44,126 @@ class WatchlistView extends StatelessWidget {
         ),
         title: const Text(
           'Makanan Tersimpan',
-          style: TextStyle(
-            color: _textDark,
-            fontWeight: FontWeight.w800,
-            fontSize: 18,
-          ),
+          style: TextStyle(color: _textDark, fontWeight: FontWeight.w800, fontSize: 18),
         ),
+        actions: [
+          if (items.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF7C4DFF).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${items.length}',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF7C4DFF),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
       body: items.isEmpty
           ? _buildEmptyState()
-          : ListView.builder(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-              itemCount: items.length,
-              itemBuilder: (context, index) => _buildWatchlistCard(context, items[index]),
+          : Column(
+              children: [
+                // Info bar
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
+                  child: Row(
+                    children: [
+                      Text(
+                        '${items.length} makanan tersimpan',
+                        style: const TextStyle(fontSize: 12, color: _textMuted, fontWeight: FontWeight.w600),
+                      ),
+                      const Spacer(),
+                      if (totalPages > 1)
+                        Text(
+                          'Hal. ${safeCurrentPage + 1}/$totalPages',
+                          style: const TextStyle(fontSize: 12, color: _textMuted),
+                        ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+                    itemCount: pageItems.length,
+                    itemBuilder: (context, index) => _buildWatchlistCard(context, pageItems[index]),
+                  ),
+                ),
+                if (totalPages > 1) _buildPagination(safeCurrentPage, totalPages),
+              ],
             ),
+    );
+  }
+
+  Widget _buildPagination(int current, int total) {
+    return Container(
+      color: _surface,
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _pageBtn(Icons.chevron_left_rounded, current > 0, () => setState(() => _currentPage--)),
+          const SizedBox(width: 8),
+          ...List.generate(total, (i) {
+            final isActive = i == current;
+            return GestureDetector(
+              onTap: () => setState(() => _currentPage = i),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: isActive ? const Color(0xFF7C4DFF) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isActive ? const Color(0xFF7C4DFF) : const Color(0xFFD0C8FF),
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    '${i + 1}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: isActive ? Colors.white : _textMuted,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).take(7).toList(),
+          const SizedBox(width: 8),
+          _pageBtn(Icons.chevron_right_rounded, current < total - 1, () => setState(() => _currentPage++)),
+        ],
+      ),
+    );
+  }
+
+  Widget _pageBtn(IconData icon, bool enabled, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: Container(
+        width: 32, height: 32,
+        decoration: BoxDecoration(
+          color: enabled ? const Color(0xFFF3E5F5) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: enabled ? const Color(0xFFD0C8FF) : Colors.transparent,
+          ),
+        ),
+        child: Icon(icon, size: 18, color: enabled ? const Color(0xFF7C4DFF) : _textMuted.withValues(alpha: 0.3)),
+      ),
     );
   }
 
@@ -51,7 +171,6 @@ class WatchlistView extends StatelessWidget {
     final food = item.food;
     final Color accentColor = _categoryColor(food.category);
     
-    // Calculate nutrients for default serving size
     final nutrients = food.nutritionForAmount(food.defaultServingSize);
     final calories = nutrients['calories'] ?? 0;
     final protein = nutrients['protein'] ?? 0;
@@ -80,23 +199,16 @@ class WatchlistView extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: accentColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: Text(
-                  food.name[0].toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: accentColor,
-                  ),
-                ),
-              ),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: food.imageUrl != null
+                  ? Image.network(
+                      food.imageUrl!,
+                      width: 50, height: 50,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _buildAvatar(food.name, accentColor),
+                    )
+                  : _buildAvatar(food.name, accentColor),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -105,19 +217,21 @@ class WatchlistView extends StatelessWidget {
                 children: [
                   Text(
                     food.name,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: _textDark,
-                    ),
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: _textDark),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    '${food.category} • ${food.defaultServingSize.toInt()}g',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: _textMuted,
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        width: 6, height: 6,
+                        decoration: BoxDecoration(color: accentColor, shape: BoxShape.circle),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${food.category} • ${food.defaultServingSize.toInt()}g',
+                        style: const TextStyle(fontSize: 12, color: _textMuted),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -137,25 +251,26 @@ class WatchlistView extends StatelessWidget {
               children: [
                 Text(
                   '${calories.toInt()}',
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF4CAF50),
-                  ),
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Color(0xFF4CAF50)),
                 ),
-                const Text(
-                  'kkal',
-                  style: TextStyle(fontSize: 10, color: _textMuted),
-                ),
+                const Text('kkal', style: TextStyle(fontSize: 10, color: _textMuted)),
                 const SizedBox(height: 8),
                 GestureDetector(
                   onTap: () {
                     final userId = context.read<AuthController>().currentUser?.id;
                     if (userId != null) {
                       context.read<WatchlistController>().toggleWatchlist(userId, food);
+                      if (_currentPage > 0) setState(() => _currentPage--);
                     }
                   },
-                  child: const Icon(Icons.bookmark_rounded, color: Color(0xFF7C4DFF), size: 18),
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF7C4DFF).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.bookmark_rounded, color: Color(0xFF7C4DFF), size: 16),
+                  ),
                 ),
               ],
             ),
@@ -165,20 +280,29 @@ class WatchlistView extends StatelessWidget {
     );
   }
 
+  Widget _buildAvatar(String name, Color color) {
+    return Container(
+      width: 50, height: 50,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Center(
+        child: Text(
+          name[0].toUpperCase(),
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: color),
+        ),
+      ),
+    );
+  }
+
   Widget _nutriChip(String label, Color bg, Color textColor) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(6),
-      ),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
       child: Text(
         label,
-        style: TextStyle(
-          fontSize: 9,
-          fontWeight: FontWeight.w700,
-          color: textColor,
-        ),
+        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: textColor),
       ),
     );
   }
