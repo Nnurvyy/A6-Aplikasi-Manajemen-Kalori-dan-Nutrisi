@@ -21,22 +21,15 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
   @override
   Widget build(BuildContext context) {
     final foodCtrl = context.watch<FoodController>();
-<<<<<<< HEAD
-    // Filter manual logs (you might want to filter by user too if needed,
-    // but FoodController notifyListeners usually handles the global log state for now)
-    final manualLogs =
-        foodCtrl.allLogs.where((log) => log.isManual).toList()
-          ..sort((a, b) => b.consumedAt.compareTo(a.consumedAt));
-=======
     final authCtrl = context.watch<AuthController>();
     final userId = authCtrl.currentUser?.id ?? '';
-    
+
     // Filter manual logs for current user
-    final manualLogs = foodCtrl.allLogs
-        .where((log) => log.isManual && log.userId == userId)
-        .toList()
-      ..sort((a, b) => b.consumedAt.compareTo(a.consumedAt));
->>>>>>> c67643ef06b803878e2b903f861591be510d81dc
+    final manualLogs =
+        foodCtrl.allLogs
+            .where((log) => log.isManual && log.userId == userId)
+            .toList()
+          ..sort((a, b) => b.consumedAt.compareTo(a.consumedAt));
 
     return Scaffold(
       backgroundColor: _bg,
@@ -45,15 +38,18 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _textDark, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: _textDark,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Tambah Log Manual',
-<<<<<<< HEAD
           style: TextStyle(
             color: _textDark,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w800,
             fontSize: 18,
           ),
         ),
@@ -62,25 +58,12 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
           manualLogs.isEmpty
               ? _buildEmptyState()
               : ListView.builder(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
                 itemCount: manualLogs.length,
                 itemBuilder:
                     (context, index) => _buildManualLogCard(manualLogs[index]),
               ),
-      floatingActionButton: FloatingActionButton(
-=======
-          style: TextStyle(color: _textDark, fontWeight: FontWeight.w800, fontSize: 18),
-        ),
-      ),
-      body: manualLogs.isEmpty
-          ? _buildEmptyState()
-          : ListView.builder(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
-              itemCount: manualLogs.length,
-              itemBuilder: (context, index) => _buildManualLogCard(manualLogs[index]),
-            ),
       floatingActionButton: FloatingActionButton.extended(
->>>>>>> c67643ef06b803878e2b903f861591be510d81dc
         onPressed: () async {
           final result = await Navigator.push(
             context,
@@ -93,81 +76,15 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
         backgroundColor: const Color(0xFF2E7D32),
         elevation: 4,
         icon: const Icon(Icons.add_rounded, color: Colors.white),
-        label: const Text('Tambah Baru', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        label: const Text(
+          'Tambah Baru',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }
 
   Widget _buildManualLogCard(LogModel log) {
-<<<<<<< HEAD
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: _surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: _primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.history_edu_rounded,
-              color: _primary,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  log.foodName,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: _textDark,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${log.category} • ${log.servingSize.toStringAsFixed(0)}g',
-                  style: const TextStyle(color: _textMuted, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '${log.calories.toStringAsFixed(0)} kcal',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: _calColor,
-                  fontSize: 14,
-                ),
-              ),
-              Text(
-                log.formattedTime,
-                style: const TextStyle(color: _textMuted, fontSize: 11),
-              ),
-            ],
-          ),
-        ],
-=======
     final Color accentColor = _getCategoryColor(log.category);
 
     return GestureDetector(
@@ -223,19 +140,28 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
                   const SizedBox(height: 2),
                   Text(
                     '${log.category} • ${log.servingSize.toInt()}g',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: _textMuted,
-                    ),
+                    style: const TextStyle(fontSize: 12, color: _textMuted),
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      _nutriChip('P ${log.protein.toStringAsFixed(1)}g', const Color(0xFFFFEBEE), const Color(0xFFE53935)),
+                      _nutriChip(
+                        'P ${log.protein.toStringAsFixed(1)}g',
+                        const Color(0xFFFFEBEE),
+                        const Color(0xFFE53935),
+                      ),
                       const SizedBox(width: 4),
-                      _nutriChip('K ${log.carbs.toStringAsFixed(1)}g', const Color(0xFFFFF8E1), const Color(0xFFF59E0B)),
+                      _nutriChip(
+                        'K ${log.carbs.toStringAsFixed(1)}g',
+                        const Color(0xFFFFF8E1),
+                        const Color(0xFFF59E0B),
+                      ),
                       const SizedBox(width: 4),
-                      _nutriChip('L ${log.fat.toStringAsFixed(1)}g', const Color(0xFFFFF3E0), const Color(0xFFFF8C00)),
+                      _nutriChip(
+                        'L ${log.fat.toStringAsFixed(1)}g',
+                        const Color(0xFFFFF3E0),
+                        const Color(0xFFFF8C00),
+                      ),
                     ],
                   ),
                 ],
@@ -259,7 +185,10 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
                 const SizedBox(height: 4),
                 Text(
                   log.formattedTime,
-                  style: const TextStyle(fontSize: 10, color: Color(0xFF9E9E9E)),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: Color(0xFF9E9E9E),
+                  ),
                 ),
               ],
             ),
@@ -292,7 +221,6 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
           fontWeight: FontWeight.w700,
           color: textColor,
         ),
->>>>>>> c67643ef06b803878e2b903f861591be510d81dc
       ),
     );
   }
@@ -302,39 +230,30 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-<<<<<<< HEAD
           Icon(
             Icons.note_add_rounded,
             size: 64,
             color: _textMuted.withOpacity(0.5),
-=======
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE8F5E9),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.note_add_rounded, size: 40, color: Color(0xFF4CAF50)),
->>>>>>> c67643ef06b803878e2b903f861591be510d81dc
           ),
+          Container(padding: const EdgeInsets.all(20)),
           const SizedBox(height: 16),
           const Text(
             'Belum ada log manual',
-<<<<<<< HEAD
             style: TextStyle(color: _textMuted, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 8),
           const Text(
             'Klik + untuk menambah log baru',
             style: TextStyle(color: _textMuted, fontSize: 12),
-=======
-            style: TextStyle(color: _textDark, fontWeight: FontWeight.bold, fontSize: 16),
+            style: TextStyle(
+              color: _textDark,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
           ),
           const SizedBox(height: 4),
           const Text(
             'Klik + untuk membuat catatan baru',
             style: TextStyle(color: _textMuted, fontSize: 13),
->>>>>>> c67643ef06b803878e2b903f861591be510d81dc
           ),
         ],
       ),
@@ -379,8 +298,14 @@ class _LogDetailSheet extends StatelessWidget {
                 ),
                 child: Center(
                   child: Text(
-                    log.foodName.isNotEmpty ? log.foodName[0].toUpperCase() : '?',
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: accentColor),
+                    log.foodName.isNotEmpty
+                        ? log.foodName[0].toUpperCase()
+                        : '?',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      color: accentColor,
+                    ),
                   ),
                 ),
               ),
@@ -391,18 +316,29 @@ class _LogDetailSheet extends StatelessWidget {
                   children: [
                     Text(
                       log.foodName,
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF1B2A1B)),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF1B2A1B),
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: accentColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
                         log.category,
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: accentColor),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: accentColor,
+                        ),
                       ),
                     ),
                   ],
@@ -431,15 +367,26 @@ class _LogDetailSheet extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.local_fire_department, color: Colors.white, size: 32),
+                const Icon(
+                  Icons.local_fire_department,
+                  color: Colors.white,
+                  size: 32,
+                ),
                 const SizedBox(width: 12),
                 Column(
                   children: [
                     Text(
                       '${log.calories.toInt()}',
-                      style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.white),
+                      style: const TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                      ),
                     ),
-                    const Text('kkal total', style: TextStyle(fontSize: 12, color: Colors.white70)),
+                    const Text(
+                      'kkal total',
+                      style: TextStyle(fontSize: 12, color: Colors.white70),
+                    ),
                   ],
                 ),
               ],
@@ -448,11 +395,29 @@ class _LogDetailSheet extends StatelessWidget {
           const SizedBox(height: 24),
           Row(
             children: [
-              _macroItem('Protein', log.protein, const Color(0xFFFFEBEE), const Color(0xFFE53935), Icons.fitness_center),
+              _macroItem(
+                'Protein',
+                log.protein,
+                const Color(0xFFFFEBEE),
+                const Color(0xFFE53935),
+                Icons.fitness_center,
+              ),
               const SizedBox(width: 12),
-              _macroItem('Karbo', log.carbs, const Color(0xFFFFF8E1), const Color(0xFFF59E0B), Icons.grain),
+              _macroItem(
+                'Karbo',
+                log.carbs,
+                const Color(0xFFFFF8E1),
+                const Color(0xFFF59E0B),
+                Icons.grain,
+              ),
               const SizedBox(width: 12),
-              _macroItem('Lemak', log.fat, const Color(0xFFFFF3E0), const Color(0xFFFF8C00), Icons.water_drop),
+              _macroItem(
+                'Lemak',
+                log.fat,
+                const Color(0xFFFFF3E0),
+                const Color(0xFFFF8C00),
+                Icons.water_drop,
+              ),
             ],
           ),
           const SizedBox(height: 32),
@@ -484,7 +449,9 @@ class _LogDetailSheet extends StatelessWidget {
                   Navigator.pop(context); // Close sheet
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Berhasil menambahkan ${log.foodName} ke log hari ini'),
+                      content: Text(
+                        'Berhasil menambahkan ${log.foodName} ke log hari ini',
+                      ),
                       backgroundColor: const Color(0xFF2E7D32),
                     ),
                   );
@@ -493,10 +460,15 @@ class _LogDetailSheet extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF2E7D32),
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 elevation: 2,
               ),
-              child: const Text('Tambah ke Log Hari Ini', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              child: const Text(
+                'Tambah ke Log Hari Ini',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
             ),
           ),
         ],
@@ -504,17 +476,36 @@ class _LogDetailSheet extends StatelessWidget {
     );
   }
 
-  Widget _macroItem(String label, double value, Color bg, Color color, IconData icon) {
+  Widget _macroItem(
+    String label,
+    double value,
+    Color bg,
+    Color color,
+    IconData icon,
+  ) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(16)),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(16),
+        ),
         child: Column(
           children: [
             Icon(icon, color: color, size: 20),
             const SizedBox(height: 8),
-            Text('${value.toStringAsFixed(1)}g', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: color)),
-            Text(label, style: TextStyle(fontSize: 10, color: color.withOpacity(0.7))),
+            Text(
+              '${value.toStringAsFixed(1)}g',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
+            ),
+            Text(
+              label,
+              style: TextStyle(fontSize: 10, color: color.withOpacity(0.7)),
+            ),
           ],
         ),
       ),
@@ -525,12 +516,19 @@ class _LogDetailSheet extends StatelessWidget {
 // Global Helper
 Color _getCategoryColor(String category) {
   switch (category.toLowerCase()) {
-    case 'lauk': return const Color(0xFF4CAF50);
-    case 'makanan pokok': return const Color(0xFFF59E0B);
-    case 'sayuran': return const Color(0xFF43A047);
-    case 'buah': return const Color(0xFFE91E63);
-    case 'minuman': return const Color(0xFF1E88E5);
-    case 'snack': return const Color(0xFF9C27B0);
-    default: return const Color(0xFF78909C);
+    case 'lauk':
+      return const Color(0xFF4CAF50);
+    case 'makanan pokok':
+      return const Color(0xFFF59E0B);
+    case 'sayuran':
+      return const Color(0xFF43A047);
+    case 'buah':
+      return const Color(0xFFE91E63);
+    case 'minuman':
+      return const Color(0xFF1E88E5);
+    case 'snack':
+      return const Color(0xFF9C27B0);
+    default:
+      return const Color(0xFF78909C);
   }
 }
