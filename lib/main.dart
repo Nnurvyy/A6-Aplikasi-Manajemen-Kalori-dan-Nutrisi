@@ -4,18 +4,20 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
-import 'features/auth/models/user_model.dart';
-import 'features/food/models/food_model.dart';
-import 'features/food/models/log_model.dart';
-import 'features/food/models/watchlist_model.dart';
-import 'features/food/watchlist_controller.dart';
+import './features/general/auth/models/user_model.dart';
+import './features/general/food/models/food_model.dart';
+import './features/general/food/models/log_model.dart';
+import './features/general/food/models/watchlist_model.dart';
+import './features/general/food/watchlist_controller.dart';
+import './features/user/progress/models/weight_log_model.dart';
+import './helpers/date_controller.dart';
 
-import 'services/hive_service.dart';
-import 'helpers/seed_helper.dart';
+import './services/hive_service.dart';
+import './helpers/seed_helper.dart';
 
-import 'features/auth/auth_controller.dart';
-import 'features/food/food_controller.dart';
-import 'features/auth/splash_view.dart';
+import './features/general/auth/auth_controller.dart';
+import './features/general/food/food_controller.dart';
+import './features/general/auth/splash_view.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,6 +43,7 @@ void main() async {
   Hive.registerAdapter(FoodModelAdapter());
   Hive.registerAdapter(LogModelAdapter());
   Hive.registerAdapter(WatchlistModelAdapter());
+  Hive.registerAdapter(WeightLogModelAdapter());
 
   await HiveService.initBoxes();
   await SeedHelper.seedIfEmpty();
@@ -58,6 +61,7 @@ class NutriTrackApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthController()),
         ChangeNotifierProvider(create: (_) => FoodController()),
         ChangeNotifierProvider(create: (_) => WatchlistController()),
+        ChangeNotifierProvider(create: (_) => DateController()),
       ],
       child: MaterialApp(
         title: 'NutriTrack',
