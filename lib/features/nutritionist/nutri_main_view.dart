@@ -5,6 +5,7 @@ import '../general/auth/models/user_model.dart';
 import '../general/auth/login_view.dart';
 import 'dashboard/nutri_dashboard_view.dart';
 import 'submission/nutri_submission_view.dart';
+import 'submission/nutri_submission_controller.dart';
 
 class NutriMainView extends StatefulWidget {
   const NutriMainView({super.key});
@@ -17,72 +18,80 @@ class _NutriMainViewState extends State<NutriMainView> {
   int _currentIndex = 0;
 
   static const _teal = Color(0xFF00897B);
-  static const _tealDark = Color(0xFF00695C);
-
-  final List<Widget> _pages = const [
-    NutriDashboardView(),
-    NutriSubmissionView(),
-    _NutriProfileView(),
-  ];
 
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthController>().currentUser;
     if (user == null) return const LoginView();
 
-    return Scaffold(
-      body: _pages[_currentIndex],
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 20,
-              offset: const Offset(0, -4),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          child: BottomNavigationBar(
-            currentIndex: _currentIndex,
-            onTap: (i) => setState(() => _currentIndex = i),
-            backgroundColor: Colors.white,
-            selectedItemColor: _teal,
-            unselectedItemColor: const Color(0xFFB0BEC5),
-            selectedLabelStyle: const TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 12,
-            ),
-            unselectedLabelStyle: const TextStyle(
-              fontWeight: FontWeight.w500,
-              fontSize: 11,
-            ),
-            type: BottomNavigationBarType.fixed,
-            elevation: 0,
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.dashboard_rounded),
-                label: 'Dashboard',
+    // Inject NutriSubmissionController sekali di sini agar bisa shared
+    return ChangeNotifierProvider(
+      create: (_) => NutriSubmissionController(),
+      child: Builder(
+        builder: (ctx) {
+          final pages = [
+            const NutriDashboardView(),
+            const NutriSubmissionView(),
+            const _NutriProfileView(),
+          ];
+
+          return Scaffold(
+            body: pages[_currentIndex],
+            bottomNavigationBar: Container(
+              decoration: BoxDecoration(
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 20,
+                    offset: const Offset(0, -4),
+                  ),
+                ],
               ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.assignment_rounded),
-                label: 'Pengajuan',
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(24),
+                ),
+                child: BottomNavigationBar(
+                  currentIndex: _currentIndex,
+                  onTap: (i) => setState(() => _currentIndex = i),
+                  backgroundColor: Colors.white,
+                  selectedItemColor: _teal,
+                  unselectedItemColor: const Color(0xFFB0BEC5),
+                  selectedLabelStyle: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                  unselectedLabelStyle: const TextStyle(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 11,
+                  ),
+                  type: BottomNavigationBarType.fixed,
+                  elevation: 0,
+                  items: const [
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.dashboard_rounded),
+                      label: 'Dashboard',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.assignment_rounded),
+                      label: 'Isi Nutrisi',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.person_rounded),
+                      label: 'Profil',
+                    ),
+                  ],
+                ),
               ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.person_rounded),
-                label: 'Profil',
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
 }
 
 // ─── Profil Ahli Gizi ────────────────────────────────────────────────────────
-
 class _NutriProfileView extends StatelessWidget {
   const _NutriProfileView();
 
@@ -95,12 +104,12 @@ class _NutriProfileView extends StatelessWidget {
   Widget build(BuildContext context) {
     final authCtrl = context.watch<AuthController>();
     final UserModel? user = authCtrl.currentUser;
+    final ctrl = context.watch<NutriSubmissionController>();
 
     return Scaffold(
       backgroundColor: _bg,
       body: CustomScrollView(
         slivers: [
-          // ── Header ───────────────────────────────────────────────────────
           SliverAppBar(
             expandedHeight: 210,
             pinned: true,
@@ -197,7 +206,7 @@ class _NutriProfileView extends StatelessWidget {
                   const SizedBox(height: 20),
 
                   const Text(
-                    'TANGGUNG JAWAB',
+                    'STATISTIK KONTRIBUSI',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
@@ -207,30 +216,30 @@ class _NutriProfileView extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
 
-                  // ── Menu ringkasan tugas ───────────────────────────────
+                  // ── Stat cards ─────────────────────────────────────────
                   _buildCard(
                     child: Column(
                       children: [
                         _menuRow(
                           icon: Icons.pending_actions_rounded,
-                          label: 'Isi Data Nutrisi',
+                          label: 'Perlu Diisi',
                           subtitle:
-                              'Lengkapi data makanan yang disetujui admin',
+                              '${ctrl.belumDiisi.length} pengajuan menunggu data nutrisi',
                           color: const Color(0xFFFFB300),
                         ),
                         const Divider(height: 24),
                         _menuRow(
                           icon: Icons.check_circle_rounded,
-                          label: 'Pengajuan Selesai',
-                          subtitle: 'Lihat semua data yang sudah dilengkapi',
+                          label: 'Sudah Dilengkapi',
+                          subtitle:
+                              '${ctrl.sudahDiisi.length} data nutrisi sudah lengkap',
                           color: _teal,
                         ),
                         const Divider(height: 24),
                         _menuRow(
                           icon: Icons.bar_chart_rounded,
-                          label: 'Kontribusi Data',
-                          subtitle:
-                              'Total data nutrisi yang kamu isi ke database',
+                          label: 'Total Ditangani',
+                          subtitle: '${ctrl.all.length} pengajuan dari admin',
                           color: Colors.blue,
                         ),
                       ],
@@ -376,7 +385,6 @@ class _NutriProfileView extends StatelessWidget {
           ],
         ),
       ),
-      const Icon(Icons.chevron_right_rounded, color: _muted, size: 18),
     ],
   );
 

@@ -15,6 +15,7 @@ class SubmissionModel {
   final SubmissionStatus status;
   final DateTime createdAt;
   final String? reviewNote;
+  final String? nutriNote;
 
   SubmissionModel({
     required this.id,
@@ -29,11 +30,20 @@ class SubmissionModel {
     this.status = SubmissionStatus.pending,
     required this.createdAt,
     this.reviewNote,
+    this.nutriNote,
   });
+
+  bool get isNutriFilled =>
+      calories != null && protein != null && carbs != null && fat != null;
 
   SubmissionModel copyWith({
     SubmissionStatus? status,
     String? reviewNote,
+    double? calories,
+    double? protein,
+    double? carbs,
+    double? fat,
+    String? nutriNote,
   }) {
     return SubmissionModel(
       id: id,
@@ -41,13 +51,14 @@ class SubmissionModel {
       userName: userName,
       foodName: foodName,
       imagePath: imagePath,
-      calories: calories,
-      protein: protein,
-      carbs: carbs,
-      fat: fat,
+      calories: calories ?? this.calories,
+      protein: protein ?? this.protein,
+      carbs: carbs ?? this.carbs,
+      fat: fat ?? this.fat,
       status: status ?? this.status,
       createdAt: createdAt,
       reviewNote: reviewNote ?? this.reviewNote,
+      nutriNote: nutriNote ?? this.nutriNote,
     );
   }
 }
