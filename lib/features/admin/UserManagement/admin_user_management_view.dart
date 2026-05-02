@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../general/auth/auth_controller.dart';
-import '../../general/auth/models/user_model.dart';
+import 'package:intl/intl.dart';
 import '../../../services/hive_service.dart';
 import '../../../helpers/calorie_helper.dart';
-import 'package:intl/intl.dart';
-
-// ─── Halaman Manajemen Pengguna (Admin) ────────────────────────────────────────
-// Fitur: search by name/email, card list, detail user, edit, block/unblock, hapus
+import '../../general/auth/auth_controller.dart';
+import '../../general/auth/models/user_model.dart';
 
 class AdminUserManagementView extends StatefulWidget {
   const AdminUserManagementView({super.key});
@@ -17,18 +14,10 @@ class AdminUserManagementView extends StatefulWidget {
       _AdminUserManagementViewState();
 }
 
-class _AdminUserManagementViewState
-    extends State<AdminUserManagementView> {
-  // ─── Warna (konsisten dengan tema app) ───
+class _AdminUserManagementViewState extends State<AdminUserManagementView> {
   static const Color _bg = Color(0xFFF4F6F0);
-  static const Color _surface = Colors.white;
-  static const Color _primary = Color(0xFF4CAF50);
   static const Color _primaryDark = Color(0xFF2E7D32);
-  static const Color _textDark = Color(0xFF1B2A1B);
   static const Color _textMuted = Color(0xFF5A7A5A);
-  static const Color _danger = Color(0xFFE53935);
-  static const Color _warning = Color(0xFFFF9800);
-  static const Color _border = Color(0xFFC8E6C9);
 
   final TextEditingController _searchController = TextEditingController();
   List<UserModel> _allUsers = [];
@@ -38,7 +27,7 @@ class _AdminUserManagementViewState
   void initState() {
     super.initState();
     _loadUsers();
-    _searchController.addListener(_onSearch);
+    _searchController.addListener(_applyFilter);
   }
 
   @override
@@ -71,9 +60,6 @@ class _AdminUserManagementViewState
     });
   }
 
-  void _onSearch() => _applyFilter();
-
-  // ─── Toggle Block ─────────────────────────────────────────────────────────
   Future<void> _toggleBlock(UserModel user) async {
     final willBlock = !user.isBlocked;
     final confirm = await showDialog<bool>(
@@ -84,7 +70,9 @@ class _AdminUserManagementViewState
             ? '${user.name} tidak akan bisa login setelah diblokir.'
             : '${user.name} akan bisa login kembali.',
         confirmLabel: willBlock ? 'Blokir' : 'Buka Blokir',
-        confirmColor: willBlock ? _danger : _primary,
+        confirmColor: willBlock
+            ? const Color(0xFFE53935)
+            : const Color(0xFF4CAF50),
       ),
     );
     if (confirm != true || !mounted) return;
@@ -111,68 +99,21 @@ class _AdminUserManagementViewState
     _loadUsers();
     if (!mounted) return;
     _showSnack(
-      willBlock ? '${user.name} berhasil diblokir' : '${user.name} berhasil dibuka blokirnya',
-      willBlock ? _danger : _primary,
+      willBlock
+          ? '${user.name} berhasil diblokir'
+          : '${user.name} berhasil dibuka blokirnya',
+      willBlock ? const Color(0xFFE53935) : const Color(0xFF4CAF50),
     );
   }
 
-  // ─── Hapus User ───────────────────────────────────────────────────────────
-  Future<void> _deleteUser(UserModel user) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => _ConfirmDialog(
-        title: 'Hapus Pengguna?',
-        message:
-            'Akun ${user.name} beserta seluruh data log makanannya akan dihapus permanen.',
-        confirmLabel: 'Hapus',
-        confirmColor: _danger,
-      ),
-    );
-    if (confirm != true || !mounted) return;
-
-    // Hapus semua log milik user ini
-    final logKeys = HiveService.logs.keys.where((k) {
-      final log = HiveService.logs.get(k);
-      return log != null && log.userId == user.id;
-    }).toList();
-    for (final k in logKeys) {
-      await HiveService.logs.delete(k);
-    }
-    // Hapus watchlist
-    final wlKeys = HiveService.watchlists.keys.where((k) {
-      final wl = HiveService.watchlists.get(k);
-      return wl != null && wl.userId == user.id;
-    }).toList();
-    for (final k in wlKeys) {
-      await HiveService.watchlists.delete(k);
-    }
-    // Hapus weight logs
-    final wlogKeys = HiveService.weightLogs.keys.where((k) {
-      final wl = HiveService.weightLogs.get(k);
-      return wl != null && wl.userId == user.id;
-    }).toList();
-    for (final k in wlogKeys) {
-      await HiveService.weightLogs.delete(k);
-    }
-    // Hapus user
-    await HiveService.users.delete(user.id);
-    _loadUsers();
-    if (!mounted) return;
-    _showSnack('${user.name} berhasil dihapus', _danger);
-  }
-
-  // ─── Edit User ────────────────────────────────────────────────────────────
   void _editUser(UserModel user) async {
     final result = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(
-        builder: (_) => _EditUserView(user: user),
-      ),
+      MaterialPageRoute(builder: (_) => _EditUserView(user: user)),
     );
     if (result == true) _loadUsers();
   }
 
-  // ─── Detail User (Bottom Sheet) ───────────────────────────────────────────
   void _showDetail(UserModel user) {
     showModalBottomSheet(
       context: context,
@@ -188,10 +129,7 @@ class _AdminUserManagementViewState
           Navigator.pop(context);
           _editUser(user);
         },
-        onDelete: () {
-          Navigator.pop(context);
-          _deleteUser(user);
-        },
+        onDelete: () {}, // TODO: commit 6
       ),
     );
   }
@@ -200,28 +138,26 @@ class _AdminUserManagementViewState
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.w600)),
         backgroundColor: color,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
       ),
     );
   }
 
-  // ─── BUILD ────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _bg,
       body: NestedScrollView(
-        // Header (gradient + search) tetap di atas saat scroll
-        headerSliverBuilder: (ctx, innerScrolled) => [
+        headerSliverBuilder: (ctx, _) => [
           SliverAppBar(
             expandedHeight: 160,
-            floating: false,
             pinned: true,
-            snap: false,
             automaticallyImplyLeading: false,
             backgroundColor: _primaryDark,
             flexibleSpace: FlexibleSpaceBar(
@@ -253,17 +189,21 @@ class _AdminUserManagementViewState
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Manajemen Pengguna',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.5)),
+                        const Text(
+                          'Manajemen Pengguna',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
                         Text(
                           '${_allUsers.length} pengguna terdaftar',
                           style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.75),
-                              fontSize: 13),
+                            color: Colors.white.withValues(alpha: 0.75),
+                            fontSize: 13,
+                          ),
                         ),
                       ],
                     ),
@@ -271,7 +211,6 @@ class _AdminUserManagementViewState
                 ),
               ),
             ),
-            // Search bar — pinned, selalu terlihat saat scroll
             bottom: PreferredSize(
               preferredSize: const Size.fromHeight(64),
               child: Container(
@@ -283,19 +222,24 @@ class _AdminUserManagementViewState
                     color: Colors.white.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.2), width: 0.5),
+                      color: Colors.white.withValues(alpha: 0.2),
+                      width: 0.5,
+                    ),
                   ),
                   child: TextField(
                     controller: _searchController,
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    style:
+                        const TextStyle(color: Colors.white, fontSize: 14),
                     cursorColor: Colors.white,
                     decoration: InputDecoration(
                       hintText: 'Cari nama atau email...',
                       hintStyle: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.55),
-                          fontSize: 14),
+                        color: Colors.white.withValues(alpha: 0.55),
+                        fontSize: 14,
+                      ),
                       prefixIcon: Icon(Icons.search_rounded,
-                          color: Colors.white.withValues(alpha: 0.7), size: 20),
+                          color: Colors.white.withValues(alpha: 0.7),
+                          size: 20),
                       suffixIcon: _searchController.text.isNotEmpty
                           ? GestureDetector(
                               onTap: () {
@@ -303,7 +247,8 @@ class _AdminUserManagementViewState
                                 _applyFilter();
                               },
                               child: Icon(Icons.close_rounded,
-                                  color: Colors.white.withValues(alpha: 0.7),
+                                  color:
+                                      Colors.white.withValues(alpha: 0.7),
                                   size: 18),
                             )
                           : null,
@@ -317,9 +262,33 @@ class _AdminUserManagementViewState
             ),
           ),
         ],
-        // ─── Body List ───────────────────────────────────────────────────────
         body: _filtered.isEmpty
-            ? _buildEmpty()
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.person_search_rounded,
+                        size: 64,
+                        color: _textMuted.withValues(alpha: 0.4)),
+                    const SizedBox(height: 12),
+                    Text(
+                      _searchController.text.isEmpty
+                          ? 'Belum ada pengguna'
+                          : 'Tidak ditemukan',
+                      style: const TextStyle(
+                          color: _textMuted,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600),
+                    ),
+                    if (_searchController.text.isNotEmpty)
+                      Text(
+                        'untuk "${_searchController.text}"',
+                        style: const TextStyle(
+                            color: _textMuted, fontSize: 13),
+                      ),
+                  ],
+                ),
+              )
             : ListView.builder(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
                 itemCount: _filtered.length,
@@ -328,33 +297,9 @@ class _AdminUserManagementViewState
                   onDetail: () => _showDetail(_filtered[i]),
                   onBlock: () => _toggleBlock(_filtered[i]),
                   onEdit: () => _editUser(_filtered[i]),
-                  onDelete: () => _deleteUser(_filtered[i]),
+                  onDelete: () {}, // TODO: commit 6
                 ),
               ),
-      ),
-    );
-  }
-
-  Widget _buildEmpty() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.person_search_rounded,
-              size: 64, color: _textMuted.withValues(alpha: 0.4)),
-          const SizedBox(height: 12),
-          Text(
-            _searchController.text.isEmpty
-                ? 'Belum ada pengguna'
-                : 'Tidak ditemukan',
-            style: const TextStyle(
-                color: _textMuted, fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-          if (_searchController.text.isNotEmpty)
-            Text('untuk "${_searchController.text}"',
-                style:
-                    const TextStyle(color: _textMuted, fontSize: 13)),
-        ],
       ),
     );
   }
@@ -394,9 +339,7 @@ class _UserCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: user.isBlocked
-              ? const Color(0xFFFFCDD2)
-              : _border,
+          color: user.isBlocked ? const Color(0xFFFFCDD2) : _border,
           width: user.isBlocked ? 1.5 : 0.8,
         ),
         boxShadow: [
@@ -411,7 +354,6 @@ class _UserCard extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         child: Row(
           children: [
-            // Avatar
             Container(
               width: 46,
               height: 46,
@@ -433,7 +375,6 @@ class _UserCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            // Info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -464,7 +405,8 @@ class _UserCard extends StatelessWidget {
                             color: const Color(0xFFFFEBEE),
                             borderRadius: BorderRadius.circular(6),
                             border: Border.all(
-                                color: const Color(0xFFFFCDD2), width: 0.8),
+                                color: const Color(0xFFFFCDD2),
+                                width: 0.8),
                           ),
                           child: const Text(
                             'Diblokir',
@@ -480,20 +422,21 @@ class _UserCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     user.email,
-                    style: const TextStyle(color: _textMuted, fontSize: 12),
+                    style:
+                        const TextStyle(color: _textMuted, fontSize: 12),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
             const SizedBox(width: 8),
-            // Tombol Detail
             TextButton(
               onPressed: onDetail,
               style: TextButton.styleFrom(
                 foregroundColor: _primary,
                 backgroundColor: const Color(0xFFF1F8F1),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 6),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8)),
                 minimumSize: Size.zero,
@@ -501,10 +444,8 @@ class _UserCard extends StatelessWidget {
               ),
               child: const Text('Detail',
                   style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700)),
+                      fontSize: 12, fontWeight: FontWeight.w700)),
             ),
-            // Menu (3 titik)
             PopupMenuButton<String>(
               onSelected: (val) {
                 if (val == 'edit') onEdit();
@@ -517,27 +458,34 @@ class _UserCard extends StatelessWidget {
                   child: Row(children: [
                     Icon(Icons.edit_rounded, size: 16, color: _primary),
                     const SizedBox(width: 8),
-                    const Text('Edit Data', style: TextStyle(fontSize: 14)),
+                    const Text('Edit Data',
+                        style: TextStyle(fontSize: 14)),
                   ]),
                 ),
                 PopupMenuItem(
                   value: 'block',
                   child: Row(children: [
                     Icon(
-                        user.isBlocked
-                            ? Icons.lock_open_rounded
-                            : Icons.block_rounded,
-                        size: 16,
-                        color: user.isBlocked ? _primary : const Color(0xFFFF9800)),
+                      user.isBlocked
+                          ? Icons.lock_open_rounded
+                          : Icons.block_rounded,
+                      size: 16,
+                      color: user.isBlocked
+                          ? _primary
+                          : const Color(0xFFFF9800),
+                    ),
                     const SizedBox(width: 8),
-                    Text(user.isBlocked ? 'Buka Blokir' : 'Blokir',
-                        style: const TextStyle(fontSize: 14)),
+                    Text(
+                      user.isBlocked ? 'Buka Blokir' : 'Blokir',
+                      style: const TextStyle(fontSize: 14),
+                    ),
                   ]),
                 ),
                 PopupMenuItem(
                   value: 'delete',
                   child: Row(children: [
-                    const Icon(Icons.delete_rounded, size: 16, color: _danger),
+                    const Icon(Icons.delete_rounded,
+                        size: 16, color: _danger),
                     const SizedBox(width: 8),
                     const Text('Hapus Akun',
                         style: TextStyle(fontSize: 14, color: _danger)),
@@ -575,7 +523,6 @@ class _UserDetailSheet extends StatelessWidget {
   static const Color _textMuted = Color(0xFF5A7A5A);
   static const Color _danger = Color(0xFFE53935);
   static const Color _border = Color(0xFFC8E6C9);
-  static const Color _bg = Color(0xFFF4F6F0);
 
   @override
   Widget build(BuildContext context) {
@@ -597,7 +544,6 @@ class _UserDetailSheet extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Handle bar
           Container(
             margin: const EdgeInsets.only(top: 12),
             width: 40,
@@ -607,7 +553,6 @@ class _UserDetailSheet extends StatelessWidget {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          // Header
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
             child: Row(
@@ -618,19 +563,28 @@ class _UserDetailSheet extends StatelessWidget {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: user.isBlocked
-                          ? [const Color(0xFFFFCDD2), const Color(0xFFEF9A9A)]
-                          : [const Color(0xFFA5D6A7), const Color(0xFF66BB6A)],
+                          ? [
+                              const Color(0xFFFFCDD2),
+                              const Color(0xFFEF9A9A)
+                            ]
+                          : [
+                              const Color(0xFFA5D6A7),
+                              const Color(0xFF66BB6A)
+                            ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Center(
-                    child: Text(initials,
-                        style: TextStyle(
-                            color: user.isBlocked ? _danger : _primary,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 20)),
+                    child: Text(
+                      initials,
+                      style: TextStyle(
+                        color: user.isBlocked ? _danger : _primary,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 20,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -655,11 +609,13 @@ class _UserDetailSheet extends StatelessWidget {
                             color: const Color(0xFFFFEBEE),
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: const Text('Akun Diblokir',
-                              style: TextStyle(
-                                  color: _danger,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700)),
+                          child: const Text(
+                            'Akun Diblokir',
+                            style: TextStyle(
+                                color: _danger,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700),
+                          ),
                         ),
                     ],
                   ),
@@ -669,58 +625,70 @@ class _UserDetailSheet extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Divider(color: _border, thickness: 0.8, height: 0),
-          // Scrollable body
           Flexible(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Fisik
                   _sectionTitle('Data Fisik'),
                   const SizedBox(height: 8),
-                  Row(children: [
-                    _statChip(
-                        '${user.weight?.toStringAsFixed(1) ?? '-'} kg', 'Berat',
-                        const Color(0xFFE8F5E9)),
-                    const SizedBox(width: 8),
-                    _statChip(
-                        '${user.height?.toStringAsFixed(0) ?? '-'} cm', 'Tinggi',
-                        const Color(0xFFE3F2FD)),
-                    const SizedBox(width: 8),
-                    _statChip('${user.age ?? '-'} thn', 'Usia',
-                        const Color(0xFFFFF8E1)),
-                    const SizedBox(width: 8),
-                    if (bmi != null)
-                      _statChip(bmi.toStringAsFixed(1), 'BMI',
-                          const Color(0xFFF3E5F5)),
-                  ]),
+                  Row(
+                    children: [
+                      _statChip(
+                          '${user.weight?.toStringAsFixed(1) ?? '-'} kg',
+                          'Berat',
+                          const Color(0xFFE8F5E9)),
+                      const SizedBox(width: 8),
+                      _statChip(
+                          '${user.height?.toStringAsFixed(0) ?? '-'} cm',
+                          'Tinggi',
+                          const Color(0xFFE3F2FD)),
+                      const SizedBox(width: 8),
+                      _statChip('${user.age ?? '-'} thn', 'Usia',
+                          const Color(0xFFFFF8E1)),
+                      const SizedBox(width: 8),
+                      if (bmi != null)
+                        _statChip(bmi.toStringAsFixed(1), 'BMI',
+                            const Color(0xFFF3E5F5)),
+                    ],
+                  ),
                   const SizedBox(height: 14),
-                  // Info Pribadi
                   _sectionTitle('Informasi Akun'),
                   const SizedBox(height: 8),
                   _infoRow(Icons.wc_rounded, 'Jenis kelamin',
                       user.gender ?? '-'),
-                  _infoRow(Icons.cake_rounded, 'Tanggal lahir',
-                      user.birthDate != null
-                          ? dateFormat.format(user.birthDate!)
-                          : '-'),
+                  _infoRow(
+                    Icons.cake_rounded,
+                    'Tanggal lahir',
+                    user.birthDate != null
+                        ? dateFormat.format(user.birthDate!)
+                        : '-',
+                  ),
                   _infoRow(Icons.fitness_center_rounded, 'Aktivitas',
                       user.activityLevel ?? '-'),
                   const SizedBox(height: 14),
-                  // Nutrisi
                   _sectionTitle('Target Nutrisi Harian'),
                   const SizedBox(height: 8),
-                  _infoRow(Icons.local_fire_department_rounded, 'Kebutuhan kalori',
-                      '${user.dailyCalorieNeed?.toStringAsFixed(0) ?? '-'} kkal'),
-                  _infoRow(Icons.trending_up_rounded, 'Target BB/bulan',
-                      user.targetWeightGainPerMonth != null
-                          ? '${user.targetWeightGainPerMonth! >= 0 ? '+' : ''}${user.targetWeightGainPerMonth!.toStringAsFixed(1)} kg'
-                          : '-'),
-                  _infoRow(Icons.monitor_weight_rounded, 'BB awal',
-                      '${user.initialWeight?.toStringAsFixed(1) ?? '-'} kg'),
+                  _infoRow(
+                    Icons.local_fire_department_rounded,
+                    'Kebutuhan kalori',
+                    '${user.dailyCalorieNeed?.toStringAsFixed(0) ?? '-'} kkal',
+                  ),
+                  _infoRow(
+                    Icons.trending_up_rounded,
+                    'Target BB/bulan',
+                    user.targetWeightGainPerMonth != null
+                        ? '${user.targetWeightGainPerMonth! >= 0 ? '+' : ''}${user.targetWeightGainPerMonth!.toStringAsFixed(1)} kg'
+                        : '-',
+                  ),
+                  _infoRow(
+                    Icons.monitor_weight_rounded,
+                    'BB awal',
+                    '${user.initialWeight?.toStringAsFixed(1) ?? '-'} kg',
+                  ),
                   if (user.macroTargets.isNotEmpty) ...[
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -730,23 +698,28 @@ class _UserDetailSheet extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
-                          _macroChip('Protein',
-                              '${user.macroTargets['protein']?.toStringAsFixed(0)}g',
-                              const Color(0xFFEF5350)),
+                          _macroChip(
+                            'Protein',
+                            '${user.macroTargets['protein']?.toStringAsFixed(0)}g',
+                            const Color(0xFFEF5350),
+                          ),
                           const Spacer(),
-                          _macroChip('Karbo',
-                              '${user.macroTargets['carbs']?.toStringAsFixed(0)}g',
-                              const Color(0xFF42A5F5)),
+                          _macroChip(
+                            'Karbo',
+                            '${user.macroTargets['carbs']?.toStringAsFixed(0)}g',
+                            const Color(0xFF42A5F5),
+                          ),
                           const Spacer(),
-                          _macroChip('Lemak',
-                              '${user.macroTargets['fat']?.toStringAsFixed(0)}g',
-                              const Color(0xFFFFA726)),
+                          _macroChip(
+                            'Lemak',
+                            '${user.macroTargets['fat']?.toStringAsFixed(0)}g',
+                            const Color(0xFFFFA726),
+                          ),
                         ],
                       ),
                     ),
                   ],
                   const SizedBox(height: 20),
-                  // Action buttons
                   Row(
                     children: [
                       Expanded(
@@ -760,7 +733,8 @@ class _UserDetailSheet extends StatelessWidget {
                       const SizedBox(width: 8),
                       Expanded(
                         child: _ActionButton(
-                          label: user.isBlocked ? 'Buka Blokir' : 'Blokir',
+                          label:
+                              user.isBlocked ? 'Buka Blokir' : 'Blokir',
                           icon: user.isBlocked
                               ? Icons.lock_open_rounded
                               : Icons.block_rounded,
@@ -828,7 +802,8 @@ class _UserDetailSheet extends StatelessWidget {
                       fontSize: 14,
                       fontWeight: FontWeight.w800)),
               Text(label,
-                  style: const TextStyle(color: _textMuted, fontSize: 10)),
+                  style: const TextStyle(
+                      color: _textMuted, fontSize: 10)),
             ],
           ),
         ),
@@ -845,14 +820,17 @@ class _UserDetailSheet extends StatelessWidget {
           const SizedBox(height: 4),
           Text(value,
               style: TextStyle(
-                  color: color, fontSize: 14, fontWeight: FontWeight.w800)),
+                  color: color,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800)),
           Text(label,
-              style: const TextStyle(color: _textMuted, fontSize: 11)),
+              style:
+                  const TextStyle(color: _textMuted, fontSize: 11)),
         ],
       );
 }
 
-// ─── Action Button Helper ─────────────────────────────────────────────────────
+// ─── Action Button ────────────────────────────────────────────────────────────
 class _ActionButton extends StatelessWidget {
   final String label;
   final IconData icon;
@@ -875,7 +853,8 @@ class _ActionButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.3), width: 0.8),
+          border:
+              Border.all(color: color.withValues(alpha: 0.3), width: 0.8),
         ),
         child: Column(
           children: [
@@ -910,11 +889,14 @@ class _ConfirmDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: Text(title,
-          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
+          style: const TextStyle(
+              fontWeight: FontWeight.w800, fontSize: 17)),
       content: Text(message,
-          style: const TextStyle(color: Color(0xFF5A7A5A), fontSize: 14)),
+          style:
+              const TextStyle(color: Color(0xFF5A7A5A), fontSize: 14)),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
@@ -976,9 +958,11 @@ class _EditUserViewState extends State<_EditUserView> {
         text: widget.user.weight?.toStringAsFixed(1) ?? '');
     _heightCtrl = TextEditingController(
         text: widget.user.height?.toStringAsFixed(0) ?? '');
-    _ageCtrl = TextEditingController(text: widget.user.age?.toString() ?? '');
+    _ageCtrl =
+        TextEditingController(text: widget.user.age?.toString() ?? '');
     _targetCtrl = TextEditingController(
-        text: widget.user.targetWeightGainPerMonth?.toStringAsFixed(1) ?? '0');
+        text: widget.user.targetWeightGainPerMonth?.toStringAsFixed(1) ??
+            '0');
     _gender = widget.user.gender ?? 'Laki-laki';
     _activityLevel = widget.user.activityLevel ?? 'Jarang olahraga';
   }
@@ -998,17 +982,17 @@ class _EditUserViewState extends State<_EditUserView> {
     final name = _nameCtrl.text.trim();
     final email = _emailCtrl.text.trim();
     if (name.isEmpty || email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Nama dan email wajib diisi')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Nama dan email wajib diisi')));
       return;
     }
 
-    // Cek duplikat email (kecuali diri sendiri)
-    final emailExists = HiveService.users.values.any(
-        (u) => u.email.toLowerCase() == email.toLowerCase() && u.id != widget.user.id);
+    final emailExists = HiveService.users.values.any((u) =>
+        u.email.toLowerCase() == email.toLowerCase() &&
+        u.id != widget.user.id);
     if (emailExists) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Email sudah digunakan pengguna lain')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Email sudah digunakan pengguna lain')));
       return;
     }
 
@@ -1064,21 +1048,26 @@ class _EditUserViewState extends State<_EditUserView> {
         backgroundColor: _primaryDark,
         foregroundColor: Colors.white,
         title: const Text('Edit Data Pengguna',
-            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
+            style:
+                TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
         actions: [
           if (_isSaving)
             const Padding(
-                padding: EdgeInsets.all(16),
-                child: SizedBox(
-                    width: 20, height: 20,
-                    child: CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2)))
+              padding: EdgeInsets.all(16),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                    color: Colors.white, strokeWidth: 2),
+              ),
+            )
           else
             TextButton(
               onPressed: _save,
               child: const Text('Simpan',
                   style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.w800)),
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800)),
             ),
         ],
       ),
@@ -1106,17 +1095,20 @@ class _EditUserViewState extends State<_EditUserView> {
                       type: TextInputType.number)),
             ]),
             _buildField('Usia', _ageCtrl,
-                icon: Icons.cake_rounded, type: TextInputType.number),
+                icon: Icons.cake_rounded,
+                type: TextInputType.number),
             _buildDropdown('Jenis Kelamin', _gender, _genders,
                 (v) => setState(() => _gender = v!),
                 icon: Icons.wc_rounded),
           ]),
           const SizedBox(height: 12),
           _buildSection('Target & Aktivitas', [
-            _buildDropdown('Level Aktivitas', _activityLevel, _activities,
+            _buildDropdown(
+                'Level Aktivitas', _activityLevel, _activities,
                 (v) => setState(() => _activityLevel = v!),
                 icon: Icons.fitness_center_rounded),
-            _buildField('Target BB/bulan (kg, + naik / - turun)', _targetCtrl,
+            _buildField(
+                'Target BB/bulan (kg, + naik / - turun)', _targetCtrl,
                 icon: Icons.trending_up_rounded,
                 type: const TextInputType.numberWithOptions(
                     signed: true, decimal: true)),
@@ -1156,9 +1148,12 @@ class _EditUserViewState extends State<_EditUserView> {
     );
   }
 
-  Widget _buildField(String label, TextEditingController ctrl,
-      {required IconData icon,
-      TextInputType type = TextInputType.text}) {
+  Widget _buildField(
+    String label,
+    TextEditingController ctrl, {
+    required IconData icon,
+    TextInputType type = TextInputType.text,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: TextFormField(
@@ -1167,7 +1162,8 @@ class _EditUserViewState extends State<_EditUserView> {
         style: const TextStyle(color: _textDark, fontSize: 14),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: _textMuted, fontSize: 13),
+          labelStyle:
+              const TextStyle(color: _textMuted, fontSize: 13),
           prefixIcon: Icon(icon, color: _primary, size: 18),
           filled: true,
           fillColor: const Color(0xFFF9FFF9),
@@ -1181,18 +1177,22 @@ class _EditUserViewState extends State<_EditUserView> {
                   color: Color(0xFFC8E6C9), width: 0.8)),
           focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: _primary, width: 1.5)),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              borderSide:
+                  const BorderSide(color: _primary, width: 1.5)),
+          contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12, vertical: 12),
         ),
       ),
     );
   }
 
   Widget _buildDropdown(
-      String label, String value, List<String> items,
-      ValueChanged<String?> onChanged,
-      {required IconData icon}) {
+    String label,
+    String value,
+    List<String> items,
+    ValueChanged<String?> onChanged, {
+    required IconData icon,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: DropdownButtonFormField<String>(
@@ -1203,7 +1203,8 @@ class _EditUserViewState extends State<_EditUserView> {
         isExpanded: true,
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: _textMuted, fontSize: 13),
+          labelStyle:
+              const TextStyle(color: _textMuted, fontSize: 13),
           prefixIcon: Icon(icon, color: _primary, size: 18),
           filled: true,
           fillColor: const Color(0xFFF9FFF9),
@@ -1217,9 +1218,10 @@ class _EditUserViewState extends State<_EditUserView> {
                   color: Color(0xFFC8E6C9), width: 0.8)),
           focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: _primary, width: 1.5)),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              borderSide:
+                  const BorderSide(color: _primary, width: 1.5)),
+          contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12, vertical: 12),
         ),
         items: items
             .map((i) => DropdownMenuItem(value: i, child: Text(i)))
