@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../general/submission/submission_model.dart';
+import '../submission/nutri_submission_controller.dart';
 
 class NutriFillSheet extends StatefulWidget {
   final SubmissionModel item;
@@ -31,7 +33,7 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
     );
     _carbsCtrl = TextEditingController(text: s.carbs?.toStringAsFixed(1) ?? '');
     _fatCtrl = TextEditingController(text: s.fat?.toStringAsFixed(1) ?? '');
-    _noteCtrl = TextEditingController();
+    _noteCtrl = TextEditingController(text: s.nutriNote ?? '');
   }
 
   @override
@@ -46,6 +48,8 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final isEdit = widget.item.isNutriFilled;
+
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -83,8 +87,8 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
                       color: _teal.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(
-                      Icons.edit_note_rounded,
+                    child: Icon(
+                      isEdit ? Icons.edit_rounded : Icons.add_chart_rounded,
                       color: _teal,
                       size: 22,
                     ),
@@ -94,9 +98,9 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Isi Data Nutrisi',
-                          style: TextStyle(
+                        Text(
+                          isEdit ? 'Edit Data Nutrisi' : 'Isi Data Nutrisi',
+                          style: const TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w800,
                             color: Color(0xFF1A2E2C),
@@ -108,6 +112,7 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
                             fontSize: 13,
                             color: Color(0xFF5A7A78),
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -115,6 +120,33 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
                 ],
               ),
               const SizedBox(height: 12),
+
+              // ── Info pengaju ─────────────────────────────────────────────
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE0F2F1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.person_rounded, size: 14, color: _teal),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Diajukan oleh: ${widget.item.userName}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: _teal,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
 
               // ── Info per 100g ────────────────────────────────────────────
               Container(
@@ -206,7 +238,7 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
 
               // ── Catatan ──────────────────────────────────────────────────
               const Text(
-                'Catatan (opsional)',
+                'Catatan Sumber (opsional)',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -262,14 +294,21 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
                               strokeWidth: 2.5,
                             ),
                           )
-                          : const Row(
+                          : Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.save_rounded, size: 18),
-                              SizedBox(width: 8),
+                              Icon(
+                                isEdit
+                                    ? Icons.update_rounded
+                                    : Icons.save_rounded,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
                               Text(
-                                'Simpan Data Nutrisi',
-                                style: TextStyle(
+                                isEdit
+                                    ? 'Update Data Nutrisi'
+                                    : 'Simpan Data Nutrisi',
+                                style: const TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -357,11 +396,42 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
   }
 
   Future<void> _save() async {
+    final cal = double.tryParse(_calCtrl.text.trim());
+    final pro = double.tryParse(_proteinCtrl.text.trim());
+    final carb = double.tryParse(_carbsCtrl.text.trim());
+    final fat = double.tryParse(_fatCtrl.text.trim());
+
+    if (cal == null || pro == null || carb == null || fat == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Harap isi semua field nutrisi dengan angka valid',
+          ),
+          backgroundColor: Colors.red[700],
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+      return;
+    }
+
     setState(() => _saving = true);
-    await Future.delayed(const Duration(milliseconds: 600));
+
+    await context.read<NutriSubmissionController>().saveNutriData(
+      id: widget.item.id,
+      calories: cal,
+      protein: pro,
+      carbs: carb,
+      fat: fat,
+      nutriNote: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
+    );
+
     if (!mounted) return;
     setState(() => _saving = false);
     Navigator.pop(context);
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
