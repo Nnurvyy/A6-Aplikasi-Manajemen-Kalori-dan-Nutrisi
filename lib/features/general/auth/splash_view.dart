@@ -6,7 +6,7 @@ import './auth_controller.dart';
 import '../../user/user_main_view.dart';
 import './login_view.dart';
 import '../../admin/admin_main_view.dart';
-import '../../nutritionist/dashboard/nutri_dashboard_view.dart';
+import '../../nutritionist/nutri_main_view.dart';
 
 class SplashView extends StatefulWidget {
   const SplashView({super.key});
