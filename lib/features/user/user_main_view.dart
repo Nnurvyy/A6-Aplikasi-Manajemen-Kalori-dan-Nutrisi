@@ -233,7 +233,6 @@ class _UserMainViewState extends State<UserMainView>
     );
   }
 
-
   // ── BUILD ─────────────────────────────────────────────────────────────────
 
   @override
@@ -255,8 +254,8 @@ class _UserMainViewState extends State<UserMainView>
                     onTap: _closeDial,
                     child: DecoratedBox(
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 
-                          0.6 * _backdropAnim.value,
+                        color: Colors.black.withValues(
+                          alpha: 0.6 * _backdropAnim.value,
                         ),
                       ),
                       child: const SizedBox.expand(),
