@@ -6,6 +6,7 @@ import './auth_controller.dart';
 import '../../user/user_main_view.dart';
 import './login_view.dart';
 import '../../admin/admin_main_view.dart';
+import '../../nutritionist/dashboard/nutri_dashboard_view.dart';
 
 class SplashView extends StatefulWidget {
   const SplashView({super.key});
@@ -27,12 +28,14 @@ class _SplashViewState extends State<SplashView>
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     );
-    _scale = Tween<double>(begin: 0.7, end: 1.0).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeOutBack),
-    );
-    _opacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _ctrl, curve: const Interval(0.3, 1.0)),
-    );
+    _scale = Tween<double>(
+      begin: 0.7,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutBack));
+    _opacity = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: const Interval(0.3, 1.0)));
     _ctrl.forward();
 
     Future.delayed(const Duration(milliseconds: 2200), _navigate);
@@ -48,6 +51,8 @@ class _SplashViewState extends State<SplashView>
       final role = auth.currentUser?.role;
       if (role == 'admin') {
         target = const AdminMainView();
+      } else if (role == 'nutritionist') {
+        target = const NutriMainView();
       } else {
         target = const UserMainView();
       }
@@ -55,8 +60,8 @@ class _SplashViewState extends State<SplashView>
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         pageBuilder: (_, __, ___) => target,
-        transitionsBuilder: (_, anim, __, child) =>
-            FadeTransition(opacity: anim, child: child),
+        transitionsBuilder:
+            (_, anim, __, child) => FadeTransition(opacity: anim, child: child),
         transitionDuration: const Duration(milliseconds: 500),
       ),
     );
@@ -76,61 +81,65 @@ class _SplashViewState extends State<SplashView>
         child: Center(
           child: AnimatedBuilder(
             animation: _ctrl,
-            builder: (_, __) => Opacity(
-              opacity: _opacity.value,
-              child: Transform.scale(
-                scale: _scale.value,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.3), width: 2),
-                      ),
-                      child: const Icon(
-                        Icons.eco_rounded,
-                        size: 56,
-                        color: Colors.white,
-                      ),
+            builder:
+                (_, __) => Opacity(
+                  opacity: _opacity.value,
+                  child: Transform.scale(
+                    scale: _scale.value,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.3),
+                              width: 2,
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.eco_rounded,
+                            size: 56,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          'NutriTrack',
+                          style: GoogleFonts.poppins(
+                            fontSize: 36,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Track your Nutrition, Stay Healthy',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontWeight: FontWeight.w300,
+                          ),
+                        ),
+                        const SizedBox(height: 60),
+                        SizedBox(
+                          width: 32,
+                          height: 32,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            valueColor: AlwaysStoppedAnimation(
+                              Colors.white.withValues(alpha: 0.6),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'NutriTrack',
-                      style: GoogleFonts.poppins(
-                        fontSize: 36,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Track your Nutrition, Stay Healthy',
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        color: Colors.white.withValues(alpha: 0.8),
-                        fontWeight: FontWeight.w300,
-                      ),
-                    ),
-                    const SizedBox(height: 60),
-                    SizedBox(
-                      width: 32,
-                      height: 32,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        valueColor: AlwaysStoppedAnimation(
-                            Colors.white.withValues(alpha: 0.6)),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
           ),
         ),
       ),
