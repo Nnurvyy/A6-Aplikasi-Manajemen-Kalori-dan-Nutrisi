@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nutritrack_app/features/admin/UserManagement/admin_user_management_view.dart';
 import 'package:provider/provider.dart';
 import '../general/auth/auth_controller.dart';
 import '../general/auth/models/user_model.dart';
@@ -21,6 +22,7 @@ class _AdminMainViewState extends State<AdminMainView> {
     const AdminDashboardView(),
     const AdminFoodListView(),
     const AdminSubmissionView(),
+    const AdminUserManagementView(),
     const _AdminProfileView(),
   ];
 
@@ -69,6 +71,10 @@ class _AdminMainViewState extends State<AdminMainView> {
               BottomNavigationBarItem(
                 icon: Icon(Icons.assignment_rounded),
                 label: 'Pengajuan',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.people_alt_rounded),
+                label: 'Pengguna',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.person_rounded),
