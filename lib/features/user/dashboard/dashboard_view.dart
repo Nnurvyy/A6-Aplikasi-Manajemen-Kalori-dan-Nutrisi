@@ -58,6 +58,7 @@ class _DashboardBodyState extends State<DashboardBody> {
     final proteinConsumed = filteredHistory.fold(0.0, (s, i) => s + i.protein);
     final carbsConsumed = filteredHistory.fold(0.0, (s, i) => s + i.carbs);
     final fatConsumed = filteredHistory.fold(0.0, (s, i) => s + i.fat);
+    final waterConsumed = 0.0;
 
     _controller.kaloriTarget = kaloriTarget;
     _controller.kaloriConsumed = kaloriConsumed;
@@ -73,7 +74,7 @@ class _DashboardBodyState extends State<DashboardBody> {
               _buildDaySelector(),
               _buildKaloriCard(),
               const SizedBox(height: 8),
-              _buildNutriGrid(proteinConsumed, carbsConsumed, fatConsumed, macros),
+              _buildNutriGrid(proteinConsumed, carbsConsumed, fatConsumed,waterConsumed , macros),
               const SizedBox(height: 8),
               _buildRiwayatHeader(),
               _buildRiwayatList(filteredHistory),
@@ -308,29 +309,45 @@ class _DashboardBodyState extends State<DashboardBody> {
   }
 
   // ─── NUTRISI GRID ─────────────────────────────────────────────────────────
-  Widget _buildNutriGrid(double consumedProtein, double consumedCarbs, double consumedFat, [Map<String, double>? macros]) {
-    final items = _controller.nutrisiItemsWithTargets(
+  Widget _buildNutriGrid(double consumedProtein, double consumedCarbs, double consumedFat,double consumedWater, [Map<String, double>? macros]) {
+    final items = [
+    ..._controller.nutrisiItemsWithTargets(
       consumedProtein: consumedProtein,
       targetProtein: macros?['protein'] ?? 80,
       consumedCarbs: consumedCarbs,
       targetCarbs: macros?['carbs'] ?? 250,
       consumedFat: consumedFat,
       targetFat: macros?['fat'] ?? 65,
-    );
+    ),
+
+    // 🔥 TAMBAH AIR
+    NutrisiItem(
+      name: 'Air',
+      consumed: consumedWater,
+      target: macros?['water'] ?? 2000, // ml
+      icon: Icons.water_drop,
+      iconColor: const Color(0xFF1E88E5),
+      bgColor: const Color(0xFFE3F2FD),
+      borderColor: const Color(0xFF64B5F6),
+      fillColor: const Color(0xFF42A5F5),
+    ),
+  ];
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-      child: Row(
-        children:
-            items.asMap().entries.map((e) {
-              final isLast = e.key == items.length - 1;
-              return Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(right: isLast ? 0 : 10),
-                  child: _buildNutriCard(e.value),
-                ),
-              );
-            }).toList(),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: items.length,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2, // 🔥 2x2
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+          childAspectRatio: 1.1, // biar proporsional
+        ),
+        itemBuilder: (context, index) {
+          return _buildNutriCard(items[index]);
+        },
       ),
     );
   }
