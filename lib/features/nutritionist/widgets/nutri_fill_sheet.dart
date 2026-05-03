@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../general/submission/submission_controller.dart';
 import '../../general/submission/submission_model.dart';
-import '../submission/nutri_submission_controller.dart';
 
 class NutriFillSheet extends StatefulWidget {
   final SubmissionModel item;
@@ -12,7 +12,8 @@ class NutriFillSheet extends StatefulWidget {
 }
 
 class _NutriFillSheetState extends State<NutriFillSheet> {
-  static const _teal = Color(0xFF00897B);
+  // ── Tema hijau ─────────────────────────────────────────────────────────────
+  static const _green = Color(0xFF2E7D32);
 
   late final TextEditingController _calCtrl;
   late final TextEditingController _proteinCtrl;
@@ -48,8 +49,6 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final isEdit = widget.item.isNutriFilled;
-
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -65,7 +64,7 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Handle ──────────────────────────────────────────────────
+              // Handle
               Center(
                 child: Container(
                   width: 40,
@@ -78,18 +77,18 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
               ),
               const SizedBox(height: 20),
 
-              // ── Judul ────────────────────────────────────────────────────
+              // Header
               Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: _teal.withValues(alpha: 0.1),
+                      color: _green.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(
-                      isEdit ? Icons.edit_rounded : Icons.add_chart_rounded,
-                      color: _teal,
+                    child: const Icon(
+                      Icons.edit_note_rounded,
+                      color: _green,
                       size: 22,
                     ),
                   ),
@@ -98,21 +97,20 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          isEdit ? 'Edit Data Nutrisi' : 'Isi Data Nutrisi',
-                          style: const TextStyle(
+                        const Text(
+                          'Isi Data Nutrisi',
+                          style: TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFF1A2E2C),
+                            color: Color(0xFF1A2E22),
                           ),
                         ),
                         Text(
                           widget.item.foodName,
                           style: const TextStyle(
                             fontSize: 13,
-                            color: Color(0xFF5A7A78),
+                            color: Color(0xFF7A9485),
                           ),
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -121,34 +119,7 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
               ),
               const SizedBox(height: 12),
 
-              // ── Info pengaju ─────────────────────────────────────────────
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE0F2F1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.person_rounded, size: 14, color: _teal),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Diajukan oleh: ${widget.item.userName}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: _teal,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-
-              // ── Info per 100g ────────────────────────────────────────────
+              // Info per 100g
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
@@ -182,7 +153,7 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
               ),
               const SizedBox(height: 20),
 
-              // ── Grid input 2x2 ───────────────────────────────────────────
+              // Grid 2x2
               Row(
                 children: [
                   Expanded(
@@ -191,7 +162,7 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
                       'kkal',
                       _calCtrl,
                       const Color(0xFFE8F5E9),
-                      _teal,
+                      _green,
                       Icons.local_fire_department_rounded,
                     ),
                   ),
@@ -236,13 +207,13 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
               ),
               const SizedBox(height: 16),
 
-              // ── Catatan ──────────────────────────────────────────────────
+              // Catatan
               const Text(
-                'Catatan Sumber (opsional)',
+                'Catatan / Sumber Data (opsional)',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF5A7A78),
+                  color: Color(0xFF7A9485),
                 ),
               ),
               const SizedBox(height: 6),
@@ -257,7 +228,7 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
                     color: Color(0xFFB0BEC5),
                   ),
                   filled: true,
-                  fillColor: const Color(0xFFF4F6F0),
+                  fillColor: const Color(0xFFF4FAF6),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -270,13 +241,13 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
               ),
               const SizedBox(height: 24),
 
-              // ── Tombol simpan ────────────────────────────────────────────
+              // Tombol simpan — panggil SubmissionController.saveNutriData()
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _saving ? null : _save,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _teal,
+                    backgroundColor: _green,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -294,21 +265,14 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
                               strokeWidth: 2.5,
                             ),
                           )
-                          : Row(
+                          : const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(
-                                isEdit
-                                    ? Icons.update_rounded
-                                    : Icons.save_rounded,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 8),
+                              Icon(Icons.save_rounded, size: 18),
+                              SizedBox(width: 8),
                               Text(
-                                isEdit
-                                    ? 'Update Data Nutrisi'
-                                    : 'Simpan Data Nutrisi',
-                                style: const TextStyle(
+                                'Simpan Data Nutrisi',
+                                style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -369,7 +333,7 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF1A2E2C),
+                    color: Color(0xFF1A2E22),
                   ),
                   decoration: const InputDecoration(
                     isDense: true,
@@ -386,7 +350,7 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
               ),
               Text(
                 unit,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF5A7A78)),
+                style: const TextStyle(fontSize: 12, color: Color(0xFF7A9485)),
               ),
             ],
           ),
@@ -397,21 +361,16 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
 
   Future<void> _save() async {
     final cal = double.tryParse(_calCtrl.text.trim());
-    final pro = double.tryParse(_proteinCtrl.text.trim());
-    final carb = double.tryParse(_carbsCtrl.text.trim());
+    final protein = double.tryParse(_proteinCtrl.text.trim());
+    final carbs = double.tryParse(_carbsCtrl.text.trim());
     final fat = double.tryParse(_fatCtrl.text.trim());
 
-    if (cal == null || pro == null || carb == null || fat == null) {
+    if (cal == null || protein == null || carbs == null || fat == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(
-            'Harap isi semua field nutrisi dengan angka valid',
-          ),
-          backgroundColor: Colors.red[700],
+        const SnackBar(
+          content: Text('Harap isi semua nilai nutrisi'),
+          backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
         ),
       );
       return;
@@ -419,11 +378,12 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
 
     setState(() => _saving = true);
 
-    await context.read<NutriSubmissionController>().saveNutriData(
+    // ← Simpan ke SubmissionController global → Hive → terbaca semua role
+    await context.read<SubmissionController>().saveNutriData(
       id: widget.item.id,
       calories: cal,
-      protein: pro,
-      carbs: carb,
+      protein: protein,
+      carbs: carbs,
       fat: fat,
       nutriNote: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
     );
@@ -450,7 +410,7 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
             ),
           ],
         ),
-        backgroundColor: const Color(0xFF00897B),
+        backgroundColor: const Color(0xFF2E7D32),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
