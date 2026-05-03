@@ -55,8 +55,14 @@ class _AdminMainViewState extends State<AdminMainView> {
             backgroundColor: Colors.white,
             selectedItemColor: const Color(0xFF4CAF50),
             unselectedItemColor: const Color(0xFFB0BEC5),
-            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
-            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 11),
+            selectedLabelStyle: const TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 10,
+            ),
+            unselectedLabelStyle: const TextStyle(
+              fontWeight: FontWeight.w500,
+              fontSize: 10,
+            ),
             type: BottomNavigationBarType.fixed,
             elevation: 0,
             items: const [
@@ -116,7 +122,11 @@ class _AdminProfileView extends StatelessWidget {
               background: Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF2E7D32), Color(0xFF4CAF50), Color(0xFF66BB6A)],
+                    colors: [
+                      Color(0xFF2E7D32),
+                      Color(0xFF4CAF50),
+                      Color(0xFF66BB6A),
+                    ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -134,24 +144,39 @@ class _AdminProfileView extends StatelessWidget {
                         border: Border.all(color: Colors.white, width: 3),
                       ),
                       child: const Center(
-                        child: Icon(Icons.admin_panel_settings_rounded, size: 38, color: Colors.white),
+                        child: Icon(
+                          Icons.admin_panel_settings_rounded,
+                          size: 38,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 10),
                     Text(
                       user?.name ?? 'Admin',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Text(
                         'Administrator',
-                        style: TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
@@ -170,11 +195,19 @@ class _AdminProfileView extends StatelessWidget {
                   _buildCard(
                     child: Column(
                       children: [
-                        _infoRow(Icons.email_rounded, 'Email', user?.email ?? '-'),
+                        _infoRow(
+                          Icons.email_rounded,
+                          'Email',
+                          user?.email ?? '-',
+                        ),
                         const Divider(height: 24),
                         _infoRow(Icons.badge_rounded, 'Role', 'Administrator'),
                         const Divider(height: 24),
-                        _infoRow(Icons.verified_user_rounded, 'Status', 'Aktif'),
+                        _infoRow(
+                          Icons.verified_user_rounded,
+                          'Status',
+                          'Aktif',
+                        ),
                       ],
                     ),
                   ),
@@ -231,7 +264,10 @@ class _AdminProfileView extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFFFCDD2), width: 1.5),
+                        border: Border.all(
+                          color: const Color(0xFFFFCDD2),
+                          width: 1.5,
+                        ),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.red.withValues(alpha: 0.06),
@@ -243,7 +279,11 @@ class _AdminProfileView extends StatelessWidget {
                       child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.logout_rounded, color: Color(0xFFE53935), size: 20),
+                          Icon(
+                            Icons.logout_rounded,
+                            color: Color(0xFFE53935),
+                            size: 20,
+                          ),
                           SizedBox(width: 10),
                           Text(
                             'Keluar dari Akun',
@@ -302,15 +342,34 @@ class _AdminProfileView extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(fontSize: 11, color: _muted, fontWeight: FontWeight.w500)),
-            Text(value, style: const TextStyle(fontSize: 14, color: _dark, fontWeight: FontWeight.w700)),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 11,
+                color: _muted,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 14,
+                color: _dark,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ],
         ),
       ],
     );
   }
 
-  Widget _menuRow({required IconData icon, required String label, required Color color, required String subtitle}) {
+  Widget _menuRow({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required String subtitle,
+  }) {
     return Row(
       children: [
         Container(
@@ -326,8 +385,18 @@ class _AdminProfileView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: const TextStyle(fontSize: 13, color: _dark, fontWeight: FontWeight.w700)),
-              Text(subtitle, style: const TextStyle(fontSize: 11, color: _muted)),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: _dark,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                subtitle,
+                style: const TextStyle(fontSize: 11, color: _muted),
+              ),
             ],
           ),
         ),
@@ -339,35 +408,49 @@ class _AdminProfileView extends StatelessWidget {
   void _confirmLogout(BuildContext context, AuthController authCtrl) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Icon(Icons.logout_rounded, color: Color(0xFFE53935)),
-            SizedBox(width: 8),
-            Text('Konfirmasi Logout', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-          ],
-        ),
-        content: const Text('Anda yakin ingin keluar dari akun admin?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal', style: TextStyle(color: Color(0xFF5A7A5A))),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              await authCtrl.logout();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE53935),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      builder:
+          (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
             ),
-            child: const Text('Keluar', style: TextStyle(fontWeight: FontWeight.w700)),
+            title: const Row(
+              children: [
+                Icon(Icons.logout_rounded, color: Color(0xFFE53935)),
+                SizedBox(width: 8),
+                Text(
+                  'Konfirmasi Logout',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                ),
+              ],
+            ),
+            content: const Text('Anda yakin ingin keluar dari akun admin?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text(
+                  'Batal',
+                  style: TextStyle(color: Color(0xFF5A7A5A)),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  await authCtrl.logout();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFE53935),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Keluar',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 }
