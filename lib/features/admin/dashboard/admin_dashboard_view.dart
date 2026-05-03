@@ -267,9 +267,9 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
         const SizedBox(height: 16),
         Row(
           children: [
-            Expanded(child: _buildStatCard('Menunggu', '14', Icons.access_time_filled, Colors.orange)),
+            Expanded(child: _buildStatCard('Menunggu Validasi', '14', Icons.access_time_filled, Colors.orange)),
             const SizedBox(width: 16),
-            Expanded(child: _buildStatCard('Ditolak', '42', Icons.cancel, Colors.red)),
+            Expanded(child: _buildStatCard('Pengajuan Ditolak', '42', Icons.cancel, Colors.red)),
           ],
         ),
       ],
@@ -321,7 +321,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(20)),
               child: Text(
-                _isPaginatedView ? 'Tutup Paginasi' : 'Lihat Semua',
+                _isPaginatedView ? 'Tutup Halaman' : 'Lihat Semua',
                 style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32)),
               ),
             ),
