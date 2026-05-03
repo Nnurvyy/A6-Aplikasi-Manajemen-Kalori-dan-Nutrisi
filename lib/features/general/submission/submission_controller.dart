@@ -155,6 +155,7 @@ class SubmissionController extends ChangeNotifier {
 
   Future<void> saveNutriData({
     required String id,
+    String? foodName,
     required double calories,
     required double protein,
     required double carbs,
@@ -163,7 +164,9 @@ class SubmissionController extends ChangeNotifier {
   }) async {
     final existing = _box.get(id);
     if (existing == null) return;
+
     final updated = existing.toModel().copyWith(
+      foodName: foodName ?? existing.foodName,
       calories: calories,
       protein: protein,
       carbs: carbs,

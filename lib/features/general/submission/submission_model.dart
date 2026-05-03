@@ -37,6 +37,7 @@ class SubmissionModel {
       calories != null && protein != null && carbs != null && fat != null;
 
   SubmissionModel copyWith({
+    String? foodName,
     SubmissionStatus? status,
     String? reviewNote,
     double? calories,
@@ -49,7 +50,7 @@ class SubmissionModel {
       id: id,
       userId: userId,
       userName: userName,
-      foodName: foodName,
+      foodName: foodName ?? this.foodName,
       imagePath: imagePath,
       calories: calories ?? this.calories,
       protein: protein ?? this.protein,
