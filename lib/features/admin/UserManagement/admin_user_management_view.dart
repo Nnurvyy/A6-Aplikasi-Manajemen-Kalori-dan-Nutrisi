@@ -524,6 +524,13 @@ class _UserDetailSheet extends StatelessWidget {
   static const Color _danger = Color(0xFFE53935);
   static const Color _border = Color(0xFFC8E6C9);
 
+  // Ambil 2 kata pertama dari string aktivitas (apapun formatnya dari DB)
+  static String _shortActivity(String? raw) {
+    if (raw == null || raw.isEmpty) return '-';
+    final words = raw.trim().split(RegExp(r'\s+'));
+    return words.take(2).join(' ');
+  }
+
   @override
   Widget build(BuildContext context) {
     final initials = user.name.trim().split(' ').take(2)
@@ -666,7 +673,7 @@ class _UserDetailSheet extends StatelessWidget {
                         : '-',
                   ),
                   _infoRow(Icons.fitness_center_rounded, 'Aktivitas',
-                      user.activityLevel ?? '-'),
+                      _shortActivity(user.activityLevel)),
                   const SizedBox(height: 14),
                   _sectionTitle('Target Nutrisi Harian'),
                   const SizedBox(height: 8),
@@ -941,13 +948,24 @@ class _EditUserViewState extends State<_EditUserView> {
   bool _isSaving = false;
 
   final _genders = ['Laki-laki', 'Perempuan'];
-  final _activities = [
+  static const List<String> _activities = [
     'Jarang olahraga',
-    'Olahraga ringan (1-3 kali seminggu)',
-    'Olahraga sedang (3-5 kali seminggu)',
-    'Olahraga berat (6-7 hari seminggu / ngegym)',
-    'Sangat berat (latihan fisik ekstra / atlet)',
+    'Sedikit aktif',
+    'Cukup aktif',
+    'Sangat aktif',
+    'Ekstra aktif',
   ];
+
+  // Normalisasi nilai panjang dari DB → salah satu dari 5 opsi di atas
+  static String _normalizeActivity(String? raw) {
+    if (raw == null || raw.isEmpty) return 'Jarang olahraga';
+    final words = raw.trim().split(RegExp(r'\s+')).take(2).join(' ').toLowerCase();
+    if (words.contains('ekstra')) return 'Ekstra aktif';
+    if (words.contains('sangat') || words.contains('berat')) return 'Sangat aktif';
+    if (words.contains('cukup') || words.contains('sedang')) return 'Cukup aktif';
+    if (words.contains('sedikit') || words.contains('ringan')) return 'Sedikit aktif';
+    return 'Jarang olahraga';
+  }
 
   @override
   void initState() {
@@ -964,7 +982,7 @@ class _EditUserViewState extends State<_EditUserView> {
         text: widget.user.targetWeightGainPerMonth?.toStringAsFixed(1) ??
             '0');
     _gender = widget.user.gender ?? 'Laki-laki';
-    _activityLevel = widget.user.activityLevel ?? 'Jarang olahraga';
+    _activityLevel = _normalizeActivity(widget.user.activityLevel);
   }
 
   @override
