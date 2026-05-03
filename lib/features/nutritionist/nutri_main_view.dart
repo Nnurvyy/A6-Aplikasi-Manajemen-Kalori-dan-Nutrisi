@@ -14,72 +14,34 @@ class NutriMainView extends StatefulWidget {
   State<NutriMainView> createState() => _NutriMainViewState();
 }
 
-class _NutriMainViewState extends State<NutriMainView> {
+class _NutriMainViewState extends State<NutriMainView>
+    with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
-  static const _teal = Color(0xFF2E7D32);
+  static const _green = Color(0xFF2E7D32);
 
-  // SubmissionController sudah di-provide dari main.dart (global)
   static const _pages = [
     NutriDashboardView(),
     NutriSubmissionView(),
     _NutriProfileView(),
   ];
 
-  Widget _navBtn(
-    BuildContext ctx,
-    IconData icon,
-    String label,
-    int index, {
-    bool badge = false,
-  }) {
-    final isActive = _currentIndex == index;
-    return Expanded(
-      child: InkWell(
-        onTap: () => setState(() => _currentIndex = index),
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Icon(
-                    icon,
-                    color: isActive ? Colors.white : Colors.white54,
-                    size: isActive ? 24 : 22,
-                  ),
-                  if (badge)
-                    Positioned(
-                      right: -4,
-                      top: -4,
-                      child: Container(
-                        width: 9,
-                        height: 9,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFFFB300),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 3),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                  color: isActive ? Colors.white : Colors.white54,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  static const _items = [
+    _NutriNavData(
+      Icons.dashboard_rounded,
+      Icons.dashboard_outlined,
+      'Dashboard',
+    ),
+    _NutriNavData(
+      Icons.assignment_rounded,
+      Icons.assignment_outlined,
+      'Isi Nutrisi',
+    ),
+    _NutriNavData(Icons.person_rounded, Icons.person_outline_rounded, 'Profil'),
+  ];
+
+  void _onTap(int index) {
+    if (_currentIndex == index) return;
+    setState(() => _currentIndex = index);
   }
 
   @override
@@ -87,31 +49,150 @@ class _NutriMainViewState extends State<NutriMainView> {
     final user = context.watch<AuthController>().currentUser;
     if (user == null) return const LoginView();
 
+    final hasBadge =
+        context.watch<SubmissionController>().approvedNeedsFill.isNotEmpty;
+
     return Scaffold(
       body: _pages[_currentIndex],
-      bottomNavigationBar: BottomAppBar(
-        color: _teal,
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 0,
-        child: SizedBox(
-          height: 60,
+      bottomNavigationBar: _NutriNavBar(
+        currentIndex: _currentIndex,
+        items: _items,
+        onTap: _onTap,
+        badgeIndex: 1,
+        showBadge: hasBadge,
+        color: _green,
+      ),
+    );
+  }
+}
+
+class _NutriNavData {
+  final IconData activeIcon;
+  final IconData icon;
+  final String label;
+  const _NutriNavData(this.activeIcon, this.icon, this.label);
+}
+
+class _NutriNavBar extends StatelessWidget {
+  final int currentIndex;
+  final List<_NutriNavData> items;
+  final void Function(int) onTap;
+  final int badgeIndex;
+  final bool showBadge;
+  final Color color;
+
+  const _NutriNavBar({
+    required this.currentIndex,
+    required this.items,
+    required this.onTap,
+    required this.badgeIndex,
+    required this.showBadge,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [color, Color.lerp(color, Colors.black, 0.15)!],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.4),
+            blurRadius: 16,
+            offset: const Offset(0, -3),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _navBtn(context, Icons.dashboard_rounded, 'Dashboard', 0),
-              _navBtn(
-                context,
-                Icons.assignment_rounded,
-                'Isi Nutrisi',
-                1,
-                badge:
-                    context
-                        .watch<SubmissionController>()
-                        .approvedNeedsFill
-                        .isNotEmpty,
-              ),
-              _navBtn(context, Icons.person_rounded, 'Profil', 2),
-            ],
+            children: List.generate(items.length, (i) {
+              final active = currentIndex == i;
+              final item = items[i];
+              final hasBadge = i == badgeIndex && showBadge;
+
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => onTap(i),
+                  behavior: HitTestBehavior.opaque,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeInOut,
+                    padding: const EdgeInsets.symmetric(vertical: 7),
+                    decoration:
+                        active
+                            ? BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(16),
+                            )
+                            : const BoxDecoration(),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 200),
+                              transitionBuilder:
+                                  (child, anim) => ScaleTransition(
+                                    scale: anim,
+                                    child: child,
+                                  ),
+                              child: Icon(
+                                active ? item.activeIcon : item.icon,
+                                key: ValueKey(active),
+                                color: active ? Colors.white : Colors.white60,
+                                size: active ? 24 : 22,
+                              ),
+                            ),
+                            if (hasBadge)
+                              Positioned(
+                                right: -5,
+                                top: -3,
+                                child: Container(
+                                  width: 9,
+                                  height: 9,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFB300),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: color,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        AnimatedDefaultTextStyle(
+                          duration: const Duration(milliseconds: 200),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight:
+                                active ? FontWeight.w700 : FontWeight.w500,
+                            color: active ? Colors.white : Colors.white60,
+                          ),
+                          child: Text(
+                            item.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }),
           ),
         ),
       ),

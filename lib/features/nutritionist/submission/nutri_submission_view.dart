@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../general/submission/submission_controller.dart';
@@ -294,24 +295,22 @@ class _NutriListCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    color: accent.withValues(alpha: 0.12),
+                // Avatar atau foto makanan
+                if (item.imagePath.isNotEmpty && !needsFill)
+                  ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Center(
-                    child: Text(
-                      item.foodName[0].toUpperCase(),
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: accent,
+                    child: SizedBox(
+                      width: 46,
+                      height: 46,
+                      child: Image.file(
+                        File(item.imagePath),
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _avatarFallback(accent),
                       ),
                     ),
-                  ),
-                ),
+                  )
+                else
+                  _avatarFallback(accent),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -412,6 +411,25 @@ class _NutriListCard extends StatelessWidget {
       ),
     );
   }
+
+  Widget _avatarFallback(Color accent) => Container(
+    width: 46,
+    height: 46,
+    decoration: BoxDecoration(
+      color: accent.withValues(alpha: 0.12),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Center(
+      child: Text(
+        item.foodName[0].toUpperCase(),
+        style: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w800,
+          color: accent,
+        ),
+      ),
+    ),
+  );
 
   Widget _macro(String label, String value, Color color) => Column(
     children: [
