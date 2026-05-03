@@ -5,6 +5,7 @@ import '../general/auth/models/user_model.dart';
 import '../general/auth/login_view.dart';
 import '../general/submission/submission_controller.dart';
 import 'dashboard/nutri_dashboard_view.dart';
+import 'database/nutri_database_view.dart';
 import 'submission/nutri_submission_view.dart';
 
 class NutriMainView extends StatefulWidget {
@@ -21,6 +22,7 @@ class _NutriMainViewState extends State<NutriMainView>
 
   static const _pages = [
     NutriDashboardView(),
+    NutritionistFoodDatabaseView(),
     NutriSubmissionView(),
     _NutriProfileView(),
   ];
@@ -30,6 +32,11 @@ class _NutriMainViewState extends State<NutriMainView>
       Icons.dashboard_rounded,
       Icons.dashboard_outlined,
       'Dashboard',
+    ),
+    _NutriNavData(
+      Icons.folder_rounded,
+      Icons.folder_outlined,
+      'Database',
     ),
     _NutriNavData(
       Icons.assignment_rounded,
@@ -58,7 +65,7 @@ class _NutriMainViewState extends State<NutriMainView>
         currentIndex: _currentIndex,
         items: _items,
         onTap: _onTap,
-        badgeIndex: 1,
+        badgeIndex: 2,
         showBadge: hasBadge,
         color: _green,
       ),
