@@ -8,6 +8,7 @@ import '../../user/user_main_view.dart';
 import '../widgets/nt_button.dart';
 import '../widgets/nt_text_field.dart';
 import '../../admin/admin_main_view.dart';
+import '../../nutritionist/nutri_main_view.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -31,10 +32,7 @@ class _LoginViewState extends State<LoginView> {
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
     final auth = context.read<AuthController>();
-    final ok = await auth.login(
-      _emailCtrl.text.trim(),
-      _passCtrl.text,
-    );
+    final ok = await auth.login(_emailCtrl.text.trim(), _passCtrl.text);
     if (!mounted) return;
     if (ok) {
       _navigate(auth.currentUser!.role);
@@ -53,13 +51,15 @@ class _LoginViewState extends State<LoginView> {
     Widget target;
     if (role == 'admin') {
       target = const AdminMainView();
+    } else if (role == 'nutritionist') {
+      target = const NutriMainView();
     } else {
       target = const UserMainView();
     }
 
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => target),
-    );
+    Navigator.of(
+      context,
+    ).pushReplacement(MaterialPageRoute(builder: (_) => target));
   }
 
   @override
@@ -88,8 +88,11 @@ class _LoginViewState extends State<LoginView> {
                         color: Colors.white.withValues(alpha: 0.15),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.eco_rounded,
-                          size: 40, color: Colors.white),
+                      child: const Icon(
+                        Icons.eco_rounded,
+                        size: 40,
+                        color: Colors.white,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -150,9 +153,11 @@ class _LoginViewState extends State<LoginView> {
                         controller: _emailCtrl,
                         prefixIcon: Icons.email_outlined,
                         keyboardType: TextInputType.emailAddress,
-                        validator: (v) => v == null || v.isEmpty
-                            ? 'Email wajib diisi'
-                            : null,
+                        validator:
+                            (v) =>
+                                v == null || v.isEmpty
+                                    ? 'Email wajib diisi'
+                                    : null,
                       ),
                       const SizedBox(height: 14),
                       NtTextField(
@@ -160,9 +165,11 @@ class _LoginViewState extends State<LoginView> {
                         controller: _passCtrl,
                         prefixIcon: Icons.lock_outline_rounded,
                         isPassword: true,
-                        validator: (v) => v == null || v.isEmpty
-                            ? 'Password wajib diisi'
-                            : null,
+                        validator:
+                            (v) =>
+                                v == null || v.isEmpty
+                                    ? 'Password wajib diisi'
+                                    : null,
                       ),
                       const SizedBox(height: 8),
                       Align(
@@ -194,9 +201,13 @@ class _LoginViewState extends State<LoginView> {
                             ),
                           ),
                           GestureDetector(
-                            onTap: () => Navigator.push(context,
-                                MaterialPageRoute(
-                                    builder: (_) => const RegisterView())),
+                            onTap:
+                                () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const RegisterView(),
+                                  ),
+                                ),
                             child: Text(
                               'Daftar disini',
                               style: GoogleFonts.poppins(
@@ -214,12 +225,14 @@ class _LoginViewState extends State<LoginView> {
                         children: [
                           const Expanded(child: Divider()),
                           Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 12),
-                            child: Text('atau',
-                                style: GoogleFonts.poppins(
-                                    fontSize: 12,
-                                    color: AppColors.lightTextSecondary)),
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Text(
+                              'atau',
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: AppColors.lightTextSecondary,
+                              ),
+                            ),
                           ),
                           const Expanded(child: Divider()),
                         ],
@@ -235,14 +248,25 @@ class _LoginViewState extends State<LoginView> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Demo Akun:',
-                                style: GoogleFonts.poppins(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.primary)),
+                            Text(
+                              'Demo Akun:',
+                              style: GoogleFonts.poppins(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primary,
+                              ),
+                            ),
                             const SizedBox(height: 4),
-                            _demoHint('Admin', 'admin@nutritrack.com', 'admin123'),
-                            _demoHint('Ahli Gizi', 'nutri@nutritrack.com', 'nutri123'),
+                            _demoHint(
+                              'Admin',
+                              'admin@nutritrack.com',
+                              'admin123',
+                            ),
+                            _demoHint(
+                              'Ahli Gizi',
+                              'nutri@nutritrack.com',
+                              'nutri123',
+                            ),
                             _demoHint('User', 'budi@email.com', 'budi123'),
                           ],
                         ),
