@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../dashboard/admin_dashboard_controller.dart'; 
+import '../dashboard/admin_dashboard_controller.dart';
 
 class AdminDashboardView extends GetView<AdminDashboardController> {
   const AdminDashboardView({super.key});
@@ -21,7 +21,6 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
 
   @override
   Widget build(BuildContext context) {
-    
     Get.put(AdminDashboardController());
 
     return Scaffold(
@@ -59,11 +58,11 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
                 const SizedBox(height: 24),
                 _buildDateSelector(),
                 const SizedBox(height: 24),
-                _buildStatsGrid(), 
+                _buildStatsGrid(context), 
                 const SizedBox(height: 24),
                 _buildRecentSubmissionsHeader(filteredSubmissions.length),
                 const SizedBox(height: 12),
-                _buildSubmissionsList(displayedSubmissions),
+                _buildSubmissionsList(context, displayedSubmissions),
                 if (controller.isPaginatedView.value && totalPages > 1) 
                   _buildPaginationControls(totalPages),
               ],
@@ -182,7 +181,7 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
     );
   }
 
-  Widget _buildStatsGrid() {
+  Widget _buildStatsGrid(BuildContext context) {
     return Column(
       children: [
         Row(
@@ -201,7 +200,7 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
                 controller.totalMenunggu.toString(), 
                 Icons.access_time_filled, 
                 Colors.orange,
-                onTap: () => _showStatusListBottomSheet('Menunggu Validasi', 'Menunggu'),
+                onTap: () => _showStatusListBottomSheet(context, 'Menunggu Validasi', 'Menunggu'),
               )
             ),
             const SizedBox(width: 16),
@@ -211,7 +210,7 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
                 controller.totalDitolak.toString(), 
                 Icons.cancel, 
                 Colors.red,
-                onTap: () => _showStatusListBottomSheet('Pengajuan Ditolak', 'Ditolak'),
+                onTap: () => _showStatusListBottomSheet(context, 'Pengajuan Ditolak', 'Ditolak'),
               )
             ),
           ],
@@ -264,7 +263,7 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
     );
   }
 
-  Widget _buildSubmissionsList(List<Map<String, dynamic>> submissions) {
+  Widget _buildSubmissionsList(BuildContext context, List<Map<String, dynamic>> submissions) {
     if (submissions.isEmpty) {
       return Container(
         width: double.infinity, padding: const EdgeInsets.all(32),
@@ -281,7 +280,7 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
     return Column(
       children: submissions.map((item) {
         return GestureDetector(
-          onTap: () => _showDetailDialog(item),
+          onTap: () => _showDetailDialog(context, item),
           child: Container(
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.all(14),
@@ -339,93 +338,103 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
     );
   }
 
-  void _showStatusListBottomSheet(String title, String status) {
+  void _showStatusListBottomSheet(BuildContext context, String title, String status) {
     final list = controller.getSubmissionsByStatus(status);
-    Get.bottomSheet(
-      Container(
-        padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(2)))),
-            const SizedBox(height: 24),
-            Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            Text('Total: ${list.length} data ditemukan', style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
-            const SizedBox(height: 16),
-            if (list.isEmpty) 
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 20),
-                child: Center(child: Text('Data tidak tersedia')),
-              )
-            else
-              Flexible(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: list.length,
-                  itemBuilder: (context, index) {
-                    final item = list[index];
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: Text(item['icon'], style: const TextStyle(fontSize: 24)),
-                      title: Text(item['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                      subtitle: Text(item['author'], style: const TextStyle(fontSize: 12)),
-                      trailing: const Icon(Icons.chevron_right, size: 20),
-                      onTap: () {
-                        Get.back();
-                        _showDetailDialog(item);
-                      },
-                    );
-                  },
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(2)))),
+              const SizedBox(height: 24),
+              Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text('Total: ${list.length} data ditemukan', style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+              const SizedBox(height: 16),
+              if (list.isEmpty) 
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Center(child: Text('Data tidak tersedia')),
+                )
+              else
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: list.length,
+                    itemBuilder: (context, index) {
+                      final item = list[index];
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Text(item['icon'], style: const TextStyle(fontSize: 24)),
+                        title: Text(item['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        subtitle: Text(item['author'], style: const TextStyle(fontSize: 12)),
+                        trailing: const Icon(Icons.chevron_right, size: 20),
+                        onTap: () {
+                          Navigator.pop(context); 
+                          _showDetailDialog(context, item); 
+                        },
+                      );
+                    },
+                  ),
                 ),
-              ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      }
     );
   }
 
-  void _showDetailDialog(Map<String, dynamic> item) {
-    Get.dialog(
-      Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(item['icon'], style: const TextStyle(fontSize: 48)),
-              const SizedBox(height: 16),
-              Text(item['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-              Text('Diajukan oleh: ${item['author']}', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
-              const SizedBox(height: 20),
-              const Divider(),
-              _detailRow('Status', item['status'], color: item['color']),
-              _detailRow('Kalori', item['calories'] ?? '-'),
-              _detailRow('Catatan', item['notes'] ?? '-', isLong: true),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2E7D32),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 12)
+  void _showDetailDialog(BuildContext context, Map<String, dynamic> item) {
+    
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(item['icon'], style: const TextStyle(fontSize: 48)),
+                const SizedBox(height: 16),
+                Text(item['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                Text('Diajukan oleh: ${item['author']}', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                const SizedBox(height: 20),
+                const Divider(),
+                _detailRow('Status', item['status'], color: item['color']),
+                _detailRow('Kalori', item['calories'] ?? '-'),
+                _detailRow('Catatan', item['notes'] ?? '-', isLong: true),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2E7D32),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 12)
+                    ),
+                    onPressed: () => Navigator.pop(context), // Tutup Dialog
+                    child: const Text('Tutup', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   ),
-                  onPressed: () => Get.back(),
-                  child: const Text('Tutup', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                ),
-              )
-            ],
+                )
+              ],
+            ),
           ),
-        ),
-      )
+        );
+      }
     );
   }
 
