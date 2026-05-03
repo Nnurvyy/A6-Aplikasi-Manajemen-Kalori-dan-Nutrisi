@@ -3,9 +3,9 @@ import 'package:provider/provider.dart';
 import '../general/auth/auth_controller.dart';
 import '../general/auth/models/user_model.dart';
 import '../general/auth/login_view.dart';
+import '../general/submission/submission_controller.dart';
 import 'dashboard/nutri_dashboard_view.dart';
 import 'submission/nutri_submission_view.dart';
-import 'submission/nutri_submission_controller.dart';
 
 class NutriMainView extends StatefulWidget {
   const NutriMainView({super.key});
@@ -14,97 +14,206 @@ class NutriMainView extends StatefulWidget {
   State<NutriMainView> createState() => _NutriMainViewState();
 }
 
-class _NutriMainViewState extends State<NutriMainView> {
+class _NutriMainViewState extends State<NutriMainView>
+    with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
+  static const _green = Color(0xFF2E7D32);
 
-  static const _teal = Color(0xFF00897B);
+  static const _pages = [
+    NutriDashboardView(),
+    NutriSubmissionView(),
+    _NutriProfileView(),
+  ];
+
+  static const _items = [
+    _NutriNavData(
+      Icons.dashboard_rounded,
+      Icons.dashboard_outlined,
+      'Dashboard',
+    ),
+    _NutriNavData(
+      Icons.assignment_rounded,
+      Icons.assignment_outlined,
+      'Isi Nutrisi',
+    ),
+    _NutriNavData(Icons.person_rounded, Icons.person_outline_rounded, 'Profil'),
+  ];
+
+  void _onTap(int index) {
+    if (_currentIndex == index) return;
+    setState(() => _currentIndex = index);
+  }
 
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthController>().currentUser;
     if (user == null) return const LoginView();
 
-    // Inject NutriSubmissionController sekali di sini agar bisa shared
-    return ChangeNotifierProvider(
-      create: (_) => NutriSubmissionController(),
-      child: Builder(
-        builder: (ctx) {
-          final pages = [
-            const NutriDashboardView(),
-            const NutriSubmissionView(),
-            const _NutriProfileView(),
-          ];
+    final hasBadge =
+        context.watch<SubmissionController>().approvedNeedsFill.isNotEmpty;
 
-          return Scaffold(
-            body: pages[_currentIndex],
-            bottomNavigationBar: Container(
-              decoration: BoxDecoration(
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 20,
-                    offset: const Offset(0, -4),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(24),
-                ),
-                child: BottomNavigationBar(
-                  currentIndex: _currentIndex,
-                  onTap: (i) => setState(() => _currentIndex = i),
-                  backgroundColor: Colors.white,
-                  selectedItemColor: _teal,
-                  unselectedItemColor: const Color(0xFFB0BEC5),
-                  selectedLabelStyle: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12,
-                  ),
-                  unselectedLabelStyle: const TextStyle(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 11,
-                  ),
-                  type: BottomNavigationBarType.fixed,
-                  elevation: 0,
-                  items: const [
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.dashboard_rounded),
-                      label: 'Dashboard',
-                    ),
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.assignment_rounded),
-                      label: 'Isi Nutrisi',
-                    ),
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.person_rounded),
-                      label: 'Profil',
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
+    return Scaffold(
+      body: _pages[_currentIndex],
+      bottomNavigationBar: _NutriNavBar(
+        currentIndex: _currentIndex,
+        items: _items,
+        onTap: _onTap,
+        badgeIndex: 1,
+        showBadge: hasBadge,
+        color: _green,
       ),
     );
   }
 }
 
-// ─── Profil Ahli Gizi ────────────────────────────────────────────────────────
+class _NutriNavData {
+  final IconData activeIcon;
+  final IconData icon;
+  final String label;
+  const _NutriNavData(this.activeIcon, this.icon, this.label);
+}
+
+class _NutriNavBar extends StatelessWidget {
+  final int currentIndex;
+  final List<_NutriNavData> items;
+  final void Function(int) onTap;
+  final int badgeIndex;
+  final bool showBadge;
+  final Color color;
+
+  const _NutriNavBar({
+    required this.currentIndex,
+    required this.items,
+    required this.onTap,
+    required this.badgeIndex,
+    required this.showBadge,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [color, Color.lerp(color, Colors.black, 0.15)!],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.4),
+            blurRadius: 16,
+            offset: const Offset(0, -3),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(
+            children: List.generate(items.length, (i) {
+              final active = currentIndex == i;
+              final item = items[i];
+              final hasBadge = i == badgeIndex && showBadge;
+
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => onTap(i),
+                  behavior: HitTestBehavior.opaque,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeInOut,
+                    padding: const EdgeInsets.symmetric(vertical: 7),
+                    decoration:
+                        active
+                            ? BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(16),
+                            )
+                            : const BoxDecoration(),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 200),
+                              transitionBuilder:
+                                  (child, anim) => ScaleTransition(
+                                    scale: anim,
+                                    child: child,
+                                  ),
+                              child: Icon(
+                                active ? item.activeIcon : item.icon,
+                                key: ValueKey(active),
+                                color: active ? Colors.white : Colors.white60,
+                                size: active ? 24 : 22,
+                              ),
+                            ),
+                            if (hasBadge)
+                              Positioned(
+                                right: -5,
+                                top: -3,
+                                child: Container(
+                                  width: 9,
+                                  height: 9,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFB300),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: color,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        AnimatedDefaultTextStyle(
+                          duration: const Duration(milliseconds: 200),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight:
+                                active ? FontWeight.w700 : FontWeight.w500,
+                            color: active ? Colors.white : Colors.white60,
+                          ),
+                          child: Text(
+                            item.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Profile Ahli Gizi ───────────────────────────────────────────────────────
 class _NutriProfileView extends StatelessWidget {
   const _NutriProfileView();
 
-  static const _teal = Color(0xFF00897B);
-  static const _dark = Color(0xFF1A2E2C);
-  static const _muted = Color(0xFF5A7A78);
-  static const _bg = Color(0xFFF0FAF9);
+  static const _teal = Color(0xFF2E7D32);
+  static const _dark = Color(0xFF1A2E22);
+  static const _muted = Color(0xFF7A9485);
+  static const _bg = Color(0xFFF4FAF6);
 
   @override
   Widget build(BuildContext context) {
     final authCtrl = context.watch<AuthController>();
     final UserModel? user = authCtrl.currentUser;
-    final ctrl = context.watch<NutriSubmissionController>();
+    final ctrl = context.watch<SubmissionController>();
 
     return Scaffold(
       backgroundColor: _bg,
@@ -120,9 +229,9 @@ class _NutriProfileView extends StatelessWidget {
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      Color(0xFF00695C),
-                      Color(0xFF00897B),
-                      Color(0xFF26A69A),
+                      Color(0xFF1B5E20),
+                      Color(0xFF2E7D32),
+                      Color(0xFF388E3C),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -186,8 +295,8 @@ class _NutriProfileView extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Info Akun ──────────────────────────────────────────
-                  _buildCard(
+                  // Info akun
+                  _card(
                     child: Column(
                       children: [
                         _infoRow(
@@ -202,7 +311,6 @@ class _NutriProfileView extends StatelessWidget {
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 20),
 
                   const Text(
@@ -216,39 +324,36 @@ class _NutriProfileView extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
 
-                  // ── Stat cards ─────────────────────────────────────────
-                  _buildCard(
+                  // Statistik dari Hive (real data)
+                  _card(
                     child: Column(
                       children: [
                         _menuRow(
-                          icon: Icons.pending_actions_rounded,
-                          label: 'Perlu Diisi',
-                          subtitle:
-                              '${ctrl.belumDiisi.length} pengajuan menunggu data nutrisi',
-                          color: const Color(0xFFFFB300),
+                          Icons.pending_actions_rounded,
+                          'Perlu Diisi',
+                          '${ctrl.approvedNeedsFill.length} pengajuan menunggu data nutrisi',
+                          const Color(0xFFFFB300),
                         ),
                         const Divider(height: 24),
                         _menuRow(
-                          icon: Icons.check_circle_rounded,
-                          label: 'Sudah Dilengkapi',
-                          subtitle:
-                              '${ctrl.sudahDiisi.length} data nutrisi sudah lengkap',
-                          color: _teal,
+                          Icons.check_circle_rounded,
+                          'Sudah Dilengkapi',
+                          '${ctrl.approvedFilled.length} data nutrisi sudah lengkap',
+                          _teal,
                         ),
                         const Divider(height: 24),
                         _menuRow(
-                          icon: Icons.bar_chart_rounded,
-                          label: 'Total Ditangani',
-                          subtitle: '${ctrl.all.length} pengajuan dari admin',
-                          color: Colors.blue,
+                          Icons.bar_chart_rounded,
+                          'Total Ditangani',
+                          '${ctrl.approved.length} pengajuan dari admin',
+                          Colors.blue,
                         ),
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 24),
 
-                  // ── Logout ─────────────────────────────────────────────
+                  // Logout
                   GestureDetector(
                     onTap: () => _confirmLogout(context, authCtrl),
                     child: Container(
@@ -290,7 +395,6 @@ class _NutriProfileView extends StatelessWidget {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 32),
                 ],
               ),
@@ -301,7 +405,7 @@ class _NutriProfileView extends StatelessWidget {
     );
   }
 
-  Widget _buildCard({required Widget child}) => Container(
+  Widget _card({required Widget child}) => Container(
     width: double.infinity,
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(
@@ -353,40 +457,39 @@ class _NutriProfileView extends StatelessWidget {
     ],
   );
 
-  Widget _menuRow({
-    required IconData icon,
-    required String label,
-    required String subtitle,
-    required Color color,
-  }) => Row(
-    children: [
-      Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(icon, color: color, size: 18),
-      ),
-      const SizedBox(width: 14),
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 13,
-                color: _dark,
-                fontWeight: FontWeight.w700,
-              ),
+  Widget _menuRow(IconData icon, String label, String subtitle, Color color) =>
+      Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
             ),
-            Text(subtitle, style: const TextStyle(fontSize: 11, color: _muted)),
-          ],
-        ),
-      ),
-    ],
-  );
+            child: Icon(icon, color: color, size: 18),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: _dark,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: const TextStyle(fontSize: 11, color: _muted),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
 
   void _confirmLogout(BuildContext context, AuthController authCtrl) {
     showDialog(
@@ -412,13 +515,19 @@ class _NutriProfileView extends StatelessWidget {
                 onPressed: () => Navigator.pop(ctx),
                 child: const Text(
                   'Batal',
-                  style: TextStyle(color: Color(0xFF5A7A78)),
+                  style: TextStyle(color: Color(0xFF7A9485)),
                 ),
               ),
               ElevatedButton(
                 onPressed: () async {
                   Navigator.pop(ctx);
                   await authCtrl.logout();
+                  if (context.mounted) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (_) => const LoginView()),
+                      (_) => false,
+                    );
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFE53935),

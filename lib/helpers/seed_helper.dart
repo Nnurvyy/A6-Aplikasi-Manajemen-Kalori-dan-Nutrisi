@@ -18,7 +18,14 @@ class SeedHelper {
   }
 
   static Future<void> _seedUsers() async {
-    if (HiveService.users.isNotEmpty) return;
+    final hasNutri = HiveService.users.values.any(
+      (u) => u.role == 'nutritionist',
+    );
+    if (HiveService.users.isNotEmpty && hasNutri) return;
+
+    // Reset users agar seed ulang dengan data lengkap
+    await HiveService.users.clear();
+    await HiveService.settings.delete('current_user_id');
 
     final users = [
       UserModel(
