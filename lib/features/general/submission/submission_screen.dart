@@ -1,77 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../auth/auth_controller.dart';
+import './submission_controller.dart';
 import './submission_model.dart';
-import './widgets/submission_card.dart';
-import './widgets/submission_info_dialog.dart';
 import './add_submission_screen.dart';
 import './submission_detail_screen.dart';
+import './widgets/submission_card.dart';
+import './widgets/submission_info_dialog.dart';
 
-class SubmissionScreen extends StatefulWidget {
+class SubmissionScreen extends StatelessWidget {
   const SubmissionScreen({super.key});
 
-  @override
-  State<SubmissionScreen> createState() => _SubmissionScreenState();
-}
-
-class _SubmissionScreenState extends State<SubmissionScreen> {
-  static const _primary = Color(0xFF2ECC71);
+  static const _green = Color(0xFF2E7D32);
   static const _bg = Color(0xFFF4FAF6);
   static const _textDark = Color(0xFF1A2E22);
   static const _textMuted = Color(0xFF7A9485);
 
-  // List pengajuan user yang sedang login
-  final List<SubmissionModel> _submissions = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _loadInitialData();
-  }
-
-  void _loadInitialData() {
-    final user = context.read<AuthController>().currentUser;
-    if (user == null) return;
-    // Data dummy sesuai user yang login (bisa diganti dengan Hive persistence)
-    setState(() {
-      _submissions.addAll([
-        SubmissionModel(
-          id: '1',
-          userId: user.id,
-          userName: user.name,
-          foodName: 'Nasi Goreng Spesial',
-          imagePath: '',
-          calories: 350,
-          protein: 12,
-          carbs: 55,
-          fat: 8,
-          status: SubmissionStatus.pending,
-          createdAt: DateTime.now().subtract(const Duration(hours: 2)),
-        ),
-        SubmissionModel(
-          id: '2',
-          userId: user.id,
-          userName: user.name,
-          foodName: 'Es Teh Manis',
-          imagePath: '',
-          calories: 80,
-          status: SubmissionStatus.approved,
-          createdAt: DateTime.now().subtract(const Duration(days: 1)),
-        ),
-      ]);
-    });
-  }
-
-  void _goToAdd() async {
+  void _goToAdd(BuildContext context) async {
+    // AddSubmissionScreen mengembalikan SubmissionModel langsung
     final result = await Navigator.push<SubmissionModel>(
       context,
       MaterialPageRoute(builder: (_) => const AddSubmissionScreen()),
     );
-    if (result != null) setState(() => _submissions.insert(0, result));
+    if (result == null) return;
+    if (!context.mounted) return;
+
+    // Simpan ke SubmissionController (Hive) — langsung terbaca admin & nutri
+    await context.read<SubmissionController>().addSubmission(
+      userId: result.userId,
+      userName: result.userName,
+      foodName: result.foodName,
+      imagePath: result.imagePath,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<AuthController>().currentUser;
+    if (user == null) return const SizedBox();
+
+    // Watch SubmissionController → otomatis rebuild saat ada perubahan
+    final ctrl = context.watch<SubmissionController>();
+    final items = ctrl.byUser(user.id);
+
     return Scaffold(
       backgroundColor: _bg,
       appBar: AppBar(
@@ -96,37 +67,36 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
           ),
         ],
       ),
-      body: _submissions.isEmpty ? _buildEmpty() : _buildList(),
+      body: items.isEmpty ? _buildEmpty(context) : _buildList(context, items),
       floatingActionButton: FloatingActionButton(
-        onPressed: _goToAdd,
-        backgroundColor: _primary,
+        onPressed: () => _goToAdd(context),
+        backgroundColor: _green,
         child: const Icon(Icons.add_rounded, color: Colors.white),
       ),
     );
   }
 
-  Widget _buildList() {
+  Widget _buildList(BuildContext context, List<SubmissionModel> items) {
     return ListView.separated(
       padding: const EdgeInsets.all(16),
-      itemCount: _submissions.length,
+      itemCount: items.length,
       separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder:
           (_, i) => SubmissionCard(
-            item: _submissions[i],
+            item: items[i],
             onTap:
                 () => Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder:
-                        (_) =>
-                            SubmissionDetailScreen(submission: _submissions[i]),
+                        (_) => SubmissionDetailScreen(submission: items[i]),
                   ),
                 ),
           ),
     );
   }
 
-  Widget _buildEmpty() {
+  Widget _buildEmpty(BuildContext context) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -135,13 +105,13 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
             width: 120,
             height: 120,
             decoration: BoxDecoration(
-              color: _primary.withValues(alpha: 0.1),
+              color: _green.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: const Icon(
               Icons.upload_file_rounded,
               size: 54,
-              color: _primary,
+              color: _green,
             ),
           ),
           const SizedBox(height: 20),
@@ -154,14 +124,14 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
             ),
           ),
           const SizedBox(height: 6),
-          Text(
+          const Text(
             'Ajukan makanan favoritmu\nuntuk ditambahkan ke database!',
             textAlign: TextAlign.center,
             style: TextStyle(color: _textMuted, fontSize: 13),
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
-            onPressed: _goToAdd,
+            onPressed: () => _goToAdd(context),
             icon: const Icon(Icons.add_rounded, color: Colors.white),
             label: const Text(
               'Buat Pengajuan',
@@ -171,7 +141,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
               ),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _primary,
+              backgroundColor: _green,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),

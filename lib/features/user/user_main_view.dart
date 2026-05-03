@@ -402,6 +402,8 @@ class _UserMainViewState extends State<UserMainView>
                   fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
                   color: isActive ? Colors.white : Colors.white54,
                 ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
             ],
           ),
