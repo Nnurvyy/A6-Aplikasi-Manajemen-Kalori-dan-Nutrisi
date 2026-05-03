@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../general/submission/submission_model.dart';
+export '../../general/submission/submission_controller.dart';
 
-/// Controller sederhana untuk state pengajuan yang sudah di-ACC admin.
-/// Sumber data: dummy list (bisa diganti Hive/API nantinya).
 class NutriSubmissionController extends ChangeNotifier {
   // ─── Data approved dari admin ────────────────────────────────────────────
   final List<SubmissionModel> _items = [

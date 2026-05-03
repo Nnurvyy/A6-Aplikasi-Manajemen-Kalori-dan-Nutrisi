@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../general/submission/submission_model.dart';
-import '../submission/nutri_submission_controller.dart';
+import '../../general/submission/submission_controller.dart';
 
 class NutriFillSheet extends StatefulWidget {
   final SubmissionModel item;
@@ -13,28 +13,22 @@ class NutriFillSheet extends StatefulWidget {
 
 class _NutriFillSheetState extends State<NutriFillSheet> {
   static const _teal = Color(0xFF00897B);
-
-  late final TextEditingController _calCtrl;
-  late final TextEditingController _proteinCtrl;
-  late final TextEditingController _carbsCtrl;
-  late final TextEditingController _fatCtrl;
-  late final TextEditingController _noteCtrl;
+  late final _calCtrl = TextEditingController(
+    text: widget.item.calories?.toStringAsFixed(0) ?? '',
+  );
+  late final _proteinCtrl = TextEditingController(
+    text: widget.item.protein?.toStringAsFixed(1) ?? '',
+  );
+  late final _carbsCtrl = TextEditingController(
+    text: widget.item.carbs?.toStringAsFixed(1) ?? '',
+  );
+  late final _fatCtrl = TextEditingController(
+    text: widget.item.fat?.toStringAsFixed(1) ?? '',
+  );
+  late final _noteCtrl = TextEditingController(
+    text: widget.item.nutriNote ?? '',
+  );
   bool _saving = false;
-
-  @override
-  void initState() {
-    super.initState();
-    final s = widget.item;
-    _calCtrl = TextEditingController(
-      text: s.calories?.toStringAsFixed(0) ?? '',
-    );
-    _proteinCtrl = TextEditingController(
-      text: s.protein?.toStringAsFixed(1) ?? '',
-    );
-    _carbsCtrl = TextEditingController(text: s.carbs?.toStringAsFixed(1) ?? '');
-    _fatCtrl = TextEditingController(text: s.fat?.toStringAsFixed(1) ?? '');
-    _noteCtrl = TextEditingController(text: s.nutriNote ?? '');
-  }
 
   @override
   void dispose() {
@@ -49,7 +43,6 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.item.isNutriFilled;
-
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -65,7 +58,6 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Handle ──────────────────────────────────────────────────
               Center(
                 child: Container(
                   width: 40,
@@ -78,7 +70,7 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
               ),
               const SizedBox(height: 20),
 
-              // ── Judul ────────────────────────────────────────────────────
+              // Header
               Row(
                 children: [
                   Container(
@@ -119,9 +111,9 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
-              // ── Info pengaju ─────────────────────────────────────────────
+              // Info pengaju
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
@@ -148,7 +140,7 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
               ),
               const SizedBox(height: 8),
 
-              // ── Info per 100g ────────────────────────────────────────────
+              // Info per 100g
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
@@ -182,11 +174,11 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
               ),
               const SizedBox(height: 20),
 
-              // ── Grid input 2x2 ───────────────────────────────────────────
+              // Grid input
               Row(
                 children: [
                   Expanded(
-                    child: _nutriInput(
+                    child: _field(
                       'Kalori',
                       'kkal',
                       _calCtrl,
@@ -197,7 +189,7 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: _nutriInput(
+                    child: _field(
                       'Protein',
                       'g',
                       _proteinCtrl,
@@ -212,7 +204,7 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
               Row(
                 children: [
                   Expanded(
-                    child: _nutriInput(
+                    child: _field(
                       'Karbohidrat',
                       'g',
                       _carbsCtrl,
@@ -223,7 +215,7 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: _nutriInput(
+                    child: _field(
                       'Lemak',
                       'g',
                       _fatCtrl,
@@ -236,7 +228,7 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
               ),
               const SizedBox(height: 16),
 
-              // ── Catatan ──────────────────────────────────────────────────
+              // Note
               const Text(
                 'Catatan Sumber (opsional)',
                 style: TextStyle(
@@ -270,7 +262,7 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
               ),
               const SizedBox(height: 24),
 
-              // ── Tombol simpan ────────────────────────────────────────────
+              // Save button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -324,7 +316,7 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
     );
   }
 
-  Widget _nutriInput(
+  Widget _field(
     String label,
     String unit,
     TextEditingController ctrl,
@@ -418,8 +410,7 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
     }
 
     setState(() => _saving = true);
-
-    await context.read<NutriSubmissionController>().saveNutriData(
+    await context.read<SubmissionController>().saveNutriData(
       id: widget.item.id,
       calories: cal,
       protein: pro,

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../general/auth/auth_controller.dart';
 import '../../general/submission/submission_model.dart';
-import '../submission/nutri_submission_controller.dart';
+import '../../general/submission/submission_controller.dart';
 import '../widgets/nutri_fill_sheet.dart';
 
 class NutriDashboardView extends StatelessWidget {
@@ -16,15 +16,15 @@ class NutriDashboardView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthController>().currentUser;
-    final ctrl = context.watch<NutriSubmissionController>();
-    final belumDiisi = ctrl.belumDiisi;
-    final sudahDiisi = ctrl.sudahDiisi;
+    final ctrl = context.watch<SubmissionController>();
+    final belumDiisi = ctrl.approvedNeedsFill;
+    final sudahDiisi = ctrl.approvedFilled;
 
     return Scaffold(
       backgroundColor: _bg,
       body: CustomScrollView(
         slivers: [
-          // ── Header ──────────────────────────────────────────────────────
+          // ── Header gradient ──────────────────────────────────────────────
           SliverToBoxAdapter(
             child: Container(
               decoration: const BoxDecoration(
@@ -81,8 +81,6 @@ class NutriDashboardView extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 20),
-
-                  // ── Stat row ──────────────────────────────────────────
                   Row(
                     children: [
                       _statChip(
@@ -100,7 +98,7 @@ class NutriDashboardView extends StatelessWidget {
                       ),
                       const SizedBox(width: 10),
                       _statChip(
-                        '${ctrl.all.length}',
+                        '${ctrl.approved.length}',
                         'Total\nPengajuan',
                         Icons.assignment_rounded,
                         Colors.white70,
@@ -114,7 +112,7 @@ class NutriDashboardView extends StatelessWidget {
 
           const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
-          // ── Section: Prioritas — Perlu Diisi ────────────────────────────
+          // ── Prioritas: perlu diisi ──────────────────────────────────────
           if (belumDiisi.isNotEmpty) ...[
             SliverToBoxAdapter(
               child: Padding(
@@ -126,19 +124,46 @@ class NutriDashboardView extends StatelessWidget {
                 ),
               ),
             ),
+            // Tampilkan maks 3 di dashboard, sisanya di tab "Isi Nutrisi"
             SliverList(
               delegate: SliverChildBuilderDelegate(
                 (_, i) => Padding(
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
                   child: _DashboardCard(item: belumDiisi[i], needsFill: true),
                 ),
-                childCount: belumDiisi.length,
+                childCount: belumDiisi.length > 3 ? 3 : belumDiisi.length,
               ),
             ),
+            if (belumDiisi.length > 3)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFF8F00).withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(0xFFFF8F00).withValues(alpha: 0.25),
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '+${belumDiisi.length - 3} lainnya · lihat di tab "Isi Nutrisi"',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFFFF8F00),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             const SliverToBoxAdapter(child: SizedBox(height: 8)),
           ],
 
-          // ── Section: Sudah Dilengkapi ───────────────────────────────────
+          // ── Sudah dilengkapi ────────────────────────────────────────────
           if (sudahDiisi.isNotEmpty) ...[
             SliverToBoxAdapter(
               child: Padding(
@@ -156,13 +181,39 @@ class NutriDashboardView extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
                   child: _DashboardCard(item: sudahDiisi[i], needsFill: false),
                 ),
-                childCount: sudahDiisi.length,
+                childCount: sudahDiisi.length > 2 ? 2 : sudahDiisi.length,
               ),
             ),
+            if (sudahDiisi.length > 2)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF43A047).withValues(alpha: 0.07),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(0xFF43A047).withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '+${sudahDiisi.length - 2} lainnya · lihat di tab "Isi Nutrisi"',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF43A047),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
           ],
 
-          // ── Empty state ────────────────────────────────────────────────
-          if (ctrl.all.isEmpty)
+          // ── Empty state ─────────────────────────────────────────────────
+          if (ctrl.approved.isEmpty)
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.all(40),
@@ -206,86 +257,73 @@ class NutriDashboardView extends StatelessWidget {
     );
   }
 
-  Widget _statChip(String value, String label, IconData icon, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.2),
-            width: 1,
+  Widget _statChip(String value, String label, IconData icon, Color color) =>
+      Expanded(
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.2),
+              width: 1,
+            ),
           ),
+          child: Column(
+            children: [
+              Icon(icon, color: color, size: 20),
+              const SizedBox(height: 6),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 10,
+                  color: Colors.white70,
+                  height: 1.3,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  Widget _sectionHeader(String title, String subtitle, Color color) =>
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
         ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(height: 6),
             Text(
-              value,
-              style: const TextStyle(
-                fontSize: 22,
+              title,
+              style: TextStyle(
+                fontSize: 14,
                 fontWeight: FontWeight.w800,
-                color: Colors.white,
+                color: color,
               ),
             ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 10,
-                color: Colors.white70,
-                height: 1.3,
-              ),
-            ),
+            Text(subtitle, style: const TextStyle(fontSize: 12, color: _muted)),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _sectionHeader(String title, String subtitle, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: color,
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: const TextStyle(fontSize: 12, color: _muted),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+      );
 }
 
-// ─── Card Dashboard Nutritionist ─────────────────────────────────────────────
 class _DashboardCard extends StatelessWidget {
   final SubmissionModel item;
   final bool needsFill;
-
   const _DashboardCard({required this.item, required this.needsFill});
 
   static const _teal = Color(0xFF00897B);
@@ -295,7 +333,6 @@ class _DashboardCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = needsFill ? const Color(0xFFFF8F00) : _teal;
-
     return GestureDetector(
       onTap:
           () => showModalBottomSheet(
@@ -304,7 +341,7 @@ class _DashboardCard extends StatelessWidget {
             backgroundColor: Colors.transparent,
             builder:
                 (_) => ChangeNotifierProvider.value(
-                  value: context.read<NutriSubmissionController>(),
+                  value: context.read<SubmissionController>(),
                   child: NutriFillSheet(item: item),
                 ),
           ),
@@ -324,7 +361,6 @@ class _DashboardCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Avatar huruf pertama
             Container(
               width: 50,
               height: 50,
@@ -344,8 +380,6 @@ class _DashboardCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 14),
-
-            // Info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -408,8 +442,6 @@ class _DashboardCard extends StatelessWidget {
                 ],
               ),
             ),
-
-            // Action icon
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(

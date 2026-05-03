@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../general/submission/submission_model.dart';
-import '../submission/nutri_submission_controller.dart';
+import '../../general/submission/submission_controller.dart';
 import '../widgets/nutri_fill_sheet.dart';
 
+/// Halaman "Isi Nutrisi" dengan dua tab (Perlu Diisi / Selesai) + pagination
 class NutriSubmissionView extends StatefulWidget {
   const NutriSubmissionView({super.key});
 
@@ -17,17 +18,29 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
   static const _dark = Color(0xFF1A2E2C);
   static const _muted = Color(0xFF5A7A78);
   static const _bg = Color(0xFFF0FAF9);
+  static const _pageSize = 5;
 
   late TabController _tabCtrl;
   final _searchCtrl = TextEditingController();
   String _query = '';
 
+  // Pagination state per tab
+  int _pagePending = 1;
+  int _pageDone = 1;
+
   @override
   void initState() {
     super.initState();
     _tabCtrl = TabController(length: 2, vsync: this);
+    _tabCtrl.addListener(() {
+      if (!_tabCtrl.indexIsChanging) setState(() {});
+    });
     _searchCtrl.addListener(() {
-      setState(() => _query = _searchCtrl.text.toLowerCase());
+      setState(() {
+        _query = _searchCtrl.text.toLowerCase();
+        _pagePending = 1;
+        _pageDone = 1;
+      });
     });
   }
 
@@ -40,16 +53,23 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
 
   @override
   Widget build(BuildContext context) {
-    final ctrl = context.watch<NutriSubmissionController>();
+    final ctrl = context.watch<SubmissionController>();
 
-    final belumDiisi =
-        ctrl.belumDiisi
-            .where((s) => s.foodName.toLowerCase().contains(_query))
+    final allPending =
+        ctrl.approvedNeedsFill
+            .where(
+              (s) =>
+                  s.foodName.toLowerCase().contains(_query) ||
+                  s.userName.toLowerCase().contains(_query),
+            )
             .toList();
-
-    final sudahDiisi =
-        ctrl.sudahDiisi
-            .where((s) => s.foodName.toLowerCase().contains(_query))
+    final allDone =
+        ctrl.approvedFilled
+            .where(
+              (s) =>
+                  s.foodName.toLowerCase().contains(_query) ||
+                  s.userName.toLowerCase().contains(_query),
+            )
             .toList();
 
     return Scaffold(
@@ -83,7 +103,7 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  '${ctrl.all.length} total',
+                  '${ctrl.approved.length} total',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -95,12 +115,12 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
           ),
         ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(100),
+          preferredSize: const Size.fromHeight(108),
           child: Column(
             children: [
-              // ── Info bar: dari admin ──────────────────────────────────
+              // Info bar
               Container(
-                margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                margin: const EdgeInsets.fromLTRB(16, 0, 16, 6),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 7,
@@ -130,13 +150,13 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
                   ],
                 ),
               ),
-              // ── Search bar ─────────────────────────────────────────────
+              // Search
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
                 child: Container(
                   height: 40,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF0FAF9),
+                    color: _bg,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: _teal.withValues(alpha: 0.2)),
                   ),
@@ -144,7 +164,7 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
                     controller: _searchCtrl,
                     style: const TextStyle(fontSize: 13),
                     decoration: InputDecoration(
-                      hintText: 'Cari nama makanan...',
+                      hintText: 'Cari makanan atau pengaju...',
                       hintStyle: const TextStyle(fontSize: 13, color: _muted),
                       prefixIcon: const Icon(
                         Icons.search_rounded,
@@ -163,7 +183,11 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
                                 ),
                                 onPressed: () {
                                   _searchCtrl.clear();
-                                  setState(() => _query = '');
+                                  setState(() {
+                                    _query = '';
+                                    _pagePending = 1;
+                                    _pageDone = 1;
+                                  });
                                 },
                               )
                               : null,
@@ -171,11 +195,13 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
                   ),
                 ),
               ),
-              // ── Tab bar ────────────────────────────────────────────────
+              // Tab bar
               TabBar(
                 controller: _tabCtrl,
                 labelColor: _teal,
                 unselectedLabelColor: _muted,
+                indicatorColor: _teal,
+                indicatorWeight: 3,
                 labelStyle: const TextStyle(
                   fontWeight: FontWeight.w700,
                   fontSize: 13,
@@ -183,29 +209,15 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
                 unselectedLabelStyle: const TextStyle(
                   fontWeight: FontWeight.w500,
                 ),
-                indicatorColor: _teal,
-                indicatorWeight: 3,
                 tabs: [
                   Tab(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.pending_actions_rounded, size: 16),
-                        const SizedBox(width: 6),
-                        Text('Perlu Diisi (${belumDiisi.length})'),
-                      ],
+                    child: _tabChip(
+                      'Perlu Diisi',
+                      allPending.length,
+                      const Color(0xFFFF8F00),
                     ),
                   ),
-                  Tab(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.check_circle_rounded, size: 16),
-                        const SizedBox(width: 6),
-                        Text('Selesai (${sudahDiisi.length})'),
-                      ],
-                    ),
-                  ),
+                  Tab(child: _tabChip('Selesai', allDone.length, _teal)),
                 ],
               ),
             ],
@@ -215,14 +227,77 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
       body: TabBarView(
         controller: _tabCtrl,
         children: [
-          _buildList(belumDiisi, needsFill: true),
-          _buildList(sudahDiisi, needsFill: false),
+          _PaginatedList(
+            key: ValueKey('pending_${_query}_$_pagePending'),
+            items: allPending,
+            needsFill: true,
+            page: _pagePending,
+            pageSize: _pageSize,
+            onPageChanged: (p) => setState(() => _pagePending = p),
+          ),
+          _PaginatedList(
+            key: ValueKey('done_${_query}_$_pageDone'),
+            items: allDone,
+            needsFill: false,
+            page: _pageDone,
+            pageSize: _pageSize,
+            onPageChanged: (p) => setState(() => _pageDone = p),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildList(List<SubmissionModel> items, {required bool needsFill}) {
+  Widget _tabChip(String label, int count, Color color) => Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      Text(label),
+      const SizedBox(width: 6),
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+        decoration: BoxDecoration(
+          color:
+              count > 0
+                  ? color.withValues(alpha: 0.15)
+                  : Colors.grey.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          '$count',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            color: count > 0 ? color : _muted,
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
+// ─── Paginated List Widget ────────────────────────────────────────────────────
+class _PaginatedList extends StatelessWidget {
+  final List<SubmissionModel> items;
+  final bool needsFill;
+  final int page;
+  final int pageSize;
+  final ValueChanged<int> onPageChanged;
+
+  static const _teal = Color(0xFF00897B);
+  static const _dark = Color(0xFF1A2E2C);
+  static const _muted = Color(0xFF5A7A78);
+
+  const _PaginatedList({
+    super.key,
+    required this.items,
+    required this.needsFill,
+    required this.page,
+    required this.pageSize,
+    required this.onPageChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     if (items.isEmpty) {
       return Center(
         child: Column(
@@ -242,11 +317,11 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
                 color: _teal,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             Text(
               needsFill ? 'Semua sudah terisi! 🎉' : 'Belum ada yang selesai',
               style: const TextStyle(
-                fontSize: 16,
+                fontSize: 15,
                 fontWeight: FontWeight.w700,
                 color: _dark,
               ),
@@ -254,8 +329,8 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
             const SizedBox(height: 6),
             Text(
               needsFill
-                  ? 'Tidak ada pengajuan yang perlu dilengkapi'
-                  : 'Data nutrisi yang sudah diisi akan muncul di sini',
+                  ? 'Tidak ada yang perlu dilengkapi saat ini'
+                  : 'Data nutrisi yang diisi akan muncul di sini',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 13, color: _muted),
             ),
@@ -264,34 +339,178 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-      itemCount: items.length,
-      itemBuilder:
-          (_, i) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _NutriSubmissionCard(item: items[i], needsFill: needsFill),
+    final totalPages = (items.length / pageSize).ceil();
+    final safePage = page.clamp(1, totalPages);
+    final start = (safePage - 1) * pageSize;
+    final end = (start + pageSize).clamp(0, items.length);
+    final pageItems = items.sublist(start, end);
+
+    return Column(
+      children: [
+        // List
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            itemCount: pageItems.length,
+            itemBuilder:
+                (ctx, i) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _NutriCard(item: pageItems[i], needsFill: needsFill),
+                ),
           ),
+        ),
+
+        // ── Pagination bar ──────────────────────────────────────────────────
+        Container(
+          color: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          child: Row(
+            children: [
+              // Info
+              Expanded(
+                child: Text(
+                  'Hal. $safePage dari $totalPages  (${items.length} item)',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: _muted,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              // Prev
+              _PageBtn(
+                icon: Icons.chevron_left_rounded,
+                enabled: safePage > 1,
+                onTap: () => onPageChanged(safePage - 1),
+              ),
+              const SizedBox(width: 4),
+              // Page numbers
+              ..._buildPageNumbers(safePage, totalPages),
+              const SizedBox(width: 4),
+              // Next
+              _PageBtn(
+                icon: Icons.chevron_right_rounded,
+                enabled: safePage < totalPages,
+                onTap: () => onPageChanged(safePage + 1),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _buildPageNumbers(int current, int total) {
+    // Tampilkan maks 5 nomor halaman
+    final List<int> pages = [];
+    if (total <= 5) {
+      pages.addAll(List.generate(total, (i) => i + 1));
+    } else {
+      if (current <= 3) {
+        pages.addAll([1, 2, 3, 4, 5]);
+      } else if (current >= total - 2) {
+        pages.addAll([total - 4, total - 3, total - 2, total - 1, total]);
+      } else {
+        pages.addAll([
+          current - 2,
+          current - 1,
+          current,
+          current + 1,
+          current + 2,
+        ]);
+      }
+    }
+
+    return pages
+        .map(
+          (p) => Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: GestureDetector(
+              onTap: () => onPageChanged(p),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: p == current ? _teal : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: p == current ? _teal : const Color(0xFFD0E8E5),
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    '$p',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: p == current ? Colors.white : _muted,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        )
+        .toList();
+  }
+}
+
+class _PageBtn extends StatelessWidget {
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  const _PageBtn({
+    required this.icon,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  static const _teal = Color(0xFF00897B);
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: Container(
+        width: 30,
+        height: 30,
+        decoration: BoxDecoration(
+          color:
+              enabled
+                  ? _teal.withValues(alpha: 0.08)
+                  : Colors.grey.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color:
+                enabled
+                    ? const Color(0xFFD0E8E5)
+                    : Colors.grey.withValues(alpha: 0.15),
+          ),
+        ),
+        child: Icon(icon, size: 18, color: enabled ? _teal : Colors.grey[400]),
+      ),
     );
   }
 }
 
-// ─── Card Submission untuk Nutritionist ──────────────────────────────────────
-class _NutriSubmissionCard extends StatelessWidget {
+// ─── Card per item ────────────────────────────────────────────────────────────
+class _NutriCard extends StatelessWidget {
   final SubmissionModel item;
   final bool needsFill;
 
-  const _NutriSubmissionCard({required this.item, required this.needsFill});
+  const _NutriCard({required this.item, required this.needsFill});
 
   static const _teal = Color(0xFF00897B);
   static const _dark = Color(0xFF1A2E2C);
   static const _muted = Color(0xFF5A7A78);
 
   String _timeAgo(DateTime dt) {
-    final diff = DateTime.now().difference(dt);
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m lalu';
-    if (diff.inHours < 24) return '${diff.inHours}j lalu';
-    return '${diff.inDays}h lalu';
+    final d = DateTime.now().difference(dt);
+    if (d.inMinutes < 60) return '${d.inMinutes}m lalu';
+    if (d.inHours < 24) return '${d.inHours}j lalu';
+    return '${d.inDays}h lalu';
   }
 
   @override
@@ -306,7 +525,7 @@ class _NutriSubmissionCard extends StatelessWidget {
             backgroundColor: Colors.transparent,
             builder:
                 (_) => ChangeNotifierProvider.value(
-                  value: context.read<NutriSubmissionController>(),
+                  value: context.read<SubmissionController>(),
                   child: NutriFillSheet(item: item),
                 ),
           ),
@@ -349,8 +568,6 @@ class _NutriSubmissionCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-
-                // Info
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -371,8 +588,6 @@ class _NutriSubmissionCard extends StatelessWidget {
                     ],
                   ),
                 ),
-
-                // Badge
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
@@ -401,18 +616,18 @@ class _NutriSubmissionCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _macroCol('Kalori', '${item.calories!.toInt()} kkal', _teal),
-                  _macroCol(
+                  _macro('Kalori', '${item.calories!.toInt()} kkal', _teal),
+                  _macro(
                     'Protein',
                     '${item.protein!.toStringAsFixed(1)}g',
                     const Color(0xFFE53935),
                   ),
-                  _macroCol(
+                  _macro(
                     'Karbo',
                     '${item.carbs!.toStringAsFixed(1)}g',
                     const Color(0xFFF59E0B),
                   ),
-                  _macroCol(
+                  _macro(
                     'Lemak',
                     '${item.fat!.toStringAsFixed(1)}g',
                     const Color(0xFF1E88E5),
@@ -420,7 +635,7 @@ class _NutriSubmissionCard extends StatelessWidget {
                 ],
               ),
               if (item.nutriNote != null && item.nutriNote!.isNotEmpty) ...[
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
@@ -453,12 +668,7 @@ class _NutriSubmissionCard extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      const Color(0xFF00897B).withValues(alpha: 0.08),
-                      const Color(0xFF00897B).withValues(alpha: 0.04),
-                    ],
-                  ),
+                  color: _teal.withValues(alpha: 0.06),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Row(
@@ -484,7 +694,7 @@ class _NutriSubmissionCard extends StatelessWidget {
     );
   }
 
-  Widget _macroCol(String label, String value, Color color) => Column(
+  Widget _macro(String label, String value, Color color) => Column(
     children: [
       Text(
         value,
