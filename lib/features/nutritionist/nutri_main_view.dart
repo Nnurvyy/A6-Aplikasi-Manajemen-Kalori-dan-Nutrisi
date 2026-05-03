@@ -16,7 +16,7 @@ class NutriMainView extends StatefulWidget {
 
 class _NutriMainViewState extends State<NutriMainView> {
   int _currentIndex = 0;
-  static const _teal = Color(0xFF00897B);
+  static const _teal = Color(0xFF2E7D32);
 
   // SubmissionController sudah di-provide dari main.dart (global)
   static const _pages = [
@@ -106,10 +106,10 @@ class _NutriMainViewState extends State<NutriMainView> {
 class _NutriProfileView extends StatelessWidget {
   const _NutriProfileView();
 
-  static const _teal = Color(0xFF00897B);
-  static const _dark = Color(0xFF1A2E2C);
-  static const _muted = Color(0xFF5A7A78);
-  static const _bg = Color(0xFFF0FAF9);
+  static const _teal = Color(0xFF2E7D32);
+  static const _dark = Color(0xFF1A2E22);
+  static const _muted = Color(0xFF7A9485);
+  static const _bg = Color(0xFFF4FAF6);
 
   @override
   Widget build(BuildContext context) {
@@ -131,9 +131,9 @@ class _NutriProfileView extends StatelessWidget {
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      Color(0xFF00695C),
-                      Color(0xFF00897B),
-                      Color(0xFF26A69A),
+                      Color(0xFF1B5E20),
+                      Color(0xFF2E7D32),
+                      Color(0xFF388E3C),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -417,7 +417,7 @@ class _NutriProfileView extends StatelessWidget {
                 onPressed: () => Navigator.pop(ctx),
                 child: const Text(
                   'Batal',
-                  style: TextStyle(color: Color(0xFF5A7A78)),
+                  style: TextStyle(color: Color(0xFF7A9485)),
                 ),
               ),
               ElevatedButton(
