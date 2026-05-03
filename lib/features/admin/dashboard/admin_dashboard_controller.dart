@@ -13,6 +13,17 @@ class AdminDashboardController extends GetxController {
 
   final allSubmissions = <Map<String, dynamic>>[].obs;
 
+  //int get totalPengguna => 1245; //data dummy
+
+  int get totalPengguna {
+    // Mengambil nama author, lalu toSet() agar nama yang sama tidak dihitung dobel
+    return allSubmissions.map((item) => item['author']).toSet().length;
+  }
+  int get totalPengajuan => allSubmissions.length;
+  int get totalMenunggu => allSubmissions.where((item) => item['status'] == 'Menunggu').length;
+  int get totalDitolak => allSubmissions.where((item) => item['status'] == 'Ditolak').length;
+
+
   @override
   void onInit() {
     super.onInit();
@@ -43,6 +54,9 @@ class AdminDashboardController extends GetxController {
     ];
   }
 
+  List<Map<String, dynamic>> getSubmissionsByStatus(String status) {
+    return allSubmissions.where((item) => item['status'] == status).toList();
+  }
   
   void changeDate(DateTime date) {
     selectedDate.value = date;
