@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import '../../general/submission/submission_hive_model.dart'; 
 
 class AdminDashboardController extends GetxController {
   
@@ -13,51 +15,76 @@ class AdminDashboardController extends GetxController {
 
   final allSubmissions = <Map<String, dynamic>>[].obs;
 
-  //int get totalPengguna => 1245; //data dummy
-
-  int get totalPengguna {
-    // Mengambil nama author, lalu toSet() agar nama yang sama tidak dihitung dobel
-    return allSubmissions.map((item) => item['author']).toSet().length;
-  }
-  int get totalPengajuan => allSubmissions.length;
-  int get totalMenunggu => allSubmissions.where((item) => item['status'] == 'Menunggu').length;
-  int get totalDitolak => allSubmissions.where((item) => item['status'] == 'Ditolak').length;
-
-
   @override
   void onInit() {
     super.onInit();
     _initDates();
-    _loadDataPengajuan(); 
+    _loadDataAsli(); 
   }
 
   void _initDates() {
     DateTime now = DateTime.now();
     DateTime normalizedToday = DateTime(now.year, now.month, now.day);
-    
     today.value = normalizedToday;
     selectedDate.value = normalizedToday;
-    
     weekDates.value = List.generate(7, (index) => normalizedToday.add(Duration(days: index - 3)));
   }
 
-  void _loadDataPengajuan() {
-    allSubmissions.value = [
-      {'id': 1, 'name': 'Seblak Kuah Pedas', 'author': 'Budi Santoso', 'status': 'Menunggu', 'color': Colors.orange, 'bgColor': Colors.orange.shade100, 'icon': '🍲', 'date': today.value},
-      {'id': 2, 'name': 'Kopi Susu Gula Aren', 'author': 'Rina Purna', 'status': 'Diteruskan', 'color': const Color(0xFF2E7D32), 'bgColor': Colors.green.shade100, 'icon': '🥤', 'date': today.value},
-      {'id': 3, 'name': 'Ayam Geprek Nelongso', 'author': 'Siti Aminah', 'status': 'Ditolak', 'color': Colors.red, 'bgColor': Colors.red.shade100, 'icon': '🍗', 'date': today.value},
-      {'id': 4, 'name': 'Salad Buah Premium', 'author': 'Kevin Jaya', 'status': 'Menunggu', 'color': Colors.orange, 'bgColor': Colors.orange.shade100, 'icon': '🥗', 'date': today.value},
-      {'id': 5, 'name': 'Jus Alpukat Lumer', 'author': 'Dewi Lestari', 'status': 'Menunggu', 'color': Colors.orange, 'bgColor': Colors.orange.shade100, 'icon': '🥑', 'date': today.value},
-      {'id': 6, 'name': 'Nasi Goreng Spesial', 'author': 'Ahmad M', 'status': 'Diteruskan', 'color': const Color(0xFF2E7D32), 'bgColor': Colors.green.shade100, 'icon': '🍛', 'date': today.value},
-      {'id': 7, 'name': 'Mie Tek-Tek Abang', 'author': 'Joko Anwar', 'status': 'Ditolak', 'color': Colors.red, 'bgColor': Colors.red.shade100, 'icon': '🍜', 'date': today.value.subtract(const Duration(days: 1))},
-      {'id': 8, 'name': 'Es Teh Manis Jumbo', 'author': 'Siskaeee', 'status': 'Menunggu', 'color': Colors.orange, 'bgColor': Colors.orange.shade100, 'icon': '🍹', 'date': today.value.add(const Duration(days: 1))},
-    ];
+  void _loadDataAsli() {
+    try {
+      
+      final box = Hive.box<SubmissionHiveModel>('submissions');
+      
+      final data = box.values.map((item) {
+        String rawStatus = item.status.toString().toLowerCase();
+        String statusStr = 'Menunggu';
+        Color statusColor = Colors.orange;
+        Color bgColor = Colors.orange.shade50;
+
+        if (rawStatus.contains('approved') || rawStatus.contains('diterima')) {
+          statusStr = 'Diterima';
+          statusColor = const Color(0xFF2E7D32);
+          bgColor = Colors.green.shade50;
+        } else if (rawStatus.contains('canceled') || rawStatus.contains('rejected') || rawStatus.contains('ditolak')) {
+          statusStr = 'Ditolak';
+          statusColor = Colors.red;
+          bgColor = Colors.red.shade50;
+        }
+
+        return {
+          'id': item.id,
+          'name': item.foodName,                               
+          'author': item.userName,                             
+          'status': statusStr,                                 
+          'color': statusColor,
+          'bgColor': bgColor,
+          'icon': '🍲',                                        
+          'date': item.createdAt,                              
+          'calories': item.calories != null ? '${item.calories} kkal' : '-', 
+          'notes': item.reviewNote ?? item.nutriNote ?? '-',   
+        };
+      }).toList();
+
+      allSubmissions.value = data;
+
+    } catch (e) {
+      debugPrint("Gagal load data dari Hive: $e");
+    }
+  }
+
+  int get totalPengajuan => allSubmissions.length;
+  int get totalMenunggu => allSubmissions.where((item) => item['status'] == 'Menunggu').length;
+  int get totalDitolak => allSubmissions.where((item) => item['status'] == 'Ditolak').length;
+  
+  int get totalPengguna {
+    
+    return allSubmissions.map((item) => item['author']).toSet().length;
   }
 
   List<Map<String, dynamic>> getSubmissionsByStatus(String status) {
     return allSubmissions.where((item) => item['status'] == status).toList();
   }
-  
+
   void changeDate(DateTime date) {
     selectedDate.value = date;
     isPaginatedView.value = false;
