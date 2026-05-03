@@ -25,6 +25,63 @@ class _NutriMainViewState extends State<NutriMainView> {
     _NutriProfileView(),
   ];
 
+  Widget _navBtn(
+    BuildContext ctx,
+    IconData icon,
+    String label,
+    int index, {
+    bool badge = false,
+  }) {
+    final isActive = _currentIndex == index;
+    return Expanded(
+      child: InkWell(
+        onTap: () => setState(() => _currentIndex = index),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Icon(
+                    icon,
+                    color: isActive ? Colors.white : Colors.white54,
+                    size: isActive ? 24 : 22,
+                  ),
+                  if (badge)
+                    Positioned(
+                      right: -4,
+                      top: -4,
+                      child: Container(
+                        width: 9,
+                        height: 9,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFFB300),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 3),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                  color: isActive ? Colors.white : Colors.white54,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthController>().currentUser;
@@ -32,68 +89,28 @@ class _NutriMainViewState extends State<NutriMainView> {
 
     return Scaffold(
       body: _pages[_currentIndex],
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 20,
-              offset: const Offset(0, -4),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          child: BottomNavigationBar(
-            currentIndex: _currentIndex,
-            onTap: (i) => setState(() => _currentIndex = i),
-            backgroundColor: Colors.white,
-            selectedItemColor: _teal,
-            unselectedItemColor: const Color(0xFFB0BEC5),
-            selectedLabelStyle: const TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 12,
-            ),
-            unselectedLabelStyle: const TextStyle(
-              fontWeight: FontWeight.w500,
-              fontSize: 11,
-            ),
-            type: BottomNavigationBarType.fixed,
-            elevation: 0,
-            items: [
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.dashboard_rounded),
-                label: 'Dashboard',
-              ),
-              BottomNavigationBarItem(
-                icon: Stack(
-                  children: [
-                    const Icon(Icons.assignment_rounded),
-                    // Badge jumlah yang perlu diisi
-                    if (context
+      bottomNavigationBar: BottomAppBar(
+        color: _teal,
+        shape: const CircularNotchedRectangle(),
+        notchMargin: 0,
+        child: SizedBox(
+          height: 60,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _navBtn(context, Icons.dashboard_rounded, 'Dashboard', 0),
+              _navBtn(
+                context,
+                Icons.assignment_rounded,
+                'Isi Nutrisi',
+                1,
+                badge:
+                    context
                         .watch<SubmissionController>()
                         .approvedNeedsFill
-                        .isNotEmpty)
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        child: Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFFF8F00),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                label: 'Isi Nutrisi',
+                        .isNotEmpty,
               ),
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.person_rounded),
-                label: 'Profil',
-              ),
+              _navBtn(context, Icons.person_rounded, 'Profil', 2),
             ],
           ),
         ),
@@ -424,6 +441,12 @@ class _NutriProfileView extends StatelessWidget {
                 onPressed: () async {
                   Navigator.pop(ctx);
                   await authCtrl.logout();
+                  if (context.mounted) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (_) => const LoginView()),
+                      (_) => false,
+                    );
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFE53935),
