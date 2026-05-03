@@ -22,7 +22,12 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
   final _searchCtrl = TextEditingController();
   String _query = '';
 
-  // Alasan penolakan yang sudah tersedia (quick select)
+  // ── Pagination ──────────────────────────────────────────────────────────
+  static const _pageSize = 5;
+  int _pendingPage = 0;
+  int _approvedPage = 0;
+  int _canceledPage = 0;
+
   static const _rejectReasons = [
     'Foto tidak jelas / buram',
     'Foto bukan makanan',
@@ -37,8 +42,22 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
   void initState() {
     super.initState();
     _tabCtrl = TabController(length: 3, vsync: this);
+    _tabCtrl.addListener(() {
+      if (_tabCtrl.indexIsChanging) {
+        setState(() {
+          _pendingPage = 0;
+          _approvedPage = 0;
+          _canceledPage = 0;
+        });
+      }
+    });
     _searchCtrl.addListener(
-      () => setState(() => _query = _searchCtrl.text.toLowerCase()),
+      () => setState(() {
+        _query = _searchCtrl.text.toLowerCase();
+        _pendingPage = 0;
+        _approvedPage = 0;
+        _canceledPage = 0;
+      }),
     );
   }
 
@@ -49,11 +68,175 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
     super.dispose();
   }
 
-  // ── Image viewer fullscreen ──────────────────────────────────────────────
   void _showImageViewer(BuildContext ctx, String imagePath) {
     if (imagePath.isEmpty) return;
     Navigator.of(ctx).push(
       MaterialPageRoute(builder: (_) => _ImageViewerPage(imagePath: imagePath)),
+    );
+  }
+
+  // ── Dialog info pengaju (klik baris pengaju) ─────────────────────────────
+  void _showSubmitterInfo(BuildContext ctx, SubmissionModel item) {
+    showDialog(
+      context: ctx,
+      builder:
+          (_) => Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: _green.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.person_rounded,
+                          color: _green,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Info Pengaju',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: _dark,
+                              ),
+                            ),
+                            Text(
+                              item.foodName,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: _muted,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        icon: const Icon(Icons.close_rounded, color: _muted),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(color: Color(0xFFEEEEEE)),
+                  const SizedBox(height: 14),
+                  _infoRow(
+                    Icons.person_outline_rounded,
+                    'Nama Pengaju',
+                    item.userName,
+                  ),
+                  const SizedBox(height: 10),
+                  _infoRow(
+                    Icons.fastfood_rounded,
+                    'Nama Makanan',
+                    item.foodName,
+                  ),
+                  const SizedBox(height: 10),
+                  _infoRow(
+                    Icons.calendar_today_rounded,
+                    'Tanggal Pengajuan',
+                    _formatDateFull(item.createdAt),
+                  ),
+                  const SizedBox(height: 10),
+                  _infoRow(
+                    Icons.access_time_rounded,
+                    'Waktu Pengajuan',
+                    _formatTime(item.createdAt),
+                  ),
+                  const SizedBox(height: 10),
+                  _infoRow(
+                    Icons.info_outline_rounded,
+                    'Status',
+                    _statusLabel(item.status),
+                    valueColor: _statusColor(item.status),
+                  ),
+                  if (item.status == SubmissionStatus.canceled &&
+                      item.reviewNote != null &&
+                      item.reviewNote!.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    _infoRow(
+                      Icons.cancel_outlined,
+                      'Alasan Ditolak',
+                      item.reviewNote!,
+                      valueColor: Colors.red[700],
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: TextButton.styleFrom(
+                        backgroundColor: const Color(0xFFF4FAF6),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text(
+                        'Tutup',
+                        style: TextStyle(
+                          color: _muted,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+    );
+  }
+
+  Widget _infoRow(
+    IconData icon,
+    String label,
+    String value, {
+    Color? valueColor,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 16, color: _muted),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(fontSize: 11, color: _muted)),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: valueColor ?? _dark,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -65,7 +248,7 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
   ) {
     final noteCtrl = TextEditingController(text: item.reviewNote ?? '');
     final isApprove = action == SubmissionStatus.approved;
-    String? _selectedReason;
+    String? selectedReason;
 
     showModalBottomSheet(
       context: ctx,
@@ -91,7 +274,6 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Handle
                           Center(
                             child: Container(
                               width: 40,
@@ -103,8 +285,6 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
                             ),
                           ),
                           const SizedBox(height: 20),
-
-                          // Icon + judul
                           Row(
                             children: [
                               Container(
@@ -155,7 +335,7 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
                           ),
                           const SizedBox(height: 16),
 
-                          // Foto pengajuan (preview di sheet)
+                          // Foto di review sheet
                           if (item.imagePath.isNotEmpty) ...[
                             const Text(
                               'Foto yang diajukan',
@@ -182,7 +362,7 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
                                         File(item.imagePath),
                                         fit: BoxFit.cover,
                                         errorBuilder:
-                                            (_, __, ___) => _imgError(),
+                                            (_, __, ___) => _imgErrBox(160),
                                       ),
                                     ),
                                     Positioned(
@@ -225,9 +405,40 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
                               ),
                             ),
                             const SizedBox(height: 16),
+                          ] else ...[
+                            Container(
+                              width: double.infinity,
+                              height: 64,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF4FAF6),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: const Color(0xFFD5EDE0),
+                                ),
+                              ),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.image_not_supported_rounded,
+                                    color: Color(0xFFB0BEC5),
+                                    size: 18,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Tidak ada foto dalam pengajuan ini',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFFB0BEC5),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
                           ],
 
-                          // Info pengaju
+                          // Info pengaju dengan waktu lengkap
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
@@ -237,54 +448,77 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
                                 color: const Color(0xFFD5EDE0),
                               ),
                             ),
-                            child: Row(
+                            child: Column(
                               children: [
-                                const Icon(
-                                  Icons.person_rounded,
-                                  size: 16,
-                                  color: _muted,
-                                ),
-                                const SizedBox(width: 8),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                Row(
                                   children: [
-                                    const Text(
-                                      'Diajukan oleh',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: _muted,
-                                      ),
+                                    const Icon(
+                                      Icons.person_rounded,
+                                      size: 16,
+                                      color: _muted,
                                     ),
-                                    Text(
-                                      item.userName,
-                                      style: const TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w700,
-                                        color: _dark,
-                                      ),
+                                    const SizedBox(width: 8),
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'Diajukan oleh',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: _muted,
+                                          ),
+                                        ),
+                                        Text(
+                                          item.userName,
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                            color: _dark,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
-                                const Spacer(),
-                                const Icon(
-                                  Icons.calendar_today_rounded,
-                                  size: 14,
-                                  color: _muted,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  _formatDate(item.createdAt),
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: _muted,
-                                  ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.calendar_today_rounded,
+                                      size: 14,
+                                      color: _muted,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'Tanggal & Waktu',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: _muted,
+                                          ),
+                                        ),
+                                        Text(
+                                          '${_formatDateFull(item.createdAt)}, ${_formatTime(item.createdAt)}',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: _dark,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
                           ),
                           const SizedBox(height: 16),
 
-                          // Quick-select alasan (hanya untuk tolak)
+                          // Quick-select alasan tolak
                           if (!isApprove) ...[
                             const Text(
                               'Alasan penolakan',
@@ -300,19 +534,18 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
                               runSpacing: 6,
                               children:
                                   _rejectReasons.map((reason) {
-                                    final selected = _selectedReason == reason;
+                                    final selected = selectedReason == reason;
                                     return GestureDetector(
-                                      onTap: () {
-                                        setSheetState(() {
-                                          _selectedReason =
-                                              selected ? null : reason;
-                                          if (!selected) {
-                                            noteCtrl.text = reason;
-                                          } else {
-                                            noteCtrl.clear();
-                                          }
-                                        });
-                                      },
+                                      onTap:
+                                          () => setSheetState(() {
+                                            selectedReason =
+                                                selected ? null : reason;
+                                            if (!selected) {
+                                              noteCtrl.text = reason;
+                                            } else {
+                                              noteCtrl.clear();
+                                            }
+                                          }),
                                       child: AnimatedContainer(
                                         duration: const Duration(
                                           milliseconds: 150,
@@ -369,7 +602,6 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
                             const SizedBox(height: 6),
                           ],
 
-                          // Catatan (approve: opsional; reject: sudah ada quick select)
                           if (isApprove)
                             const Text(
                               'Catatan untuk ahli gizi (opsional)',
@@ -418,8 +650,6 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
                             ),
                           ),
                           const SizedBox(height: 20),
-
-                          // Tombol konfirmasi
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
@@ -499,9 +729,9 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
     );
   }
 
-  Widget _imgError() => Container(
+  Widget _imgErrBox(double h) => Container(
     width: double.infinity,
-    height: 160,
+    height: h,
     color: const Color(0xFFF4FAF6),
     child: const Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -516,31 +746,77 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
     ),
   );
 
-  String _formatDate(DateTime dt) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'Mei',
-      'Jun',
-      'Jul',
-      'Ags',
-      'Sep',
-      'Okt',
-      'Nov',
-      'Des',
-    ];
-    return '${dt.day} ${months[dt.month - 1]}';
+  // ── Format helpers ────────────────────────────────────────────────────────
+  static const _monthsFull = [
+    'Januari',
+    'Februari',
+    'Maret',
+    'April',
+    'Mei',
+    'Juni',
+    'Juli',
+    'Agustus',
+    'September',
+    'Oktober',
+    'November',
+    'Desember',
+  ];
+  static const _monthsShort = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'Mei',
+    'Jun',
+    'Jul',
+    'Ags',
+    'Sep',
+    'Okt',
+    'Nov',
+    'Des',
+  ];
+
+  String _formatDateFull(DateTime dt) =>
+      '${dt.day} ${_monthsFull[dt.month - 1]} ${dt.year}';
+  String _formatDateShort(DateTime dt) =>
+      '${dt.day} ${_monthsShort[dt.month - 1]} ${dt.year}';
+  String _formatTime(DateTime dt) {
+    final h = dt.hour.toString().padLeft(2, '0');
+    final m = dt.minute.toString().padLeft(2, '0');
+    return '$h:$m WIB';
   }
 
   String _timeAgo(DateTime dt) {
     final d = DateTime.now().difference(dt);
-    if (d.inMinutes < 60) return '${d.inMinutes}m lalu';
-    if (d.inHours < 24) return '${d.inHours}j lalu';
-    return '${d.inDays}h lalu';
+    if (d.inMinutes < 1) return 'Baru saja';
+    if (d.inMinutes < 60) return '${d.inMinutes} menit lalu';
+    if (d.inHours < 24) return '${d.inHours} jam lalu';
+    return '${d.inDays} hari lalu';
   }
 
+  String _statusLabel(SubmissionStatus s) {
+    switch (s) {
+      case SubmissionStatus.pending:
+        return 'Menunggu Review';
+      case SubmissionStatus.approved:
+        return 'Diterima';
+      case SubmissionStatus.canceled:
+        return 'Ditolak';
+    }
+  }
+
+  Color _statusColor(SubmissionStatus s) {
+    switch (s) {
+      case SubmissionStatus.pending:
+        return Colors.orange;
+      case SubmissionStatus.approved:
+        return _green;
+      case SubmissionStatus.canceled:
+        return Colors.red;
+    }
+  }
+
+  // ── Build ─────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final ctrl = context.watch<SubmissionController>();
@@ -607,7 +883,6 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
           preferredSize: const Size.fromHeight(96),
           child: Column(
             children: [
-              // Search bar
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                 child: Container(
@@ -648,7 +923,6 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
                   ),
                 ),
               ),
-              // Tab bar
               TabBar(
                 controller: _tabCtrl,
                 labelColor: _green,
@@ -678,14 +952,29 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
       body: TabBarView(
         controller: _tabCtrl,
         children: [
-          _buildList(context, pending, showActions: true),
-          _buildList(
+          _buildPaginatedList(
+            context,
+            pending,
+            showActions: true,
+            currentPage: _pendingPage,
+            onPageChanged: (p) => setState(() => _pendingPage = p),
+          ),
+          _buildPaginatedList(
             context,
             approved,
             showActions: false,
             showNutriStatus: true,
+            currentPage: _approvedPage,
+            onPageChanged: (p) => setState(() => _approvedPage = p),
           ),
-          _buildList(context, canceled, showActions: false),
+          _buildPaginatedList(
+            context,
+            canceled,
+            showActions: false,
+            showRejectionReason: true,
+            currentPage: _canceledPage,
+            onPageChanged: (p) => setState(() => _canceledPage = p),
+          ),
         ],
       ),
     );
@@ -717,11 +1006,15 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
     ],
   );
 
-  Widget _buildList(
+  // ── Paginated list ────────────────────────────────────────────────────────
+  Widget _buildPaginatedList(
     BuildContext context,
     List<SubmissionModel> items, {
     required bool showActions,
     bool showNutriStatus = false,
+    bool showRejectionReason = false,
+    required int currentPage,
+    required ValueChanged<int> onPageChanged,
   }) {
     if (items.isEmpty) {
       return Center(
@@ -761,39 +1054,140 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-      itemCount: items.length,
-      itemBuilder:
-          (ctx, i) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _SubmissionCard(
-              item: items[i],
-              showActions: showActions,
-              showNutriStatus: showNutriStatus,
-              timeAgo: _timeAgo(items[i].createdAt),
-              onViewImage:
-                  items[i].imagePath.isNotEmpty
-                      ? () => _showImageViewer(ctx, items[i].imagePath)
-                      : null,
-              onApprove:
-                  showActions
-                      ? () => _showReviewSheet(
-                        ctx,
-                        items[i],
-                        SubmissionStatus.approved,
-                      )
-                      : null,
-              onReject:
-                  showActions
-                      ? () => _showReviewSheet(
-                        ctx,
-                        items[i],
-                        SubmissionStatus.canceled,
-                      )
-                      : null,
+    final totalPages = (items.length / _pageSize).ceil();
+    final safePage = currentPage.clamp(0, totalPages - 1);
+    final start = safePage * _pageSize;
+    final end = (start + _pageSize).clamp(0, items.length);
+    final pageItems = items.sublist(start, end);
+
+    return Column(
+      children: [
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            itemCount: pageItems.length,
+            itemBuilder:
+                (ctx, i) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _SubmissionCard(
+                    item: pageItems[i],
+                    showActions: showActions,
+                    showNutriStatus: showNutriStatus,
+                    showRejectionReason: showRejectionReason,
+                    timeAgo: _timeAgo(pageItems[i].createdAt),
+                    dateLabel: _formatDateShort(pageItems[i].createdAt),
+                    timeLabel: _formatTime(pageItems[i].createdAt),
+                    onViewImage:
+                        pageItems[i].imagePath.isNotEmpty
+                            ? () =>
+                                _showImageViewer(ctx, pageItems[i].imagePath)
+                            : null,
+                    onTapSubmitter: () => _showSubmitterInfo(ctx, pageItems[i]),
+                    onApprove:
+                        showActions
+                            ? () => _showReviewSheet(
+                              ctx,
+                              pageItems[i],
+                              SubmissionStatus.approved,
+                            )
+                            : null,
+                    onReject:
+                        showActions
+                            ? () => _showReviewSheet(
+                              ctx,
+                              pageItems[i],
+                              SubmissionStatus.canceled,
+                            )
+                            : null,
+                  ),
+                ),
+          ),
+        ),
+
+        // ── Pagination bar ─────────────────────────────────────────────
+        if (totalPages > 1)
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _pageBtn(
+                  icon: Icons.chevron_left_rounded,
+                  enabled: safePage > 0,
+                  onTap: () => onPageChanged(safePage - 1),
+                ),
+                const SizedBox(width: 6),
+                ...List.generate(totalPages, (idx) {
+                  final active = idx == safePage;
+                  return GestureDetector(
+                    onTap: () => onPageChanged(idx),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      width: active ? 34 : 30,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: active ? _green : const Color(0xFFF4FAF6),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: active ? _green : const Color(0xFFD5EDE0),
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${idx + 1}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: active ? Colors.white : _muted,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+                const SizedBox(width: 6),
+                _pageBtn(
+                  icon: Icons.chevron_right_rounded,
+                  enabled: safePage < totalPages - 1,
+                  onTap: () => onPageChanged(safePage + 1),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  '${start + 1}–$end dari ${items.length}',
+                  style: const TextStyle(fontSize: 11, color: _muted),
+                ),
+              ],
             ),
           ),
+      ],
+    );
+  }
+
+  Widget _pageBtn({
+    required IconData icon,
+    required bool enabled,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: enabled ? const Color(0xFFF4FAF6) : const Color(0xFFEEEEEE),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: enabled ? const Color(0xFFD5EDE0) : const Color(0xFFE0E0E0),
+          ),
+        ),
+        child: Icon(
+          icon,
+          size: 18,
+          color: enabled ? _dark : const Color(0xFFB0BEC5),
+        ),
+      ),
     );
   }
 }
@@ -850,8 +1244,12 @@ class _SubmissionCard extends StatelessWidget {
   final SubmissionModel item;
   final bool showActions;
   final bool showNutriStatus;
+  final bool showRejectionReason;
   final String timeAgo;
+  final String dateLabel;
+  final String timeLabel;
   final VoidCallback? onViewImage;
+  final VoidCallback? onTapSubmitter;
   final VoidCallback? onApprove;
   final VoidCallback? onReject;
 
@@ -859,8 +1257,12 @@ class _SubmissionCard extends StatelessWidget {
     required this.item,
     required this.showActions,
     required this.showNutriStatus,
+    required this.showRejectionReason,
     required this.timeAgo,
+    required this.dateLabel,
+    required this.timeLabel,
     this.onViewImage,
+    this.onTapSubmitter,
     this.onApprove,
     this.onReject,
   });
@@ -871,19 +1273,18 @@ class _SubmissionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final borderColor =
+        showActions
+            ? Colors.orange.withValues(alpha: 0.25)
+            : showNutriStatus
+            ? _green.withValues(alpha: 0.2)
+            : Colors.red.withValues(alpha: 0.2);
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color:
-              showActions
-                  ? Colors.orange.withValues(alpha: 0.25)
-                  : showNutriStatus
-                  ? _green.withValues(alpha: 0.2)
-                  : Colors.red.withValues(alpha: 0.2),
-          width: 1.5,
-        ),
+        border: Border.all(color: borderColor, width: 1.5),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -894,7 +1295,7 @@ class _SubmissionCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // ── Thumbnail Foto ───────────────────────────────────────────────
+          // ── Foto thumbnail ──────────────────────────────────────────
           if (item.imagePath.isNotEmpty)
             GestureDetector(
               onTap: onViewImage,
@@ -913,7 +1314,6 @@ class _SubmissionCard extends StatelessWidget {
                         errorBuilder: (_, __, ___) => _noImage(),
                       ),
                     ),
-                    // Overlay label status gambar (hanya pending)
                     if (showActions)
                       Positioned(
                         top: 8,
@@ -980,159 +1380,268 @@ class _SubmissionCard extends StatelessWidget {
                   ],
                 ),
               ),
+            )
+          else
+            // Strip "tidak ada foto"
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
+              child: Container(
+                width: double.infinity,
+                height: 52,
+                color:
+                    showActions
+                        ? Colors.orange.withValues(alpha: 0.07)
+                        : showNutriStatus
+                        ? _green.withValues(alpha: 0.05)
+                        : Colors.red.withValues(alpha: 0.05),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.image_not_supported_rounded,
+                      color:
+                          showActions
+                              ? Colors.orange.withValues(alpha: 0.5)
+                              : const Color(0xFFB0BEC5),
+                      size: 16,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Tidak ada foto',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color:
+                            showActions
+                                ? Colors.orange.withValues(alpha: 0.7)
+                                : const Color(0xFFB0BEC5),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
 
-          // Divider tipis antar foto dan konten
           if (item.imagePath.isNotEmpty)
             const Divider(height: 1, color: Color(0xFFF0F0F0)),
 
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
+            padding: const EdgeInsets.all(14),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Avatar (hanya jika tidak ada foto)
-                if (item.imagePath.isEmpty)
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color:
-                          showActions
-                              ? Colors.orange.withValues(alpha: 0.12)
-                              : _green.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Center(
-                      child: Text(
-                        item.foodName[0].toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          color: showActions ? Colors.orange : _green,
-                        ),
-                      ),
-                    ),
+                Text(
+                  item.foodName,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: _dark,
                   ),
-                if (item.imagePath.isEmpty) const SizedBox(width: 12),
+                ),
+                const SizedBox(height: 8),
 
-                // Info
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.foodName,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: _dark,
+                // ── Baris pengaju (bisa diklik) ───────────────────────
+                GestureDetector(
+                  onTap: onTapSubmitter,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 7,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF4FAF6),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFD5EDE0)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.person_outline_rounded,
+                          size: 14,
+                          color: _muted,
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.person_outline_rounded,
-                            size: 13,
-                            color: _muted,
-                          ),
-                          const SizedBox(width: 3),
-                          Flexible(
-                            child: Text(
-                              item.userName,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: _muted,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Icon(
-                            Icons.access_time_rounded,
-                            size: 12,
-                            color: _muted,
-                          ),
-                          const SizedBox(width: 3),
-                          Text(
-                            timeAgo,
-                            style: const TextStyle(fontSize: 12, color: _muted),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-
-                      // Status nutri (approved tab)
-                      if (showNutriStatus)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color:
-                                item.isNutriFilled
-                                    ? _green.withValues(alpha: 0.1)
-                                    : Colors.orange.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
+                        const SizedBox(width: 5),
+                        Expanded(
                           child: Text(
-                            item.isNutriFilled
-                                ? '✅ Nutrisi sudah diisi'
-                                : '⏳ Menunggu ahli gizi',
-                            style: TextStyle(
-                              fontSize: 11,
+                            item.userName,
+                            style: const TextStyle(
+                              fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color:
-                                  item.isNutriFilled ? _green : Colors.orange,
+                              color: _dark,
                             ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-
-                      // Review note
-                      if (item.reviewNote != null &&
-                          item.reviewNote!.isNotEmpty) ...[
-                        const SizedBox(height: 6),
+                        const SizedBox(width: 6),
+                        const Icon(
+                          Icons.access_time_rounded,
+                          size: 12,
+                          color: _muted,
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          '$dateLabel  $timeLabel',
+                          style: const TextStyle(fontSize: 10, color: _muted),
+                        ),
+                        const SizedBox(width: 5),
+                        // Indikator bisa diklik
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 5,
+                            horizontal: 5,
+                            vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.grey.withValues(alpha: 0.07),
-                            borderRadius: BorderRadius.circular(8),
+                            color: _green.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
                           ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.notes_rounded,
-                                size: 12,
-                                color: _muted,
-                              ),
-                              const SizedBox(width: 5),
-                              Expanded(
-                                child: Text(
-                                  item.reviewNote!,
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    color: _muted,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
+                          child: const Text(
+                            'Detail',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                              color: _green,
+                            ),
                           ),
                         ),
                       ],
-                    ],
+                    ),
                   ),
                 ),
+
+                // ── Status nutri ──────────────────────────────────────
+                if (showNutriStatus) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color:
+                          item.isNutriFilled
+                              ? _green.withValues(alpha: 0.1)
+                              : Colors.orange.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      item.isNutriFilled
+                          ? '✅ Nutrisi sudah diisi'
+                          : '⏳ Menunggu ahli gizi',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: item.isNutriFilled ? _green : Colors.orange,
+                      ),
+                    ),
+                  ),
+                ],
+
+                // ── Alasan penolakan ──────────────────────────────────
+                if (showRejectionReason) ...[
+                  const SizedBox(height: 8),
+                  if (item.reviewNote != null && item.reviewNote!.isNotEmpty)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: Colors.red.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.cancel_outlined,
+                            size: 14,
+                            color: Colors.red[400],
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Alasan Penolakan',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.red[400],
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  item.reviewNote!,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.red[700],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withValues(alpha: 0.07),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'Tidak ada catatan penolakan',
+                        style: TextStyle(fontSize: 11, color: _muted),
+                      ),
+                    ),
+                ],
+
+                // ── Catatan review biasa ──────────────────────────────
+                if (!showRejectionReason &&
+                    item.reviewNote != null &&
+                    item.reviewNote!.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withValues(alpha: 0.07),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.notes_rounded,
+                          size: 12,
+                          color: _muted,
+                        ),
+                        const SizedBox(width: 5),
+                        Expanded(
+                          child: Text(
+                            item.reviewNote!,
+                            style: const TextStyle(fontSize: 11, color: _muted),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
 
-          // Action buttons (hanya untuk pending)
+          // ── Action buttons ────────────────────────────────────────────
           if (showActions) ...[
             const Divider(height: 1, color: Color(0xFFF0F0F0)),
             Padding(
