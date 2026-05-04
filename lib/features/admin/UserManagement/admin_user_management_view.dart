@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import '../../../services/hive_service.dart';
-import '../../../helpers/calorie_helper.dart';
-import '../../general/auth/auth_controller.dart';
 import '../../general/auth/models/user_model.dart';
+import './admin_user_management_controller.dart';
 
 class AdminUserManagementView extends StatefulWidget {
   const AdminUserManagementView({super.key});
@@ -15,66 +13,41 @@ class AdminUserManagementView extends StatefulWidget {
 }
 
 class _AdminUserManagementViewState extends State<AdminUserManagementView> {
-  // ─── Warna (sama persis dengan admin_food_list_view) ─────────────────────────
+  // ─── Warna ────────────────────────────────────────────────────────────────
   static const Color _bg       = Color(0xFFF4F6F0);
   static const Color _surface  = Colors.white;
   static const Color _primary  = Color(0xFF4CAF50);
   static const Color _textDark = Color(0xFF1B2A1B);
   static const Color _textMuted= Color(0xFF5A7A5A);
   static const Color _danger   = Color(0xFFE53935);
-  static const Color _warning  = Color(0xFFFF9800);
 
-  // ─── Pagination ───────────────────────────────────────────────────────────────
-  static const int _itemsPerPage = 10;
-  int _currentPage = 0;
+  // ─── Controller ───────────────────────────────────────────────────────────
+  late final AdminUserManagementController _controller;
 
   final TextEditingController _searchController = TextEditingController();
-  List<UserModel> _allUsers = [];
-  List<UserModel> _filtered  = [];
 
   @override
   void initState() {
     super.initState();
-    _loadUsers();
-    _searchController.addListener(_onSearchChanged);
+    _controller = AdminUserManagementController();
+    _controller.init(context);
+    _searchController.addListener(() {
+      _controller.applyFilter(_searchController.text);
+      setState(() {});
+    });
+    // Dengarkan perubahan dari controller agar UI rebuild
+    _controller.addListener(() => setState(() {}));
   }
 
   @override
   void dispose() {
-    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
-  void _loadUsers() {
-    final currentAdminId =
-        context.read<AuthController>().currentUser?.id ?? '';
-    setState(() {
-      _allUsers = HiveService.users.values
-          .where((u) => u.role == 'user' && u.id != currentAdminId)
-          .toList()
-        ..sort((a, b) => a.name.compareTo(b.name));
-      _applyFilter();
-    });
-  }
+  // ─── Aksi (delegate ke controller, lalu reload UI) ────────────────────────
 
-  void _onSearchChanged() {
-    setState(() => _currentPage = 0);
-    _applyFilter();
-  }
-
-  void _applyFilter() {
-    final q = _searchController.text.toLowerCase();
-    setState(() {
-      _filtered = q.isEmpty
-          ? List.from(_allUsers)
-          : _allUsers.where((u) =>
-              u.name.toLowerCase().contains(q) ||
-              u.email.toLowerCase().contains(q)).toList();
-    });
-  }
-
-  // ─── Aksi ─────────────────────────────────────────────────────────────────────
   Future<void> _toggleBlock(UserModel user) async {
     final willBlock = !user.isBlocked;
     final confirm = await showDialog<bool>(
@@ -89,19 +62,7 @@ class _AdminUserManagementViewState extends State<AdminUserManagementView> {
       ),
     );
     if (confirm != true || !mounted) return;
-
-    final updated = UserModel(
-      id: user.id, name: user.name, email: user.email,
-      password: user.password, role: user.role,
-      weight: user.weight, height: user.height, age: user.age,
-      gender: user.gender, activityLevel: user.activityLevel,
-      dailyCalorieNeed: user.dailyCalorieNeed, birthDate: user.birthDate,
-      isBlocked: willBlock,
-      targetWeightGainPerMonth: user.targetWeightGainPerMonth,
-      initialWeight: user.initialWeight, targetHistory: user.targetHistory,
-    );
-    await HiveService.users.put(user.id, updated);
-    _loadUsers();
+    await _controller.toggleBlock(context, user);
     if (!mounted) return;
     _showSnack(
       willBlock ? '${user.name} berhasil diblokir'
@@ -122,25 +83,7 @@ class _AdminUserManagementViewState extends State<AdminUserManagementView> {
       ),
     );
     if (confirm != true || !mounted) return;
-
-    for (final k in HiveService.logs.keys.toList()) {
-      if (HiveService.logs.get(k)?.userId == user.id) {
-        await HiveService.logs.delete(k);
-      }
-    }
-    for (final k in HiveService.watchlists.keys.toList()) {
-      if (HiveService.watchlists.get(k)?.userId == user.id) {
-        await HiveService.watchlists.delete(k);
-      }
-    }
-    for (final k in HiveService.weightLogs.keys.toList()) {
-      if (HiveService.weightLogs.get(k)?.userId == user.id) {
-        await HiveService.weightLogs.delete(k);
-      }
-    }
-    await HiveService.users.delete(user.id);
-    setState(() => _currentPage = 0);
-    _loadUsers();
+    await _controller.deleteUser(context, user);
     if (!mounted) return;
     _showSnack('${user.name} berhasil dihapus', _danger);
   }
@@ -150,7 +93,7 @@ class _AdminUserManagementViewState extends State<AdminUserManagementView> {
       context,
       MaterialPageRoute(builder: (_) => _EditUserView(user: user)),
     );
-    if (result == true) _loadUsers();
+    if (result == true) _controller.loadUsers(context);
   }
 
   void _showDetail(UserModel user) {
@@ -161,7 +104,7 @@ class _AdminUserManagementViewState extends State<AdminUserManagementView> {
       builder: (_) => _UserDetailSheet(
         user: user,
         onBlock: () { Navigator.pop(context); _toggleBlock(user); },
-        onEdit:  () { Navigator.pop(context); _editUser(user);  },
+        onEdit:  () { Navigator.pop(context); _editUser(user); },
         onDelete:() { Navigator.pop(context); _deleteUser(user); },
       ),
     );
@@ -178,18 +121,15 @@ class _AdminUserManagementViewState extends State<AdminUserManagementView> {
     ));
   }
 
-  // ─── BUILD ────────────────────────────────────────────────────────────────────
+  // ─── BUILD ────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    final totalPages  = (_filtered.length / _itemsPerPage).ceil();
-    final safePage    = _filtered.isEmpty ? 0 : _currentPage.clamp(0, totalPages - 1);
-    final start       = safePage * _itemsPerPage;
-    final end         = (start + _itemsPerPage).clamp(0, _filtered.length);
-    final pageItems   = _filtered.isEmpty ? <UserModel>[] : _filtered.sublist(start, end);
+    final pageItems  = _controller.pageItems;
+    final safePage   = _controller.safePage;
+    final totalPages = _controller.totalPages;
 
     return Scaffold(
       backgroundColor: _bg,
-      // ─── AppBar putih seperti food list ──────────────────────────────────────
       appBar: AppBar(
         backgroundColor: _surface,
         elevation: 0,
@@ -203,21 +143,19 @@ class _AdminUserManagementViewState extends State<AdminUserManagementView> {
       ),
       body: Column(
         children: [
-          // ─── Search bar (design dari food list) ────────────────────────────
           _buildSearchBar(),
-          // ─── Info count + halaman ─────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
             child: Row(
               children: [
                 Text(
-                  '${_filtered.length} pengguna',
+                  '${_controller.filtered.length} pengguna',
                   style: const TextStyle(
                       fontSize: 12,
                       color: _textMuted,
                       fontWeight: FontWeight.w600),
                 ),
-                if (_filtered.isNotEmpty) ...[
+                if (_controller.filtered.isNotEmpty) ...[
                   const Spacer(),
                   Text(
                     'Hal. ${safePage + 1}/${totalPages < 1 ? 1 : totalPages}',
@@ -227,9 +165,8 @@ class _AdminUserManagementViewState extends State<AdminUserManagementView> {
               ],
             ),
           ),
-          // ─── List + Pagination ────────────────────────────────────────────
           Expanded(
-            child: _filtered.isEmpty
+            child: _controller.filtered.isEmpty
                 ? _buildEmptyState()
                 : Column(
                     children: [
@@ -256,7 +193,7 @@ class _AdminUserManagementViewState extends State<AdminUserManagementView> {
     );
   }
 
-  // ─── Search bar (ambil langsung dari food list design) ────────────────────────
+  // ─── Search bar ───────────────────────────────────────────────────────────
   Widget _buildSearchBar() {
     return Container(
       color: _surface,
@@ -272,8 +209,7 @@ class _AdminUserManagementViewState extends State<AdminUserManagementView> {
           style: const TextStyle(fontSize: 14, color: _textDark),
           decoration: InputDecoration(
             hintText: 'Cari nama atau email pengguna...',
-            hintStyle:
-                const TextStyle(color: Color(0xFF9EAD9E), fontSize: 14),
+            hintStyle: const TextStyle(color: Color(0xFF9EAD9E), fontSize: 14),
             prefixIcon:
                 const Icon(Icons.search_rounded, color: _primary, size: 20),
             suffixIcon: _searchController.text.isNotEmpty
@@ -282,7 +218,7 @@ class _AdminUserManagementViewState extends State<AdminUserManagementView> {
                         size: 18, color: _textMuted),
                     onPressed: () {
                       _searchController.clear();
-                      _applyFilter();
+                      _controller.applyFilter('');
                     },
                   )
                 : null,
@@ -294,7 +230,7 @@ class _AdminUserManagementViewState extends State<AdminUserManagementView> {
     );
   }
 
-  // ─── Pagination (sama persis dengan food list) ────────────────────────────────
+  // ─── Pagination ───────────────────────────────────────────────────────────
   Widget _buildPagination(int current, int total) {
     return Container(
       color: _surface,
@@ -303,15 +239,15 @@ class _AdminUserManagementViewState extends State<AdminUserManagementView> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           _pageBtn(Icons.first_page_rounded,
-              current > 0, () => setState(() => _currentPage = 0)),
+              current > 0, () => _controller.setPage(0)),
           const SizedBox(width: 4),
           _pageBtn(Icons.chevron_left_rounded,
-              current > 0, () => setState(() => _currentPage--)),
+              current > 0, () => _controller.setPage(current - 1)),
           const SizedBox(width: 8),
           ...List.generate(total, (i) {
             final isActive = i == current;
             return GestureDetector(
-              onTap: () => setState(() => _currentPage = i),
+              onTap: () => _controller.setPage(i),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 margin: const EdgeInsets.symmetric(horizontal: 3),
@@ -334,10 +270,10 @@ class _AdminUserManagementViewState extends State<AdminUserManagementView> {
           }).take(7).toList(),
           const SizedBox(width: 8),
           _pageBtn(Icons.chevron_right_rounded,
-              current < total - 1, () => setState(() => _currentPage++)),
+              current < total - 1, () => _controller.setPage(current + 1)),
           const SizedBox(width: 4),
           _pageBtn(Icons.last_page_rounded,
-              current < total - 1, () => setState(() => _currentPage = total - 1)),
+              current < total - 1, () => _controller.setPage(total - 1)),
         ],
       ),
     );
@@ -352,20 +288,16 @@ class _AdminUserManagementViewState extends State<AdminUserManagementView> {
           color: enabled ? _bg : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-              color: enabled
-                  ? const Color(0xFFD0E8D0)
-                  : Colors.transparent),
+              color: enabled ? const Color(0xFFD0E8D0) : Colors.transparent),
         ),
         child: Icon(icon,
             size: 18,
-            color: enabled
-                ? _primary
-                : _textMuted.withValues(alpha: 0.3)),
+            color: enabled ? _primary : _textMuted.withValues(alpha: 0.3)),
       ),
     );
   }
 
-  // ─── Empty state ──────────────────────────────────────────────────────────────
+  // ─── Empty state ──────────────────────────────────────────────────────────
   Widget _buildEmptyState() {
     return Center(
       child: Column(
@@ -384,9 +316,7 @@ class _AdminUserManagementViewState extends State<AdminUserManagementView> {
                 ? 'Belum ada pengguna'
                 : 'Pengguna tidak ditemukan',
             style: const TextStyle(
-                color: _textDark,
-                fontWeight: FontWeight.bold,
-                fontSize: 16),
+                color: _textDark, fontWeight: FontWeight.bold, fontSize: 16),
           ),
           const SizedBox(height: 6),
           if (_searchController.text.isNotEmpty)
@@ -429,30 +359,25 @@ class _UserCard extends StatelessWidget {
     return GestureDetector(
       onTap: onDetail,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
+        margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: user.isBlocked
-                ? const Color(0xFFFFCDD2)
-                : const Color(0xFFE0E0E0),
-            width: user.isBlocked ? 1.2 : 1,
-          ),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE0E0E0), width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
         child: Row(
           children: [
-            // ─── Avatar ────────────────────────────────────────────────────
+            // Avatar
             Container(
-              width: 50, height: 50,
+              width: 46, height: 46,
               decoration: BoxDecoration(
                 color: user.isBlocked
                     ? const Color(0xFFFFEBEE)
@@ -460,18 +385,15 @@ class _UserCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Center(
-                child: Text(
-                  initials,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: user.isBlocked ? _danger : _primary,
-                  ),
-                ),
+                child: Text(initials,
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: user.isBlocked ? _danger : _primary)),
               ),
             ),
-            const SizedBox(width: 14),
-            // ─── Info ──────────────────────────────────────────────────────
+            const SizedBox(width: 12),
+            // Info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -482,7 +404,7 @@ class _UserCard extends StatelessWidget {
                         child: Text(
                           user.name,
                           style: TextStyle(
-                            fontSize: 15,
+                            fontSize: 14,
                             fontWeight: FontWeight.w700,
                             color: _textDark,
                             decoration: user.isBlocked
@@ -527,8 +449,7 @@ class _UserCard extends StatelessWidget {
                       Flexible(
                         child: Text(
                           user.email,
-                          style: const TextStyle(
-                              fontSize: 12, color: _textMuted),
+                          style: const TextStyle(fontSize: 12, color: _textMuted),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -537,11 +458,10 @@ class _UserCard extends StatelessWidget {
                 ],
               ),
             ),
-            // ─── Tombol aksi ───────────────────────────────────────────────
+            // Tombol aksi
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                // Tombol detail (mirip kkal di food card)
                 Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 10, vertical: 4),
@@ -558,15 +478,10 @@ class _UserCard extends StatelessWidget {
                           fontWeight: FontWeight.w700)),
                 ),
                 const SizedBox(height: 8),
-                // Edit + Block + Delete (mirip edit/delete di food card)
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _iconBtn(
-                      icon: Icons.edit_rounded,
-                      color: Colors.blue,
-                      onTap: onEdit,
-                    ),
+                    _iconBtn(icon: Icons.edit_rounded, color: Colors.blue, onTap: onEdit),
                     const SizedBox(width: 4),
                     _iconBtn(
                       icon: user.isBlocked
@@ -576,11 +491,7 @@ class _UserCard extends StatelessWidget {
                       onTap: onBlock,
                     ),
                     const SizedBox(width: 4),
-                    _iconBtn(
-                      icon: Icons.delete_outline_rounded,
-                      color: _danger,
-                      onTap: onDelete,
-                    ),
+                    _iconBtn(icon: Icons.delete_outline_rounded, color: _danger, onTap: onDelete),
                   ],
                 ),
               ],
@@ -591,11 +502,7 @@ class _UserCard extends StatelessWidget {
     );
   }
 
-  Widget _iconBtn({
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
+  Widget _iconBtn({required IconData icon, required Color color, required VoidCallback onTap}) {
     return InkWell(
       borderRadius: BorderRadius.circular(8),
       onTap: onTap,
@@ -656,7 +563,6 @@ class _UserDetailSheet extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Handle
           Container(
             margin: const EdgeInsets.only(top: 12),
             width: 40, height: 4,
@@ -664,7 +570,6 @@ class _UserDetailSheet extends StatelessWidget {
                 color: const Color(0xFFE0E0E0),
                 borderRadius: BorderRadius.circular(2)),
           ),
-          // Header
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
             child: Row(
@@ -724,7 +629,6 @@ class _UserDetailSheet extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Divider(color: _border, thickness: 0.8, height: 0),
-          // Scrollable content
           Flexible(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
@@ -796,30 +700,23 @@ class _UserDetailSheet extends StatelessWidget {
                   ],
                   const SizedBox(height: 20),
                   Row(children: [
-                    Expanded(
-                        child: _ActionButton(
-                            label: 'Edit Data',
-                            icon: Icons.edit_rounded,
-                            color: Colors.blue,
-                            onTap: onEdit)),
+                    Expanded(child: _ActionButton(
+                        label: 'Edit Data', icon: Icons.edit_rounded,
+                        color: Colors.blue, onTap: onEdit)),
                     const SizedBox(width: 8),
-                    Expanded(
-                        child: _ActionButton(
-                            label: user.isBlocked ? 'Buka Blokir' : 'Blokir',
-                            icon: user.isBlocked
-                                ? Icons.lock_open_rounded
-                                : Icons.block_rounded,
-                            color: user.isBlocked
-                                ? _primary
-                                : const Color(0xFFFF9800),
-                            onTap: onBlock)),
+                    Expanded(child: _ActionButton(
+                        label: user.isBlocked ? 'Buka Blokir' : 'Blokir',
+                        icon: user.isBlocked
+                            ? Icons.lock_open_rounded
+                            : Icons.block_rounded,
+                        color: user.isBlocked
+                            ? _primary
+                            : const Color(0xFFFF9800),
+                        onTap: onBlock)),
                     const SizedBox(width: 8),
-                    Expanded(
-                        child: _ActionButton(
-                            label: 'Hapus',
-                            icon: Icons.delete_rounded,
-                            color: _danger,
-                            onTap: onDelete)),
+                    Expanded(child: _ActionButton(
+                        label: 'Hapus', icon: Icons.delete_rounded,
+                        color: _danger, onTap: onDelete)),
                   ]),
                 ],
               ),
@@ -832,24 +729,19 @@ class _UserDetailSheet extends StatelessWidget {
 
   Widget _sectionTitle(String t) => Text(t,
       style: const TextStyle(
-          color: _textMuted,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.8));
+          color: _textMuted, fontSize: 11,
+          fontWeight: FontWeight.w700, letterSpacing: 0.8));
 
   Widget _infoRow(IconData icon, String label, String value) => Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: Row(children: [
           Icon(icon, size: 16, color: _primary),
           const SizedBox(width: 8),
-          Text(label,
-              style: const TextStyle(color: _textMuted, fontSize: 13)),
+          Text(label, style: const TextStyle(color: _textMuted, fontSize: 13)),
           const Spacer(),
           Text(value,
               style: const TextStyle(
-                  color: _textDark,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600)),
+                  color: _textDark, fontSize: 13, fontWeight: FontWeight.w600)),
         ]),
       );
 
@@ -861,9 +753,7 @@ class _UserDetailSheet extends StatelessWidget {
           child: Column(children: [
             Text(value,
                 style: const TextStyle(
-                    color: _textDark,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800)),
+                    color: _textDark, fontSize: 14, fontWeight: FontWeight.w800)),
             Text(label,
                 style: const TextStyle(color: _textMuted, fontSize: 10)),
           ]),
@@ -973,12 +863,11 @@ class _EditUserView extends StatefulWidget {
 }
 
 class _EditUserViewState extends State<_EditUserView> {
-  static const Color _primary    = Color(0xFF4CAF50);
-  static const Color _primaryDark= Color(0xFF2E7D32);
-  static const Color _bg         = Color(0xFFF4F6F0);
-  static const Color _surface    = Colors.white;
-  static const Color _textDark   = Color(0xFF1B2A1B);
-  static const Color _textMuted  = Color(0xFF5A7A5A);
+  static const Color _primary  = Color(0xFF4CAF50);
+  static const Color _bg       = Color(0xFFF4F6F0);
+  static const Color _surface  = Colors.white;
+  static const Color _textDark = Color(0xFF1B2A1B);
+  static const Color _textMuted= Color(0xFF5A7A5A);
 
   late TextEditingController _nameCtrl;
   late TextEditingController _emailCtrl;
@@ -992,17 +881,14 @@ class _EditUserViewState extends State<_EditUserView> {
 
   final _genders = ['Laki-laki', 'Perempuan'];
   static const List<String> _activities = [
-    'Jarang olahraga',
-    'Sedikit aktif',
-    'Cukup aktif',
-    'Sangat aktif',
-    'Ekstra aktif',
+    'Jarang olahraga', 'Sedikit aktif', 'Cukup aktif',
+    'Sangat aktif', 'Ekstra aktif',
   ];
 
   static String _normalizeActivity(String? raw) {
     if (raw == null || raw.isEmpty) return 'Jarang olahraga';
     final words = raw.trim().split(RegExp(r'\s+')).take(2).join(' ').toLowerCase();
-    if (words.contains('ekstra'))                        return 'Ekstra aktif';
+    if (words.contains('ekstra'))                          return 'Ekstra aktif';
     if (words.contains('sangat') || words.contains('berat')) return 'Sangat aktif';
     if (words.contains('cukup') || words.contains('sedang')) return 'Cukup aktif';
     if (words.contains('sedikit') || words.contains('ringan')) return 'Sedikit aktif';
@@ -1035,50 +921,31 @@ class _EditUserViewState extends State<_EditUserView> {
   }
 
   Future<void> _save() async {
-    final name  = _nameCtrl.text.trim();
-    final email = _emailCtrl.text.trim();
-    if (name.isEmpty || email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Nama dan email wajib diisi')));
-      return;
-    }
-    final emailExists = HiveService.users.values.any((u) =>
-        u.email.toLowerCase() == email.toLowerCase() &&
-        u.id != widget.user.id);
-    if (emailExists) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Email sudah digunakan pengguna lain')));
-      return;
-    }
     setState(() => _isSaving = true);
 
-    final weight = double.tryParse(_weightCtrl.text);
-    final height = double.tryParse(_heightCtrl.text);
-    final age    = int.tryParse(_ageCtrl.text);
-    final target = double.tryParse(_targetCtrl.text) ?? 0;
-
-    double? newCalorie = widget.user.dailyCalorieNeed;
-    if (weight != null && height != null && age != null) {
-      newCalorie = CalorieHelper.calculateDailyCalorieNeed(
-        weightKg: weight, heightCm: height, age: age,
-        gender: _gender, activityLevel: _activityLevel,
-        targetWeightGainPerMonth: target,
-      );
-    }
-    final updated = UserModel(
-      id: widget.user.id, name: name, email: email,
-      password: widget.user.password, role: widget.user.role,
-      weight: weight, height: height, age: age,
-      gender: _gender, activityLevel: _activityLevel,
-      dailyCalorieNeed: newCalorie, birthDate: widget.user.birthDate,
-      isBlocked: widget.user.isBlocked,
-      targetWeightGainPerMonth: target,
-      initialWeight: widget.user.initialWeight,
-      targetHistory: widget.user.targetHistory,
+    // Delegate validasi & simpan ke controller
+    final tempController = AdminUserManagementController();
+    final error = await tempController.saveUser(
+      original:      widget.user,
+      name:          _nameCtrl.text.trim(),
+      email:         _emailCtrl.text.trim(),
+      weightText:    _weightCtrl.text,
+      heightText:    _heightCtrl.text,
+      ageText:       _ageCtrl.text,
+      gender:        _gender,
+      activityLevel: _activityLevel,
+      targetText:    _targetCtrl.text,
     );
-    await HiveService.users.put(updated.id, updated);
+    tempController.dispose();
+
     setState(() => _isSaving = false);
     if (!mounted) return;
+
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error)));
+      return;
+    }
     Navigator.pop(context, true);
   }
 
@@ -1168,10 +1035,8 @@ class _EditUserViewState extends State<_EditUserView> {
         children: [
           Text(title,
               style: const TextStyle(
-                  color: _primary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.5)),
+                  color: _primary, fontSize: 12,
+                  fontWeight: FontWeight.w800, letterSpacing: 0.5)),
           const SizedBox(height: 12),
           ...children,
         ],
