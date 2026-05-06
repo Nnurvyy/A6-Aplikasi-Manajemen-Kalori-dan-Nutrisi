@@ -16,6 +16,7 @@ class LogModel extends HiveObject {
   bool isManual;
   String? imageUrl;
   String? ingredientsJson;
+  int quantity; // New field for pieces/servings
 
   LogModel({
     required this.id,
@@ -33,6 +34,7 @@ class LogModel extends HiveObject {
     this.isManual = false,
     this.imageUrl,
     this.ingredientsJson,
+    this.quantity = 1, // Default to 1
   });
 
   String get formattedTime {
@@ -55,6 +57,7 @@ class LogModel extends HiveObject {
     bool? isManual,
     String? imageUrl,
     String? ingredientsJson,
+    int? quantity,
   }) {
     return LogModel(
       id: id ?? this.id,
@@ -72,6 +75,7 @@ class LogModel extends HiveObject {
       isManual: isManual ?? this.isManual,
       imageUrl: imageUrl ?? this.imageUrl,
       ingredientsJson: ingredientsJson ?? this.ingredientsJson,
+      quantity: quantity ?? this.quantity,
     );
   }
 }
@@ -102,13 +106,14 @@ class LogModelAdapter extends TypeAdapter<LogModel> {
       isManual: (f[12] as bool?) ?? false,
       imageUrl: f[13] as String?,
       ingredientsJson: f[14] as String?,
+      quantity: (f[15] as int?) ?? 1,
     );
   }
 
   @override
   void write(BinaryWriter writer, LogModel obj) {
     writer
-      ..writeByte(15)
+      ..writeByte(16) // Total fields
       ..writeByte(0)..write(obj.id)
       ..writeByte(1)..write(obj.userId)
       ..writeByte(2)..write(obj.foodName)
@@ -123,6 +128,7 @@ class LogModelAdapter extends TypeAdapter<LogModel> {
       ..writeByte(11)..write(obj.category)
       ..writeByte(12)..write(obj.isManual)
       ..writeByte(13)..write(obj.imageUrl)
-      ..writeByte(14)..write(obj.ingredientsJson);
+      ..writeByte(14)..write(obj.ingredientsJson)
+      ..writeByte(15)..write(obj.quantity);
   }
 }
