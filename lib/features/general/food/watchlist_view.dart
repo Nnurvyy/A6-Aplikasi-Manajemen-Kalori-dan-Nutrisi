@@ -4,6 +4,7 @@ import './watchlist_controller.dart';
 import './models/watchlist_model.dart';
 import './food_detail_view.dart';
 import '../auth/auth_controller.dart';
+import 'dart:io';
 
 class WatchlistView extends StatefulWidget {
   const WatchlistView({super.key});
@@ -54,7 +55,7 @@ class _WatchlistViewState extends State<WatchlistView> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF7C4DFF).withValues(alpha: 0.1),
+                    color: const Color(0xFF2E7D32).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -62,7 +63,7 @@ class _WatchlistViewState extends State<WatchlistView> {
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF7C4DFF),
+                      color: Color(0xFF2E7D32),
                     ),
                   ),
                 ),
@@ -156,13 +157,13 @@ class _WatchlistViewState extends State<WatchlistView> {
       child: Container(
         width: 32, height: 32,
         decoration: BoxDecoration(
-          color: enabled ? const Color(0xFFF3E5F5) : Colors.transparent,
+          color: enabled ? const Color(0xFFE8F5E9) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: enabled ? const Color(0xFFD0C8FF) : Colors.transparent,
+            color: enabled ? const Color(0xFFC8E6C9) : Colors.transparent,
           ),
         ),
-        child: Icon(icon, size: 18, color: enabled ? const Color(0xFF7C4DFF) : _textMuted.withValues(alpha: 0.3)),
+        child: Icon(icon, size: 18, color: enabled ? const Color(0xFF2E7D32) : _textMuted.withOpacity(0.3)),
       ),
     );
   }
@@ -191,7 +192,7 @@ class _WatchlistViewState extends State<WatchlistView> {
           border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
+              color: Colors.black.withOpacity(0.03),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -202,12 +203,19 @@ class _WatchlistViewState extends State<WatchlistView> {
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: food.imageUrl != null
-                  ? Image.network(
-                      food.imageUrl!,
-                      width: 50, height: 50,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _buildAvatar(food.name, accentColor),
-                    )
+                  ? (food.imageUrl!.startsWith('http')
+                      ? Image.network(
+                          food.imageUrl!,
+                          width: 50, height: 50,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _buildAvatar(food.name, accentColor),
+                        )
+                      : Image.file(
+                          File(food.imageUrl!),
+                          width: 50, height: 50,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _buildAvatar(food.name, accentColor),
+                        ))
                   : _buildAvatar(food.name, accentColor),
             ),
             const SizedBox(width: 14),
@@ -236,11 +244,11 @@ class _WatchlistViewState extends State<WatchlistView> {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      _nutriChip('P ${protein.toStringAsFixed(1)}g', const Color(0xFFFFEBEE), const Color(0xFFE53935)),
+                      _nutriChip('P ${protein.round()}g', const Color(0xFFFFEBEE), const Color(0xFFE53935)),
                       const SizedBox(width: 4),
-                      _nutriChip('K ${carbs.toStringAsFixed(1)}g', const Color(0xFFFFF8E1), const Color(0xFFF59E0B)),
+                      _nutriChip('K ${carbs.round()}g', const Color(0xFFFFF8E1), const Color(0xFFF59E0B)),
                       const SizedBox(width: 4),
-                      _nutriChip('L ${fat.toStringAsFixed(1)}g', const Color(0xFFFFF3E0), const Color(0xFFFF8C00)),
+                      _nutriChip('L ${fat.round()}g', const Color(0xFFFFF3E0), const Color(0xFFFF8C00)),
                     ],
                   ),
                 ],
@@ -266,10 +274,10 @@ class _WatchlistViewState extends State<WatchlistView> {
                   child: Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF7C4DFF).withValues(alpha: 0.1),
+                      color: const Color(0xFF2E7D32).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.bookmark_rounded, color: Color(0xFF7C4DFF), size: 16),
+                    child: const Icon(Icons.bookmark_rounded, color: Color(0xFF2E7D32), size: 16),
                   ),
                 ),
               ],
@@ -284,7 +292,7 @@ class _WatchlistViewState extends State<WatchlistView> {
     return Container(
       width: 50, height: 50,
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: color.withOpacity(0.12),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Center(
@@ -327,10 +335,10 @@ class _WatchlistViewState extends State<WatchlistView> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: const Color(0xFFF3E5F5),
+              color: const Color(0xFFE8F5E9),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.bookmark_border_rounded, size: 40, color: Color(0xFF7C4DFF)),
+            child: const Icon(Icons.bookmark_border_rounded, size: 40, color: Color(0xFF2E7D32)),
           ),
           const SizedBox(height: 16),
           const Text(

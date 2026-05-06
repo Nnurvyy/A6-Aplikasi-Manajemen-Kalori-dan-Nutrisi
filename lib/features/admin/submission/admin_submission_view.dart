@@ -95,7 +95,7 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: _green.withValues(alpha: 0.1),
+                          color: _green.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(
@@ -291,7 +291,7 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
                                   color: (isApprove ? _green : Colors.red)
-                                      .withValues(alpha: 0.1),
+                                      .withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                                 child: Icon(
@@ -856,7 +856,7 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
               margin: const EdgeInsets.only(right: 16),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.12),
+                color: Colors.orange.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
@@ -990,8 +990,8 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
         decoration: BoxDecoration(
           color:
               count > 0
-                  ? color.withValues(alpha: 0.15)
-                  : Colors.grey.withValues(alpha: 0.12),
+                  ? color.withOpacity(0.15)
+                  : Colors.grey.withOpacity(0.12),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Text(
@@ -1024,7 +1024,7 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: const Color(0xFF2E7D32).withValues(alpha: 0.08),
+                color: const Color(0xFF2E7D32).withOpacity(0.08),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -1275,10 +1275,10 @@ class _SubmissionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final borderColor =
         showActions
-            ? Colors.orange.withValues(alpha: 0.25)
+            ? Colors.orange.withOpacity(0.25)
             : showNutriStatus
-            ? _green.withValues(alpha: 0.2)
-            : Colors.red.withValues(alpha: 0.2);
+            ? _green.withOpacity(0.2)
+            : Colors.red.withOpacity(0.2);
 
     return Container(
       decoration: BoxDecoration(
@@ -1287,7 +1287,7 @@ class _SubmissionCard extends StatelessWidget {
         border: Border.all(color: borderColor, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -1324,7 +1324,7 @@ class _SubmissionCard extends StatelessWidget {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.55),
+                            color: Colors.black.withOpacity(0.55),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Row(
@@ -1355,7 +1355,7 @@ class _SubmissionCard extends StatelessWidget {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.5),
+                          color: Colors.black.withOpacity(0.5),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Row(
@@ -1392,10 +1392,10 @@ class _SubmissionCard extends StatelessWidget {
                 height: 52,
                 color:
                     showActions
-                        ? Colors.orange.withValues(alpha: 0.07)
+                        ? Colors.orange.withOpacity(0.07)
                         : showNutriStatus
-                        ? _green.withValues(alpha: 0.05)
-                        : Colors.red.withValues(alpha: 0.05),
+                        ? _green.withOpacity(0.05)
+                        : Colors.red.withOpacity(0.05),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -1403,7 +1403,7 @@ class _SubmissionCard extends StatelessWidget {
                       Icons.image_not_supported_rounded,
                       color:
                           showActions
-                              ? Colors.orange.withValues(alpha: 0.5)
+                              ? Colors.orange.withOpacity(0.5)
                               : const Color(0xFFB0BEC5),
                       size: 16,
                     ),
@@ -1414,7 +1414,7 @@ class _SubmissionCard extends StatelessWidget {
                         fontSize: 11,
                         color:
                             showActions
-                                ? Colors.orange.withValues(alpha: 0.7)
+                                ? Colors.orange.withOpacity(0.7)
                                 : const Color(0xFFB0BEC5),
                       ),
                     ),
@@ -1492,7 +1492,7 @@ class _SubmissionCard extends StatelessWidget {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: _green.withValues(alpha: 0.1),
+                            color: _green.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: const Text(
@@ -1520,8 +1520,8 @@ class _SubmissionCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       color:
                           item.isNutriFilled
-                              ? _green.withValues(alpha: 0.1)
-                              : Colors.orange.withValues(alpha: 0.1),
+                              ? _green.withOpacity(0.1)
+                              : Colors.orange.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -1545,10 +1545,10 @@ class _SubmissionCard extends StatelessWidget {
                       width: double.infinity,
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.red.withValues(alpha: 0.05),
+                        color: Colors.red.withOpacity(0.05),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: Colors.red.withValues(alpha: 0.2),
+                          color: Colors.red.withOpacity(0.2),
                         ),
                       ),
                       child: Row(
@@ -1594,7 +1594,7 @@ class _SubmissionCard extends StatelessWidget {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.grey.withValues(alpha: 0.07),
+                        color: Colors.grey.withOpacity(0.07),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Text(
@@ -1615,7 +1615,7 @@ class _SubmissionCard extends StatelessWidget {
                       vertical: 5,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.grey.withValues(alpha: 0.07),
+                      color: Colors.grey.withOpacity(0.07),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(

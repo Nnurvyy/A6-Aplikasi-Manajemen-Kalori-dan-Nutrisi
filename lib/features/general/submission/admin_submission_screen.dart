@@ -201,7 +201,7 @@ class _AdminSubmissionScreenState extends State<AdminSubmissionScreen>
             Icon(
               Icons.inbox_rounded,
               size: 54,
-              color: _textMuted.withValues(alpha: 0.4),
+              color: _textMuted.withOpacity(0.4),
             ),
             const SizedBox(height: 10),
             Text('Tidak ada data', style: TextStyle(color: _textMuted)),
@@ -229,7 +229,7 @@ class _AdminSubmissionScreenState extends State<AdminSubmissionScreen>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
+            color: Colors.black.withOpacity(0.06),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),

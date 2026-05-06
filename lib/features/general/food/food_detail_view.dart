@@ -3,17 +3,20 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../helpers/app_colors.dart';
 import './models/food_model.dart';
+import './models/log_model.dart';
 import '../auth/auth_controller.dart';
 import '../widgets/nt_button.dart';
 import './food_controller.dart';
 import './watchlist_controller.dart';
 import '../../../helpers/date_controller.dart';
+import 'dart:io';
 
 class FoodDetailView extends StatefulWidget {
   final FoodModel food;
+  final LogModel? initialLog;
   final bool isManual;
 
-  const FoodDetailView({super.key, required this.food, this.isManual = false});
+  const FoodDetailView({super.key, required this.food, this.initialLog, this.isManual = false});
 
   @override
   State<FoodDetailView> createState() => _FoodDetailViewState();
@@ -26,7 +29,8 @@ class _FoodDetailViewState extends State<FoodDetailView> {
   @override
   void initState() {
     super.initState();
-    _currentGrams = widget.food.defaultServingSize;
+    _currentGrams = widget.initialLog?.servingSize ?? widget.food.defaultServingSize;
+    _quantity = 1;
   }
 
   @override
@@ -61,6 +65,35 @@ class _FoodDetailViewState extends State<FoodDetailView> {
               onPressed: () => Navigator.pop(context),
             ),
             actions: [
+              if (widget.initialLog != null)
+                IconButton(
+                  icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Hapus Riwayat'),
+                        content: const Text('Yakin ingin menghapus item ini dari riwayat harian?'),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            style: TextButton.styleFrom(foregroundColor: Colors.red),
+                            child: const Text('Hapus'),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (confirm == true && mounted) {
+                      context.read<FoodController>().deleteLog(widget.initialLog!.id);
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Item dihapus dari riwayat')),
+                      );
+                    }
+                  },
+                ),
               if (userId != null)
                 IconButton(
                   icon: Icon(
@@ -80,11 +113,13 @@ class _FoodDetailViewState extends State<FoodDetailView> {
             ],
             flexibleSpace: FlexibleSpaceBar(
               background: widget.food.imageUrl != null
-                  ? Image.network(widget.food.imageUrl!, fit: BoxFit.cover)
+                  ? (widget.food.imageUrl!.startsWith('http')
+                      ? Image.network(widget.food.imageUrl!, fit: BoxFit.cover)
+                      : Image.file(File(widget.food.imageUrl!), fit: BoxFit.cover))
                   : Container(
                       decoration: const BoxDecoration(gradient: AppColors.headerGradient),
                       child: Center(
-                        child: Icon(Icons.fastfood_rounded, size: 80, color: Colors.white.withValues(alpha: 0.5)),
+                        child: Icon(Icons.fastfood_rounded, size: 80, color: Colors.white.withOpacity(0.5)),
                       ),
                     ),
             ),
@@ -118,8 +153,22 @@ class _FoodDetailViewState extends State<FoodDetailView> {
                         style: GoogleFonts.poppins(
                           fontSize: 12,
                           color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
+                      if (widget.initialLog != null) ...[
+                        const SizedBox(width: 8),
+                        Container(width: 4, height: 4, decoration: BoxDecoration(color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary, shape: BoxShape.circle)),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Dikonsumsi pkl ${widget.initialLog!.formattedTime}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
 
@@ -148,7 +197,7 @@ class _FoodDetailViewState extends State<FoodDetailView> {
                         Column(
                           children: [
                             Text(
-                              nutrition['calories']!.toStringAsFixed(0),
+                              nutrition['calories']!.round().toString(),
                               style: GoogleFonts.poppins(
                                 fontSize: 32,
                                 fontWeight: FontWeight.bold,
@@ -156,7 +205,7 @@ class _FoodDetailViewState extends State<FoodDetailView> {
                               ),
                             ),
                             Text(
-                              'Calories',
+                              'kkal total',
                               style: GoogleFonts.poppins(
                                 fontSize: 14,
                                 color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
@@ -196,11 +245,11 @@ class _FoodDetailViewState extends State<FoodDetailView> {
                         ),
                       ),
                       Text(
-                        '${_currentGrams.toInt()} gram',
+                        '${_currentGrams.round()} gram',
                         style: GoogleFonts.poppins(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
+                          color: const Color(0xFF2E7D32),
                         ),
                       ),
                     ],
@@ -208,9 +257,9 @@ class _FoodDetailViewState extends State<FoodDetailView> {
                   SliderTheme(
                     data: SliderTheme.of(context).copyWith(
                       activeTrackColor: AppColors.primary,
-                      inactiveTrackColor: AppColors.primary.withValues(alpha: 0.1),
+                      inactiveTrackColor: AppColors.primary.withOpacity(0.1),
                       thumbColor: AppColors.primary,
-                      overlayColor: AppColors.primary.withValues(alpha: 0.2),
+                      overlayColor: AppColors.primary.withOpacity(0.2),
                     ),
                     child: Slider(
                       value: _currentGrams,
@@ -239,7 +288,7 @@ class _FoodDetailViewState extends State<FoodDetailView> {
                       ),
                       Container(
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
+                          color: AppColors.primary.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
@@ -298,19 +347,38 @@ class _FoodDetailViewState extends State<FoodDetailView> {
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkSurface : Colors.white,
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, -5))
+            BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, -5))
           ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             NtButton(
-              label: 'Tambah ke Log',
+              label: widget.initialLog != null ? 'Update Riwayat' : 'Tambah ke Log',
               onPressed: () async {
                 final userId = auth.currentUser?.id;
                 if (userId == null) return;
 
                 final foodCtrl = context.read<FoodController>();
+                
+                if (widget.initialLog != null) {
+                   // UPDATE existing log
+                   final updatedLog = widget.initialLog!.copyWith(
+                     servingSize: _currentGrams * _quantity,
+                     calories: nutrition['calories']!,
+                     protein: nutrition['protein']!,
+                     carbs: nutrition['carbs']!,
+                     fat: nutrition['fat']!,
+                   );
+                   await foodCtrl.updateLog(updatedLog);
+                   if (!context.mounted) return;
+                   Navigator.pop(context);
+                   ScaffoldMessenger.of(context).showSnackBar(
+                     const SnackBar(content: Text('Riwayat berhasil diperbarui'), backgroundColor: AppColors.primary),
+                   );
+                   return;
+                }
+
                 final selectedDate = context.read<DateController>().selectedDate;
 
                 bool success = await foodCtrl.addFoodToDailyLog(
@@ -325,6 +393,8 @@ class _FoodDetailViewState extends State<FoodDetailView> {
                   dateConsumed: selectedDate,
                   servingSize: _currentGrams * _quantity,
                   isManual: widget.isManual,
+                  imageUrl: widget.food.imageUrl,
+                  ingredientsJson: widget.food.ingredientsJson,
                 );
 
                 if (!context.mounted) return;
@@ -363,7 +433,7 @@ class _FoodDetailViewState extends State<FoodDetailView> {
           color: isDark ? AppColors.darkCard : Colors.white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)
+            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)
           ],
         ),
         child: Column(
@@ -371,7 +441,7 @@ class _FoodDetailViewState extends State<FoodDetailView> {
             Icon(icon, color: color, size: 20),
             const SizedBox(height: 8),
             Text(
-              '${value.toStringAsFixed(1)}g',
+              '${value.round()}g',
               style: GoogleFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -381,7 +451,7 @@ class _FoodDetailViewState extends State<FoodDetailView> {
             Text(
               label,
               style: GoogleFonts.poppins(
-                fontSize: 11,
+                fontSize: 12,
                 color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
               ),
             ),

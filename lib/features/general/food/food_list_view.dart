@@ -5,6 +5,7 @@ import '../../../helpers/app_colors.dart';
 import './food_controller.dart';
 import './models/food_model.dart';
 import './food_detail_view.dart';
+import 'dart:io';
 
 class FoodListView extends StatefulWidget {
   final String? initialSearch;
@@ -51,7 +52,7 @@ class _FoodListViewState extends State<FoodListView> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Apply category filter client-side (on top of FoodController search)
-    List<FoodModel> foods = ctrl.foods;
+    List<FoodModel> foods = ctrl.foods.where((f) => !f.id.startsWith('manual_')).toList();
     if (_selectedCategory != 'Semua') {
       foods = foods.where((f) => f.category == _selectedCategory).toList();
     }
@@ -86,7 +87,7 @@ class _FoodListViewState extends State<FoodListView> {
               style: GoogleFonts.poppins(color: Colors.white, fontSize: 14),
               decoration: InputDecoration(
                 hintText: 'Cari makanan...',
-                hintStyle: GoogleFonts.poppins(color: Colors.white.withValues(alpha: 0.6), fontSize: 14),
+                hintStyle: GoogleFonts.poppins(color: Colors.white.withOpacity(0.6), fontSize: 14),
                 prefixIcon: const Icon(Icons.search_rounded, color: Colors.white70),
                 suffixIcon: _searchCtrl.text.isNotEmpty
                     ? IconButton(
@@ -99,7 +100,7 @@ class _FoodListViewState extends State<FoodListView> {
                       )
                     : null,
                 filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.15),
+                fillColor: Colors.white.withOpacity(0.15),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -330,7 +331,7 @@ class _FoodListViewState extends State<FoodListView> {
               ? []
               : [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
+                    color: Colors.black.withOpacity(0.04),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   )
@@ -341,12 +342,19 @@ class _FoodListViewState extends State<FoodListView> {
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: food.imageUrl != null
-                  ? Image.network(
-                      food.imageUrl!,
-                      width: 50, height: 50,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _avatar(food.name),
-                    )
+                  ? (food.imageUrl!.startsWith('http') 
+                      ? Image.network(
+                          food.imageUrl!,
+                          width: 50, height: 50,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _avatar(food.name),
+                        )
+                      : Image.file(
+                          File(food.imageUrl!),
+                          width: 50, height: 50,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _avatar(food.name),
+                        ))
                   : _avatar(food.name),
             ),
             const SizedBox(width: 14),
@@ -423,7 +431,7 @@ class _FoodListViewState extends State<FoodListView> {
     return Container(
       width: 50, height: 50,
       decoration: BoxDecoration(
-        color: AppColors.primaryLight.withValues(alpha: 0.12),
+        color: AppColors.primaryLight.withOpacity(0.12),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Center(
@@ -439,7 +447,7 @@ class _FoodListViewState extends State<FoodListView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: color.withOpacity(0.12),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(text,

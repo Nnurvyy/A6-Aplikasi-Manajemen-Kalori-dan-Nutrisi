@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../general/auth/auth_controller.dart';
 import './dashboard_controller.dart';
-import '../../general/food/models/log_model.dart';
 import '../../general/food/food_controller.dart';
+import '../../general/food/models/log_model.dart';
 import '../../../helpers/date_controller.dart';
+import '../manual_food/manual_food_form_view.dart';
+import '../../general/food/food_detail_view.dart';
+import '../../general/food/models/food_model.dart';
+import 'dart:io';
+import 'dart:convert';
 
 /// Widget murni isi dashboard — TANPA Scaffold/BottomNav sendiri.
 /// Dibungkus oleh UserMainView yang sudah punya satu BottomAppBar.
@@ -58,7 +63,12 @@ class _DashboardBodyState extends State<DashboardBody> {
     final proteinConsumed = filteredHistory.fold(0.0, (s, i) => s + i.protein);
     final carbsConsumed = filteredHistory.fold(0.0, (s, i) => s + i.carbs);
     final fatConsumed = filteredHistory.fold(0.0, (s, i) => s + i.fat);
-    final waterConsumed = 0.0;
+    final waterConsumed = filteredHistory.fold(0.0, (s, i) {
+      if (i.foodName.toLowerCase() == 'air putih') {
+        return s + i.servingSize;
+      }
+      return s;
+    });
 
     _controller.kaloriTarget = kaloriTarget;
     _controller.kaloriConsumed = kaloriConsumed;
@@ -102,14 +112,14 @@ class _DashboardBodyState extends State<DashboardBody> {
             style: TextStyle(
               fontSize: 26,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF1B2A1B),
+              color: Color(0xFF2E7D32),
               letterSpacing: -0.5,
             ),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFF4CAF50).withValues(alpha: 0.12),
+              color: const Color(0xFF2E7D32).withOpacity(0.12),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
@@ -156,7 +166,7 @@ class _DashboardBodyState extends State<DashboardBody> {
               duration: const Duration(milliseconds: 200),
               width: 38,
               decoration: BoxDecoration(
-                color: isActive ? const Color(0xFF4CAF50) : Colors.transparent,
+                color: isActive ? const Color(0xFF2E7D32) : Colors.transparent,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Column(
@@ -176,7 +186,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: isActive ? Colors.white : const Color(0xFF1B2A1B),
+                      color: isActive ? Colors.white : const Color(0xFF2E7D32),
                     ),
                   ),
                 ],
@@ -201,7 +211,7 @@ class _DashboardBodyState extends State<DashboardBody> {
           border: Border.all(color: const Color(0xFFC8E6C9), width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF4CAF50).withValues(alpha: 0.10),
+              color: const Color(0xFF4CAF50).withOpacity(0.10),
               blurRadius: 12,
               offset: const Offset(0, 2),
             ),
@@ -216,7 +226,7 @@ class _DashboardBodyState extends State<DashboardBody> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF1B2A1B),
+                color: Color(0xFF2E7D32),
               ),
             ),
             const SizedBox(height: 4),
@@ -231,6 +241,9 @@ class _DashboardBodyState extends State<DashboardBody> {
   }
 
   Widget _buildBatteryBar(double percentage) {
+    final bool isCompleted = percentage >= 1.0;
+    final displayPercentage = percentage > 1.0 ? 1.0 : percentage;
+
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -240,24 +253,25 @@ class _DashboardBodyState extends State<DashboardBody> {
               decoration: BoxDecoration(
                 color: const Color(0xFFE8F5E9),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFA5D6A7), width: 2),
+                border: Border.all(color: const Color(0xFF2E7D32), width: 2),
+                boxShadow: isCompleted ? [BoxShadow(color: const Color(0xFF2E7D32).withOpacity(0.3), blurRadius: 10, spreadRadius: 2)] : [],
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(isCompleted ? 11 : 12),
                 child: Stack(
                   children: [
                     Positioned.fill(
                       child: FractionallySizedBox(
-                        widthFactor: percentage,
+                        widthFactor: displayPercentage,
                         alignment: Alignment.centerLeft,
                         child: Container(
-                          decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [Color(0xFF66BB6A), Color(0xFF4CAF50)],
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
-                            borderRadius: BorderRadius.only(
+                            borderRadius: const BorderRadius.only(
                               topLeft: Radius.circular(12),
                               bottomLeft: Radius.circular(12),
                             ),
@@ -271,14 +285,14 @@ class _DashboardBodyState extends State<DashboardBody> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(
-                              Icons.local_fire_department,
-                              color: Colors.white,
+                            Icon(
+                              isCompleted ? Icons.check_circle_rounded : Icons.local_fire_department,
+                              color: isCompleted ? Colors.white : Colors.white,
                               size: 24,
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              '${(percentage * 100).toInt()}%',
+                              isCompleted ? 'Target Tercapai!' : '${(percentage * 100).toInt()}%',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 18,
@@ -299,8 +313,9 @@ class _DashboardBodyState extends State<DashboardBody> {
             width: 8,
             height: 36,
             decoration: BoxDecoration(
-              color: const Color(0xFFA5D6A7),
+              color: const Color(0xFF2E7D32),
               borderRadius: BorderRadius.circular(4),
+              boxShadow: isCompleted ? [BoxShadow(color: const Color(0xFF2E7D32).withOpacity(0.3), blurRadius: 4)] : [],
             ),
           ),
         ],
@@ -361,7 +376,7 @@ class _DashboardBodyState extends State<DashboardBody> {
         border: Border.all(color: const Color(0xFFE0E0E0), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -376,13 +391,13 @@ class _DashboardBodyState extends State<DashboardBody> {
             style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF1B2A1B),
+              color: Color(0xFF2E7D32),
             ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 4),
           Text(
-            '${item.consumed.toStringAsFixed(1)}g / ${item.target.toStringAsFixed(0)}g',
+            '${item.consumed.round()} / ${item.target.round()}${item.name == "Air" ? "ml" : "g"}',
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w500,
@@ -396,6 +411,9 @@ class _DashboardBodyState extends State<DashboardBody> {
   }
 
   Widget _buildMiniBattery(NutrisiItem item) {
+    final bool isCompleted = item.percentage >= 1.0;
+    final double displayPct = item.percentage > 1.0 ? 1.0 : item.percentage;
+
     return SizedBox(
       width: 46,
       height: 54,
@@ -412,6 +430,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(3),
                 ),
+                boxShadow: isCompleted ? [BoxShadow(color: item.borderColor.withOpacity(0.3), blurRadius: 2)] : [],
               ),
             ),
           ),
@@ -424,14 +443,15 @@ class _DashboardBodyState extends State<DashboardBody> {
                 color: item.bgColor,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: item.borderColor, width: 2.5),
+                boxShadow: isCompleted ? [BoxShadow(color: item.borderColor.withOpacity(0.2), blurRadius: 4, spreadRadius: 1)] : [],
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(isCompleted ? 6 : 8),
                 child: Stack(
                   alignment: Alignment.bottomCenter,
                   children: [
                     FractionallySizedBox(
-                      heightFactor: item.percentage,
+                      heightFactor: displayPct,
                       alignment: Alignment.bottomCenter,
                       child: Container(
                         decoration: BoxDecoration(
@@ -442,9 +462,14 @@ class _DashboardBodyState extends State<DashboardBody> {
                         ),
                       ),
                     ),
-                    Center(
-                      child: Icon(item.icon, color: item.iconColor, size: 20),
-                    ),
+                    if (isCompleted)
+                      Center(
+                        child: Icon(Icons.check, color: item.iconColor, size: 24),
+                      )
+                    else
+                      Center(
+                        child: Icon(item.icon, color: item.iconColor, size: 20),
+                      ),
                   ],
                 ),
               ),
@@ -467,7 +492,7 @@ class _DashboardBodyState extends State<DashboardBody> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFF4CAF50),
+              color: const Color(0xFF2E7D32),
               borderRadius: BorderRadius.circular(20),
             ),
             child: const Row(
@@ -532,7 +557,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF1B2A1B),
+                  color: Color(0xFF2E7D32),
                 ),
               ),
               const SizedBox(height: 6),
@@ -608,9 +633,9 @@ class _DashboardBodyState extends State<DashboardBody> {
                 margin: const EdgeInsets.symmetric(horizontal: 3),
                 width: 30, height: 30,
                 decoration: BoxDecoration(
-                  color: isActive ? const Color(0xFF4CAF50) : Colors.transparent,
+                  color: isActive ? const Color(0xFF2E7D32) : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: isActive ? const Color(0xFF4CAF50) : const Color(0xFFD0E8D0)),
+                  border: Border.all(color: isActive ? const Color(0xFF2E7D32) : const Color(0xFFD0E8D0)),
                 ),
                 child: Center(
                   child: Text(
@@ -641,7 +666,7 @@ class _DashboardBodyState extends State<DashboardBody> {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: enabled ? const Color(0xFFD0E8D0) : Colors.transparent),
         ),
-        child: Icon(icon, size: 16, color: enabled ? const Color(0xFF4CAF50) : const Color(0xFF5A7A5A).withValues(alpha: 0.3)),
+        child: Icon(icon, size: 16, color: enabled ? const Color(0xFF2E7D32) : const Color(0xFF5A7A5A).withOpacity(0.3)),
       ),
     );
   }
@@ -662,7 +687,7 @@ class _DashboardBodyState extends State<DashboardBody> {
           border: Border.all(color: const Color(0xFFE0E0E0), width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
+              color: Colors.black.withOpacity(0.04),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -670,22 +695,28 @@ class _DashboardBodyState extends State<DashboardBody> {
         ),
         child: Row(
           children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                color: accentColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Center(
-                child: Text(
-                  item.foodName[0].toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: accentColor,
-                  ),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: accentColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(10),
                 ),
+                child: item.imageUrl != null
+                    ? (item.imageUrl!.startsWith('http')
+                        ? Image.network(
+                            item.imageUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _buildHistoryAvatar(item, accentColor),
+                          )
+                        : Image.file(
+                            File(item.imageUrl!),
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _buildHistoryAvatar(item, accentColor),
+                          ))
+                    : _buildHistoryAvatar(item, accentColor),
               ),
             ),
             const SizedBox(width: 12),
@@ -695,10 +726,12 @@ class _DashboardBodyState extends State<DashboardBody> {
                 children: [
                   Text(
                     item.foodName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF1B2A1B),
+                      color: Color(0xFF2E7D32),
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -713,19 +746,19 @@ class _DashboardBodyState extends State<DashboardBody> {
                   Row(
                     children: [
                       _nutriChip(
-                        'P ${item.protein.toStringAsFixed(1)}g',
+                        'P ${item.protein.round()}g',
                         const Color(0xFFFFEBEE),
                         const Color(0xFFE53935),
                       ),
                       const SizedBox(width: 4),
                       _nutriChip(
-                        'K ${item.carbs.toStringAsFixed(1)}g',
+                        'K ${item.carbs.round()}g',
                         const Color(0xFFFFF8E1),
                         const Color(0xFFF59E0B),
                       ),
                       const SizedBox(width: 4),
                       _nutriChip(
-                        'L ${item.fat.toStringAsFixed(1)}g',
+                        'L ${item.fat.round()}g',
                         const Color(0xFFFFF3E0),
                         const Color(0xFFFF8C00),
                       ),
@@ -742,7 +775,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                   style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF4CAF50),
+                    color: Color(0xFF2E7D32),
                   ),
                 ),
                 const Text(
@@ -769,260 +802,33 @@ class _DashboardBodyState extends State<DashboardBody> {
 
   // ─── MODAL DETAIL ─────────────────────────────────────────────────────────
 
-  void _showFoodDetailModal(LogModel item) {
-    final Color accentColor = _categoryColor(item.category);
+  // ─── HELPER TO RECONSTRUCT FOOD MODEL ─────────────────────────────────────
+  FoodModel _reconstructFood(LogModel log) {
+    return FoodModel(
+      id: 'log_${log.id}',
+      name: log.foodName,
+      category: log.category,
+      calories: (log.calories / log.servingSize) * 100,
+      protein: (log.protein / log.servingSize) * 100,
+      carbs: (log.carbs / log.servingSize) * 100,
+      fat: (log.fat / log.servingSize) * 100,
+      defaultServingSize: log.servingSize,
+      isApproved: true,
+      createdAt: log.consumedAt,
+      imageUrl: log.imageUrl,
+      ingredientsJson: log.ingredientsJson,
+    );
+  }
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder:
-          (ctx) => DraggableScrollableSheet(
-            initialChildSize: 0.6,
-            minChildSize: 0.4,
-            maxChildSize: 0.85,
-            expand: false,
-            builder:
-                (_, scrollCtrl) => Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(24),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: Container(
-                          width: 40,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE0E0E0),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: ListView(
-                          controller: scrollCtrl,
-                          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  width: 52,
-                                  height: 52,
-                                  decoration: BoxDecoration(
-                                    color: accentColor.withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      item.foodName[0].toUpperCase(),
-                                      style: TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.w800,
-                                        color: accentColor,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 14),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        item.foodName,
-                                        style: const TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w800,
-                                          color: Color(0xFF1B2A1B),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Row(
-                                        children: [
-                                          _pillBadge(
-                                            item.category,
-                                            accentColor,
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
-                            Container(
-                              padding: const EdgeInsets.symmetric(vertical: 20),
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFF4CAF50),
-                                    Color(0xFF66BB6A),
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(
-                                    Icons.local_fire_department,
-                                    color: Colors.white,
-                                    size: 28,
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Column(
-                                    children: [
-                                      Text(
-                                        '${item.calories.toInt()}',
-                                        style: const TextStyle(
-                                          fontSize: 32,
-                                          fontWeight: FontWeight.w800,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      const Text(
-                                        'kkal total',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.white70,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(width: 24),
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        '${item.servingSize.toInt()} gram',
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w700,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      const Text(
-                                        'total porsi',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: Colors.white70,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                _macroCard(
-                                  'Protein',
-                                  item.protein,
-                                  const Color(0xFFFFEBEE),
-                                  const Color(0xFFE53935),
-                                  Icons.fitness_center,
-                                ),
-                                const SizedBox(width: 10),
-                                _macroCard(
-                                  'Karbo',
-                                  item.carbs,
-                                  const Color(0xFFFFF8E1),
-                                  const Color(0xFFF59E0B),
-                                  Icons.grain,
-                                ),
-                                const SizedBox(width: 10),
-                                _macroCard(
-                                  'Lemak',
-                                  item.fat,
-                                  const Color(0xFFFFF3E0),
-                                  const Color(0xFFFF8C00),
-                                  Icons.water_drop,
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Container(
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF4F6F0),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.access_time,
-                                    size: 16,
-                                    color: Color(0xFF5A7A5A),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Dikonsumsi pukul ${_controller.formatMealTime(item.consumedAt)} • ${item.mealType}',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Color(0xFF5A7A5A),
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            GestureDetector(
-                              onTap: () {
-                                Navigator.pop(ctx);
-                              },
-                              child: Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFFEBEE),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: const Color(0xFFEF9A9A),
-                                    width: 1.5,
-                                  ),
-                                ),
-                                child: const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.delete_outline,
-                                      color: Color(0xFFE53935),
-                                      size: 18,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Hapus dari Riwayat',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w700,
-                                        color: Color(0xFFE53935),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-          ),
+  void _showFoodDetailModal(LogModel item) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FoodDetailView(
+          food: _reconstructFood(item),
+          initialLog: item,
+        ),
+      ),
     );
   }
 
@@ -1050,7 +856,7 @@ class _DashboardBodyState extends State<DashboardBody> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: color.withOpacity(0.12),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
@@ -1059,6 +865,25 @@ class _DashboardBodyState extends State<DashboardBody> {
           fontSize: 10,
           fontWeight: FontWeight.w700,
           color: color,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHistoryAvatar(LogModel item, Color accentColor) {
+    if (item.imageUrl != null && File(item.imageUrl!).existsSync()) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.file(File(item.imageUrl!), fit: BoxFit.cover),
+      );
+    }
+    return Center(
+      child: Text(
+        item.foodName[0].toUpperCase(),
+        style: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w800,
+          color: accentColor,
         ),
       ),
     );
@@ -1092,7 +917,7 @@ class _DashboardBodyState extends State<DashboardBody> {
             ),
             Text(
               label,
-              style: TextStyle(fontSize: 10, color: color.withValues(alpha: 0.7)),
+              style: TextStyle(fontSize: 10, color: color.withOpacity(0.7)),
             ),
           ],
         ),
