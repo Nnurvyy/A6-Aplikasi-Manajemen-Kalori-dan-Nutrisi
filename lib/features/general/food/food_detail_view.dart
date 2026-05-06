@@ -30,7 +30,7 @@ class _FoodDetailViewState extends State<FoodDetailView> {
   void initState() {
     super.initState();
     _currentGrams = widget.initialLog?.servingSize ?? widget.food.defaultServingSize;
-    _quantity = 1;
+    _quantity = widget.initialLog?.quantity ?? 1;
   }
 
   @override
@@ -262,10 +262,10 @@ class _FoodDetailViewState extends State<FoodDetailView> {
                       overlayColor: AppColors.primary.withOpacity(0.2),
                     ),
                     child: Slider(
-                      value: _currentGrams,
+                      value: _currentGrams.clamp(10, 2000),
                       min: 10,
-                      max: 1000,
-                      divisions: 99,
+                      max: 2000,
+                      divisions: 199,
                       onChanged: (val) {
                         setState(() => _currentGrams = val);
                       },
@@ -364,7 +364,8 @@ class _FoodDetailViewState extends State<FoodDetailView> {
                 if (widget.initialLog != null) {
                    // UPDATE existing log
                    final updatedLog = widget.initialLog!.copyWith(
-                     servingSize: _currentGrams * _quantity,
+                     servingSize: _currentGrams,
+                     quantity: _quantity,
                      calories: nutrition['calories']!,
                      protein: nutrition['protein']!,
                      carbs: nutrition['carbs']!,
@@ -391,7 +392,8 @@ class _FoodDetailViewState extends State<FoodDetailView> {
                   fat: nutrition['fat']!,
                   mealType: '',
                   dateConsumed: selectedDate,
-                  servingSize: _currentGrams * _quantity,
+                  servingSize: _currentGrams,
+                  quantity: _quantity,
                   isManual: widget.isManual,
                   imageUrl: widget.food.imageUrl,
                   ingredientsJson: widget.food.ingredientsJson,

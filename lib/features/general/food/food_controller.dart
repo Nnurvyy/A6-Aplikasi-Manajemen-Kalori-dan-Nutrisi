@@ -123,6 +123,7 @@ class FoodController extends ChangeNotifier {
     required String mealType,
     required DateTime dateConsumed, 
     required double servingSize,
+    int quantity = 1, // New parameter
     bool isManual = false,
     String? imageUrl,
     String? ingredientsJson,
@@ -143,6 +144,7 @@ class FoodController extends ChangeNotifier {
       isManual: isManual,
       imageUrl: imageUrl,
       ingredientsJson: ingredientsJson,
+      quantity: quantity,
     );
 
     await HiveService.logs.put(newLog.id, newLog);

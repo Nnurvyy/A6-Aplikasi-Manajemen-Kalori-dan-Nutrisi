@@ -725,7 +725,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item.foodName,
+                    item.quantity > 1 ? '${item.quantity} pcs ${item.foodName}' : item.foodName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -804,15 +804,21 @@ class _DashboardBodyState extends State<DashboardBody> {
 
   // ─── HELPER TO RECONSTRUCT FOOD MODEL ─────────────────────────────────────
   FoodModel _reconstructFood(LogModel log) {
+    // Total weight consumed for this log entry
+    final totalWeight = log.servingSize * (log.quantity > 0 ? log.quantity : 1);
+    
+    // Formula: per100 = (totalValue * 100) / totalWeight
+    double getPer100(double total) => totalWeight > 0 ? (total * 100) / totalWeight : 0;
+
     return FoodModel(
       id: 'log_${log.id}',
       name: log.foodName,
       category: log.category,
-      calories: (log.calories / log.servingSize) * 100,
-      protein: (log.protein / log.servingSize) * 100,
-      carbs: (log.carbs / log.servingSize) * 100,
-      fat: (log.fat / log.servingSize) * 100,
-      defaultServingSize: log.servingSize,
+      calories: getPer100(log.calories),
+      protein: getPer100(log.protein),
+      carbs: getPer100(log.carbs),
+      fat: getPer100(log.fat),
+      defaultServingSize: log.servingSize, // This is the grams per 1 pc
       isApproved: true,
       createdAt: log.consumedAt,
       imageUrl: log.imageUrl,
