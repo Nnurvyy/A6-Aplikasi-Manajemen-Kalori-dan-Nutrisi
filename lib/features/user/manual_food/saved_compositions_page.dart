@@ -17,16 +17,9 @@ class SavedCompositionsPage extends StatelessWidget {
     final authCtrl = context.watch<AuthController>();
     final userId = authCtrl.currentUser?.id ?? '';
 
-    // Filter items based on type
-    final List<FoodModel> savedItems = foodCtrl.allApproved
-        .where((f) {
-          if (ingredientsOnly) {
-            return f.isManualIngredient;
-          } else {
-            // Complex compositions are manual foods with ingredients
-            return f.id.startsWith('manual_') && !f.isManualIngredient && f.ingredientsJson != null;
-          }
-        })
+    // Only show individual ingredients (tunggal)
+    final List<FoodModel> savedItems = foodCtrl.manualFoods
+        .where((f) => f.isManualIngredient)
         .toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
@@ -61,35 +54,72 @@ class SavedCompositionsPage extends StatelessWidget {
 
   Widget _buildCard(BuildContext context, FoodModel item) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)],
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15, offset: const Offset(0, 5))],
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(12),
-        leading: Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(color: const Color(0xFF2E7D32).withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-          child: item.imageUrl != null
-              ? (item.imageUrl!.startsWith('http')
-                  ? ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.network(item.imageUrl!, fit: BoxFit.cover))
-                  : ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.file(File(item.imageUrl!), fit: BoxFit.cover)))
-              : const Icon(Icons.restaurant_menu, color: Color(0xFF2E7D32)),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.pop(context, {
+              'isManual': false,
+              'food': item,
+              'grams': item.defaultServingSize,
+            });
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(color: const Color(0xFF2E7D32).withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
+                  child: item.imageUrl != null
+                      ? (item.imageUrl!.startsWith('http')
+                          ? ClipRRect(borderRadius: BorderRadius.circular(16), child: Image.network(item.imageUrl!, fit: BoxFit.cover))
+                          : ClipRRect(borderRadius: BorderRadius.circular(16), child: Image.file(File(item.imageUrl!), fit: BoxFit.cover)))
+                      : const Icon(Icons.restaurant_menu_rounded, color: Color(0xFF2E7D32), size: 28),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(item.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF1B2A1B))),
+                      const SizedBox(height: 4),
+                      Text('${item.defaultServingSize.round()}g • ${item.calories.round()} kcal', style: const TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500)),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          _smallNutriChip('P ${item.protein.round()}g', Colors.red.shade50, Colors.red.shade700),
+                          const SizedBox(width: 6),
+                          _smallNutriChip('K ${item.carbs.round()}g', Colors.amber.shade50, Colors.amber.shade700),
+                          const SizedBox(width: 6),
+                          _smallNutriChip('L ${item.fat.round()}g', Colors.blue.shade50, Colors.blue.shade700),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.add_circle_rounded, color: Color(0xFF2E7D32), size: 28),
+              ],
+            ),
+          ),
         ),
-        title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text('${item.defaultServingSize.round()}g • ${item.calories.round()} kcal'),
-        trailing: const Icon(Icons.add_circle_outline, color: Color(0xFF2E7D32)),
-        onTap: () {
-          Navigator.pop(context, {
-            'isManual': false,
-            'food': item,
-            'grams': item.defaultServingSize,
-          });
-        },
       ),
+    );
+  }
+
+  Widget _smallNutriChip(String label, Color bg, Color text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
+      child: Text(label, style: TextStyle(color: text, fontSize: 10, fontWeight: FontWeight.bold)),
     );
   }
 

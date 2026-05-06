@@ -386,11 +386,13 @@ class _PilihMakananManualState extends State<PilihMakananManual> with SingleTick
   }
 
   void _editManualFood(BuildContext context, FoodModel food) async {
-    // Need to convert FoodModel back to a LogModel-like structure if needed, 
-    // or just update FormTambahMakananManual to accept FoodModel
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => FormTambahMakananManual(initialFood: food)),
+      MaterialPageRoute(
+        builder: (_) => food.isManualIngredient
+            ? ManualIngredientInputPage(initialFood: food)
+            : FormTambahMakananManual(initialFood: food),
+      ),
     );
     if (result == true) {
       // Refresh handled by Provider

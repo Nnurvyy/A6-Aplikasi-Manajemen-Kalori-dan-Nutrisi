@@ -533,27 +533,40 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Edit Bahan', style: TextStyle(color: _primary, fontWeight: FontWeight.bold)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+        title: Row(
+          children: [
+            const Icon(Icons.edit_note_rounded, color: _primary),
+            const SizedBox(width: 12),
+            const Text('Edit Bahan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          ],
+        ),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _styledField(controller: nameCtrl, hint: 'Nama Bahan', icon: Icons.drive_file_rename_outline),
-              const SizedBox(height: 12),
-              _styledField(controller: gramCtrl, hint: 'Gram', icon: Icons.scale, keyboardType: TextInputType.number),
-              const SizedBox(height: 12),
-              _styledField(controller: calCtrl, hint: 'Kalori', icon: Icons.local_fire_department, keyboardType: TextInputType.number),
-              const SizedBox(height: 12),
-              _styledField(controller: proCtrl, hint: 'Protein', icon: Icons.fitness_center, keyboardType: TextInputType.number),
-              const SizedBox(height: 12),
-              _styledField(controller: carbCtrl, hint: 'Karbo', icon: Icons.grain, keyboardType: TextInputType.number),
-              const SizedBox(height: 12),
-              _styledField(controller: fatCtrl, hint: 'Lemak', icon: Icons.water_drop, keyboardType: TextInputType.number),
+              _dialogInputField(label: 'Nama Bahan', controller: nameCtrl, icon: Icons.drive_file_rename_outline, hint: 'Nama Bahan'),
+              const SizedBox(height: 16),
+              _dialogInputField(label: 'Jumlah (g)', controller: gramCtrl, icon: Icons.scale, hint: '100', isNumber: true),
+              const SizedBox(height: 16),
+              _dialogInputField(label: 'Kalori (kcal)', controller: calCtrl, icon: Icons.local_fire_department, hint: '0', isNumber: true, color: Colors.orange),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(child: _dialogInputField(label: 'Protein', controller: proCtrl, icon: Icons.fitness_center, hint: '0', isNumber: true, color: Colors.red)),
+                  const SizedBox(width: 12),
+                  Expanded(child: _dialogInputField(label: 'Karbo', controller: carbCtrl, icon: Icons.grain, hint: '0', isNumber: true, color: Colors.amber)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _dialogInputField(label: 'Lemak', controller: fatCtrl, icon: Icons.water_drop, hint: '0', isNumber: true, color: Colors.blue),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal', style: TextStyle(color: Colors.grey))),
           ElevatedButton(
             onPressed: () {
               final name = nameCtrl.text.trim();
@@ -579,11 +592,35 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
                 Navigator.pop(ctx);
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: _primary),
+            style: ElevatedButton.styleFrom(backgroundColor: _primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
             child: const Text('Simpan', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _dialogInputField({required String label, required TextEditingController controller, required IconData icon, required String hint, bool isNumber = false, Color? color}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF5A7A5A))),
+        const SizedBox(height: 6),
+        Container(
+          decoration: BoxDecoration(color: const Color(0xFFF4F6F0), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
+          child: TextField(
+            controller: controller,
+            keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
+            style: const TextStyle(fontSize: 14),
+            decoration: InputDecoration(
+              hintText: hint,
+              prefixIcon: Icon(icon, color: color ?? _primary, size: 18),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -633,30 +670,15 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
               ),
               const SizedBox(height: 12),
               _optionTile(
-                icon: Icons.inventory_2_rounded,
-                color: Colors.purple,
-                title: 'My Ingredients',
-                subtitle: 'Bahan tunggal yang pernah Anda buat',
-                onTap: () async {
-                  Navigator.pop(ctx);
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const SavedCompositionsPage(title: 'My Ingredients', ingredientsOnly: true)),
-                  );
-                  _handleIngredientResult(result);
-                },
-              ),
-              const SizedBox(height: 12),
-              _optionTile(
                 icon: Icons.bookmark_added_rounded,
                 color: Colors.orange,
                 title: 'Komposisi Tersimpan',
-                subtitle: 'Kombinasi bahan yang pernah disimpan',
+                subtitle: 'Pilih dari bahan tunggal yang tersimpan',
                 onTap: () async {
                   Navigator.pop(ctx);
                   final result = await Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const SavedCompositionsPage(title: 'Komposisi Tersimpan', ingredientsOnly: false)),
+                    MaterialPageRoute(builder: (_) => const SavedCompositionsPage(title: 'Komposisi Tersimpan')),
                   );
                   _handleIngredientResult(result);
                 },
