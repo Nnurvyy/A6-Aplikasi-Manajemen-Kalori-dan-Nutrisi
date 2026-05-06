@@ -5,12 +5,20 @@ import 'dart:io';
 import 'package:provider/provider.dart';
 import '../../general/auth/auth_controller.dart';
 import '../../general/food/food_controller.dart';
+
+
+import '../../general/food/widgets/ingredient_picker_dialog.dart';
+import '../../general/food/models/food_model.dart';
 import '../../general/food/models/log_model.dart';
-import '../../../helpers/date_controller.dart';
+import 'dart:convert';
+import './saved_compositions_page.dart';
+import './manual_ingredient_input_page.dart';
 
 class FormTambahMakananManual extends StatefulWidget {
   final LogModel? initialLog;
-  const FormTambahMakananManual({super.key, this.initialLog});
+  final FoodModel? initialFood; // NEW
+  final bool isHistoricalEdit;
+  const FormTambahMakananManual({super.key, this.initialLog, this.initialFood, this.isHistoricalEdit = false});
 
   @override
   State<FormTambahMakananManual> createState() => _FormTambahMakananManualState();
@@ -25,12 +33,16 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
   final _proteinCtrl = TextEditingController();
   final _carbsCtrl = TextEditingController();
   final _fatCtrl = TextEditingController();
+  
+  int _quantity = 1;
 
   String _selectedUnit = 'gram';
   String _selectedCategory = 'Makanan Pokok';
   File? _image;
   bool _isSaving = false;
   final ImagePicker _picker = ImagePicker();
+  
+  List<Map<String, dynamic>> _ingredients = [];
 
   static const List<String> _categories = [
     'Makanan Pokok',
@@ -38,22 +50,17 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
     'Snack',
     'Sayuran',
     'Buah',
+    'Minuman',
   ];
 
   static const List<String> _units = [
     'gram',
     'ml',
-    'butir',
-    'porsi',
-    'sdm',
-    'sdt',
-    'mangkuk',
-    'gelas',
   ];
 
   // ── Color palette NutriTrack ──────────────────────────────
-  static const Color _primary = Color(0xFF2ECC71);
-  static const Color _primaryDark = Color(0xFF27AE60);
+  static const Color _primary = Color(0xFF2E7D32); // Progress Green
+  static const Color _primaryDark = Color(0xFF1B5E20);
   static const Color _bg = Color(0xFFF4FAF6);
   static const Color _surface = Colors.white;
   static const Color _textDark = Color(0xFF1A2E22);
@@ -71,14 +78,39 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
       final log = widget.initialLog!;
       _nameCtrl.text = log.foodName;
       _servingSizeCtrl.text = log.servingSize.toInt().toString();
-      _calCtrl.text = log.calories.toStringAsFixed(1);
-      _proteinCtrl.text = log.protein.toStringAsFixed(1);
-      _carbsCtrl.text = log.carbs.toStringAsFixed(1);
-      _fatCtrl.text = log.fat.toStringAsFixed(1);
+      _calCtrl.text = log.calories.round().toString();
+      _proteinCtrl.text = log.protein.round().toString();
+      _carbsCtrl.text = log.carbs.round().toString();
+      _fatCtrl.text = log.fat.round().toString();
       
-      // Ensure category exists in list
-      if (_categories.contains(log.category)) {
-        _selectedCategory = log.category;
+      if (_categories.contains(log.category)) _selectedCategory = log.category;
+      if (log.imageUrl != null) _image = File(log.imageUrl!);
+
+      if (log.ingredientsJson != null) {
+        try {
+          final List dynamicList = jsonDecode(log.ingredientsJson!);
+          _ingredients = dynamicList.map((e) => Map<String, dynamic>.from(e)).toList();
+        } catch (_) {}
+      }
+    } else if (widget.initialFood != null) {
+      final food = widget.initialFood!;
+      _nameCtrl.text = food.name;
+      _servingSizeCtrl.text = food.defaultServingSize.toInt().toString();
+      // FoodModel nutrition is per 100g, convert back to serving size for display
+      final factor = food.defaultServingSize / 100;
+      _calCtrl.text = (food.calories * factor).round().toString();
+      _proteinCtrl.text = (food.protein * factor).round().toString();
+      _carbsCtrl.text = (food.carbs * factor).round().toString();
+      _fatCtrl.text = (food.fat * factor).round().toString();
+      
+      if (_categories.contains(food.category)) _selectedCategory = food.category;
+      if (food.imageUrl != null) _image = File(food.imageUrl!);
+
+      if (food.ingredientsJson != null) {
+        try {
+          final List dynamicList = jsonDecode(food.ingredientsJson!);
+          _ingredients = dynamicList.map((e) => Map<String, dynamic>.from(e)).toList();
+        } catch (_) {}
       }
     }
   }
@@ -101,7 +133,7 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
     }
   }
 
-  void _saveIngredient() async {
+  void _save() async {
     if (!_formKey.currentState!.validate()) return;
 
     final userId = context.read<AuthController>().currentUser?.id;
@@ -117,59 +149,60 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
     final servingSize = double.tryParse(_servingSizeCtrl.text) ?? 100.0;
 
     final foodCtrl = context.read<FoodController>();
-    
-    if (widget.initialLog != null) {
-      // MODE EDIT
-      final updatedTemplate = widget.initialLog!.copyWith(
-        foodName: foodName,
-        category: _selectedCategory,
-        calories: calories,
-        protein: protein,
-        carbs: carbs,
-        fat: fat,
-        servingSize: servingSize,
-      );
-      
-      await foodCtrl.updateManualFood(userId, widget.initialLog!.foodName, updatedTemplate);
-      if (mounted) {
-        setState(() => _isSaving = false);
-        Navigator.pop(context, true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Berhasil memperbarui data makanan'), duration: Duration(seconds: 2)),
-        );
-      }
-    } else {
-      // MODE TAMBAH BARU
-      final success = await foodCtrl.addFoodToDailyLog(
-        userId: userId,
-        foodName: foodName,
-        category: _selectedCategory,
-        calories: calories,
-        protein: protein,
-        carbs: carbs,
-        fat: fat,
-        mealType: 'Snack',
-        dateConsumed: context.read<DateController>().selectedDate,
-        servingSize: servingSize,
-        isManual: true,
+    if (widget.initialLog != null && widget.isHistoricalEdit) {
+      // MODE EDIT RIWAYAT (Update log yang sudah ada)
+      await foodCtrl.updateSpecificLog(
+        widget.initialLog!.copyWith(
+          foodName: foodName,
+          category: _selectedCategory,
+          calories: calories,
+          protein: protein,
+          carbs: carbs,
+          fat: fat,
+          servingSize: servingSize,
+          imageUrl: _image?.path,
+          ingredientsJson: _ingredients.isEmpty ? null : jsonEncode(_ingredients),
+        ),
       );
 
       if (mounted) {
         setState(() => _isSaving = false);
-        if (success) {
-          Navigator.pop(context, true);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('$foodName berhasil ditambahkan ke daftar'),
-              backgroundColor: _primary,
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Gagal menyimpan ke log.'), backgroundColor: Colors.redAccent),
-          );
-        }
+        Navigator.pop(context, true);
+      }
+    } else {
+      // MODE TAMBAH BARU atau EDIT DEFINISI (Save ke Food database)
+      final foodId = widget.initialFood?.id ?? 'manual_${DateTime.now().millisecondsSinceEpoch}';
+      final newFood = FoodModel(
+        id: foodId,
+        name: foodName,
+        category: _selectedCategory,
+        calories: (calories / servingSize) * 100, // stored per 100g
+        protein: (protein / servingSize) * 100,
+        carbs: (carbs / servingSize) * 100,
+        fat: (fat / servingSize) * 100,
+        defaultServingSize: servingSize,
+        isApproved: true,
+        createdAt: widget.initialFood?.createdAt ?? DateTime.now(),
+        imageUrl: _image?.path,
+        ingredientsJson: _ingredients.isEmpty ? null : jsonEncode(_ingredients),
+      );
+
+      if (widget.initialFood != null) {
+        await foodCtrl.updateFood(newFood);
+      } else {
+        await foodCtrl.addFood(newFood);
+      }
+
+      if (mounted) {
+        setState(() => _isSaving = false);
+        Navigator.pop(context, true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$foodName berhasil disimpan'),
+            backgroundColor: _primary,
+            duration: const Duration(seconds: 2),
+          ),
+        );
       }
     }
   }
@@ -186,7 +219,7 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          widget.initialLog == null ? 'Tambah Log Baru' : 'Edit Log Makanan',
+          (widget.initialLog == null && widget.initialFood == null) ? 'Tambah Log Baru' : 'Edit Makanan',
           style: const TextStyle(color: _textDark, fontWeight: FontWeight.bold, fontSize: 18),
         ),
       ),
@@ -205,7 +238,12 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
             const SizedBox(height: 8),
             _buildNameField(),
             const SizedBox(height: 16),
-            _buildServingSizeRow(),
+            if (_ingredients.isEmpty) ...[
+              _buildServingSizeRow(),
+              const SizedBox(height: 16),
+            ],
+            const SizedBox(height: 24),
+            _buildIngredientsSection(),
             const SizedBox(height: 24),
             _buildNutritionSection(),
             const SizedBox(height: 24),
@@ -305,6 +343,140 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
     );
   }
 
+
+
+  Widget _buildIngredientsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _buildSectionLabel('Komposisi Bahan'),
+            ElevatedButton.icon(
+              onPressed: () => _showIngredientOptions(context),
+              icon: const Icon(Icons.add, size: 18, color: Colors.white),
+              label: const Text('Tambah', style: TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _primary,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+              ),
+            ),
+          ],
+        ),
+        if (_ingredients.isNotEmpty) const SizedBox(height: 16),
+        if (_ingredients.isNotEmpty)
+          Container(
+            decoration: BoxDecoration(
+              color: _surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: _borderColor, width: 2),
+              boxShadow: [
+                BoxShadow(color: _primary.withOpacity(0.05), blurRadius: 10, spreadRadius: 1),
+              ],
+            ),
+            child: ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _ingredients.length,
+              separatorBuilder: (_, __) => Divider(color: _borderColor, height: 1),
+              itemBuilder: (ctx, idx) {
+                final item = _ingredients[idx];
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40, height: 40,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8F5E9),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.restaurant_menu, color: Color(0xFF4CAF50), size: 20),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item['name'],
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: _textDark),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${item['grams'].round()}g • ${item['calories'].round()} kcal',
+                              style: const TextStyle(fontSize: 12, color: _textMuted),
+                            ),
+                          ],
+                        ),
+                      ),
+                      _actionButton(
+                        icon: Icons.edit_note_rounded,
+                        color: Colors.blue,
+                        onTap: () => _editIngredient(idx),
+                      ),
+                      const SizedBox(width: 8),
+                      _actionButton(
+                        icon: Icons.delete_outline_rounded,
+                        color: Colors.red,
+                        onTap: () {
+                          setState(() => _ingredients.removeAt(idx));
+                          _calculateFromIngredients();
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _actionButton({required IconData icon, required Color color, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, color: color, size: 20),
+      ),
+    );
+  }
+
+
+
+  void _calculateFromIngredients() {
+    if (_ingredients.isEmpty) {
+      _calCtrl.clear();
+      _proteinCtrl.clear();
+      _carbsCtrl.clear();
+      _fatCtrl.clear();
+      return;
+    }
+    double cal = 0, pro = 0, car = 0, fat = 0;
+    for (var ing in _ingredients) {
+      cal += ing['calories'];
+      pro += ing['protein'];
+      car += ing['carbs'];
+      fat += ing['fat'];
+    }
+    _calCtrl.text = cal.round().toString();
+    _proteinCtrl.text = pro.round().toString();
+    _carbsCtrl.text = car.round().toString();
+    _fatCtrl.text = fat.round().toString();
+  }
+
   Widget _buildNutritionSection() {
     return Column(
       children: [
@@ -329,7 +501,7 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
       decoration: BoxDecoration(
         color: _surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
+        border: Border.all(color: color.withOpacity(0.3), width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -338,7 +510,7 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
           const SizedBox(height: 4),
           Row(
             children: [
-              Expanded(child: TextFormField(controller: controller, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(hintText: hint, border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero))),
+              Expanded(child: TextFormField(controller: controller, readOnly: _ingredients.isNotEmpty, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(hintText: hint, border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero))),
               Text(unit, style: const TextStyle(color: _textMuted, fontSize: 12)),
             ],
           ),
@@ -349,30 +521,256 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
 
 
 
-  Widget _buildLivePreview() {
-    final cal = double.tryParse(_calCtrl.text) ?? 0;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: _surface, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)]),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Text('Estimasi Kalori', style: TextStyle(fontWeight: FontWeight.bold, color: _textDark)),
-          Text('${cal.toStringAsFixed(0)} kcal', style: const TextStyle(fontWeight: FontWeight.bold, color: _calColor, fontSize: 18)),
+  void _editIngredient(int idx) {
+    final item = _ingredients[idx];
+    final nameCtrl = TextEditingController(text: item['name']);
+    final gramCtrl = TextEditingController(text: item['grams'].toString());
+    final calCtrl = TextEditingController(text: item['calories'].toString());
+    final proCtrl = TextEditingController(text: item['protein'].toString());
+    final carbCtrl = TextEditingController(text: item['carbs'].toString());
+    final fatCtrl = TextEditingController(text: item['fat'].toString());
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Edit Bahan', style: TextStyle(color: _primary, fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _styledField(controller: nameCtrl, hint: 'Nama Bahan', icon: Icons.drive_file_rename_outline),
+              const SizedBox(height: 12),
+              _styledField(controller: gramCtrl, hint: 'Gram', icon: Icons.scale, keyboardType: TextInputType.number),
+              const SizedBox(height: 12),
+              _styledField(controller: calCtrl, hint: 'Kalori', icon: Icons.local_fire_department, keyboardType: TextInputType.number),
+              const SizedBox(height: 12),
+              _styledField(controller: proCtrl, hint: 'Protein', icon: Icons.fitness_center, keyboardType: TextInputType.number),
+              const SizedBox(height: 12),
+              _styledField(controller: carbCtrl, hint: 'Karbo', icon: Icons.grain, keyboardType: TextInputType.number),
+              const SizedBox(height: 12),
+              _styledField(controller: fatCtrl, hint: 'Lemak', icon: Icons.water_drop, keyboardType: TextInputType.number),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+          ElevatedButton(
+            onPressed: () {
+              final name = nameCtrl.text.trim();
+              final gram = double.tryParse(gramCtrl.text) ?? 0;
+              final cal = double.tryParse(calCtrl.text) ?? 0;
+              final pro = double.tryParse(proCtrl.text) ?? 0;
+              final carb = double.tryParse(carbCtrl.text) ?? 0;
+              final fat = double.tryParse(fatCtrl.text) ?? 0;
+
+              if (name.isNotEmpty && gram > 0) {
+                setState(() {
+                  _ingredients[idx] = {
+                    'id': item['id'],
+                    'name': name,
+                    'grams': gram,
+                    'calories': cal,
+                    'protein': pro,
+                    'carbs': carb,
+                    'fat': fat,
+                  };
+                });
+                _calculateFromIngredients();
+                Navigator.pop(ctx);
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: _primary),
+            child: const Text('Simpan', style: TextStyle(color: Colors.white)),
+          ),
         ],
       ),
     );
   }
 
+
+
   Widget _buildSaveButton() {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: _isSaving ? null : _saveIngredient,
+        onPressed: _isSaving ? null : _save,
         style: ElevatedButton.styleFrom(backgroundColor: _primary, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-        child: _isSaving ? const CircularProgressIndicator(color: Colors.white) : const Text('Simpan ke Log', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        child: _isSaving ? const CircularProgressIndicator(color: Colors.white) : const Text('Save', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
       ),
     );
+  }
+
+  void _showIngredientOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Tambah Bahan Dari', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _textDark)),
+              const SizedBox(height: 20),
+              _optionTile(
+                icon: Icons.search_rounded,
+                color: Colors.blue,
+                title: 'Database Makanan',
+                subtitle: 'Cari dari 1000+ data makanan',
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  final result = await showDialog(
+                    context: context,
+                    builder: (ctx) => const IngredientPickerDialog(),
+                  );
+                  _handleIngredientResult(result);
+                },
+              ),
+              const SizedBox(height: 12),
+              _optionTile(
+                icon: Icons.inventory_2_rounded,
+                color: Colors.purple,
+                title: 'My Ingredients',
+                subtitle: 'Bahan tunggal yang pernah Anda buat',
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SavedCompositionsPage(title: 'My Ingredients', ingredientsOnly: true)),
+                  );
+                  _handleIngredientResult(result);
+                },
+              ),
+              const SizedBox(height: 12),
+              _optionTile(
+                icon: Icons.bookmark_added_rounded,
+                color: Colors.orange,
+                title: 'Komposisi Tersimpan',
+                subtitle: 'Kombinasi bahan yang pernah disimpan',
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SavedCompositionsPage(title: 'Komposisi Tersimpan', ingredientsOnly: false)),
+                  );
+                  _handleIngredientResult(result);
+                },
+              ),
+              const SizedBox(height: 12),
+              _optionTile(
+                icon: Icons.edit_note_rounded,
+                color: Colors.green,
+                title: 'Input Manual',
+                subtitle: 'Masukkan rincian bahan baru',
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ManualIngredientInputPage()),
+                  );
+                  _handleIngredientResult(result, saveToDb: true);
+                },
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _optionTile({required IconData icon, required Color color, required String title, required String subtitle, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _borderColor),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: _textDark)),
+                  Text(subtitle, style: const TextStyle(fontSize: 12, color: _textMuted)),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: _textMuted.withOpacity(0.5)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _handleIngredientResult(dynamic result, {bool saveToDb = false}) async {
+    if (result != null && result is Map) {
+      if (result['isManual'] == true) {
+        // From ManualIngredientInputPage
+        if (saveToDb) {
+          final foodCtrl = context.read<FoodController>();
+          final foodId = 'manual_${DateTime.now().millisecondsSinceEpoch}';
+          final newIngredient = FoodModel(
+            id: foodId,
+            name: result['name'],
+            category: 'Lainnya',
+            calories: ((result['calories'] as num) / (result['grams'] as num)) * 100,
+            protein: ((result['protein'] as num) / (result['grams'] as num)) * 100,
+            carbs: ((result['carbs'] as num) / (result['grams'] as num)) * 100,
+            fat: ((result['fat'] as num) / (result['grams'] as num)) * 100,
+            defaultServingSize: (result['grams'] as num).toDouble(),
+            isApproved: true,
+            createdAt: DateTime.now(),
+            isManualIngredient: true,
+          );
+          await foodCtrl.addFood(newIngredient);
+        }
+
+        setState(() {
+          _ingredients.add({
+            'id': 'manual_${DateTime.now().millisecondsSinceEpoch}',
+            'name': result['name'],
+            'grams': result['grams'],
+            'calories': result['calories'],
+            'protein': result['protein'],
+            'carbs': result['carbs'],
+            'fat': result['fat'],
+          });
+        });
+      } else {
+        final FoodModel food = result['food'];
+        final double grams = (result['grams'] ?? food.defaultServingSize).toDouble();
+        final nutrition = food.nutritionForAmount(grams);
+        
+        setState(() {
+          _ingredients.add({
+            'id': food.id,
+            'name': food.name,
+            'grams': grams,
+            'calories': nutrition['calories'],
+            'protein': nutrition['protein'],
+            'carbs': nutrition['carbs'],
+            'fat': nutrition['fat'],
+          });
+        });
+      }
+      _calculateFromIngredients();
+    }
   }
 
   Widget _styledDropdown({required String value, required List<String> items, required void Function(String?) onChanged}) {

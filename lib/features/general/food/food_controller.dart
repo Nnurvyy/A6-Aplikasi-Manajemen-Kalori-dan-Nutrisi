@@ -10,6 +10,10 @@ class FoodController extends ChangeNotifier {
   String _selectedCategory = 'Semua';
   final bool _isLoading = false;
 
+  FoodController() {
+    loadFoods();
+  }
+
   List<LogModel> getUserLogs(String userId) {
     return HiveService.logs.values
         .cast<LogModel>()
@@ -18,7 +22,10 @@ class FoodController extends ChangeNotifier {
   }
   List<FoodModel> get foods => _filtered;
   List<FoodModel> get allApproved =>
-      _allFoods.where((f) => f.isApproved).toList();
+      _allFoods.where((f) => f.isApproved && !f.id.startsWith('manual_')).toList();
+  
+  List<FoodModel> get manualFoods =>
+      _allFoods.where((f) => f.id.startsWith('manual_')).toList();
   String get searchQuery => _searchQuery;
   String get selectedCategory => _selectedCategory;
   bool get isLoading => _isLoading;
@@ -32,8 +39,27 @@ class FoodController extends ChangeNotifier {
   }
 
   void loadFoods({bool approvedOnly = true}) {
-    _allFoods = HiveService.foods.values
-        .cast<FoodModel>()
+    var all = HiveService.foods.values.cast<FoodModel>().toList();
+    
+    // Ensure Air Putih exists
+    if (!all.any((f) => f.name.toLowerCase() == 'air putih')) {
+      final water = FoodModel(
+        id: 'default_water',
+        name: 'Air Putih',
+        category: 'Minuman',
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+        defaultServingSize: 250, // 1 gelas
+        isApproved: true,
+        createdAt: DateTime.now(),
+      );
+      HiveService.foods.put(water.id, water);
+      all.add(water);
+    }
+
+    _allFoods = all
         .where((f) => !approvedOnly || f.isApproved)
         .toList()
       ..sort((a, b) => a.name.compareTo(b.name));
@@ -98,6 +124,8 @@ class FoodController extends ChangeNotifier {
     required DateTime dateConsumed, 
     required double servingSize,
     bool isManual = false,
+    String? imageUrl,
+    String? ingredientsJson,
   }) async {
     final newLog = LogModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -113,22 +141,18 @@ class FoodController extends ChangeNotifier {
       servingSize: servingSize,
       category: category,
       isManual: isManual,
+      imageUrl: imageUrl,
+      ingredientsJson: ingredientsJson,
     );
 
     await HiveService.logs.put(newLog.id, newLog);
-    
-    
     notifyListeners();
-
-    final allLogs = HiveService.logs.values.toList();
-    print("\n=== ISI DATABASE RIWAYAT SAAT INI ===");
-    print("Total data riwayat: ${allLogs.length}");
-    for (var log in allLogs) {
-      print("- Makanan: ${log.foodName} | Kalori: ${log.calories} | Tanggal: ${log.consumedAt} | Status: ${log.syncStatus} | Kategori: ${log.category}");
-    }
-    print("===========================================\n");
-
     return true; 
+  }
+
+  Future<void> updateLog(LogModel log) async {
+    await HiveService.logs.put(log.id, log);
+    notifyListeners();
   }
 
   Future<void> deleteManualFood(String userId, String foodName) async {
@@ -165,9 +189,21 @@ class FoodController extends ChangeNotifier {
         carbs: updatedTemplate.carbs,
         fat: updatedTemplate.fat,
         servingSize: updatedTemplate.servingSize,
+        imageUrl: updatedTemplate.imageUrl,
+        ingredientsJson: updatedTemplate.ingredientsJson,
       );
       await HiveService.logs.put(key, newLog);
     }
+    notifyListeners();
+  }
+
+  Future<void> updateSpecificLog(LogModel updatedLog) async {
+    await HiveService.logs.put(updatedLog.id, updatedLog);
+    notifyListeners();
+  }
+
+  Future<void> deleteLog(String logId) async {
+    await HiveService.logs.delete(logId);
     notifyListeners();
   }
 }

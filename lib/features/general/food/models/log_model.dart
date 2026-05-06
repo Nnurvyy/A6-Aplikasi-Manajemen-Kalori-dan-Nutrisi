@@ -14,6 +14,8 @@ class LogModel extends HiveObject {
   double servingSize; 
   String category;
   bool isManual;
+  String? imageUrl;
+  String? ingredientsJson;
 
   LogModel({
     required this.id,
@@ -29,6 +31,8 @@ class LogModel extends HiveObject {
     required this.servingSize,
     required this.category,
     this.isManual = false,
+    this.imageUrl,
+    this.ingredientsJson,
   });
 
   String get formattedTime {
@@ -49,6 +53,8 @@ class LogModel extends HiveObject {
     double? servingSize,
     String? category,
     bool? isManual,
+    String? imageUrl,
+    String? ingredientsJson,
   }) {
     return LogModel(
       id: id ?? this.id,
@@ -64,6 +70,8 @@ class LogModel extends HiveObject {
       servingSize: servingSize ?? this.servingSize,
       category: category ?? this.category,
       isManual: isManual ?? this.isManual,
+      imageUrl: imageUrl ?? this.imageUrl,
+      ingredientsJson: ingredientsJson ?? this.ingredientsJson,
     );
   }
 }
@@ -92,13 +100,15 @@ class LogModelAdapter extends TypeAdapter<LogModel> {
       servingSize: (f[10] as double?) ?? 100.0,
       category: (f[11] as String?) ?? '',
       isManual: (f[12] as bool?) ?? false,
+      imageUrl: f[13] as String?,
+      ingredientsJson: f[14] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, LogModel obj) {
     writer
-      ..writeByte(13)
+      ..writeByte(15)
       ..writeByte(0)..write(obj.id)
       ..writeByte(1)..write(obj.userId)
       ..writeByte(2)..write(obj.foodName)
@@ -111,6 +121,8 @@ class LogModelAdapter extends TypeAdapter<LogModel> {
       ..writeByte(9)..write(obj.syncStatus)
       ..writeByte(10)..write(obj.servingSize)
       ..writeByte(11)..write(obj.category)
-      ..writeByte(12)..write(obj.isManual);
+      ..writeByte(12)..write(obj.isManual)
+      ..writeByte(13)..write(obj.imageUrl)
+      ..writeByte(14)..write(obj.ingredientsJson);
   }
 }

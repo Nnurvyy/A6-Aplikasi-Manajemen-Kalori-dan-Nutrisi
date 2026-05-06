@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../general/food/food_controller.dart';
-import '../../general/food/models/log_model.dart';
+
 import '../../general/food/models/food_model.dart';
 import '../../general/food/food_detail_view.dart';
 import '../../general/auth/auth_controller.dart';
 import './manual_food_form_view.dart';
+import './manual_ingredient_input_page.dart';
+import 'dart:io';
 
 class PilihMakananManual extends StatefulWidget {
   const PilihMakananManual({super.key});
@@ -14,14 +16,36 @@ class PilihMakananManual extends StatefulWidget {
   State<PilihMakananManual> createState() => _PilihMakananManualState();
 }
 
-class _PilihMakananManualState extends State<PilihMakananManual> {
+class _PilihMakananManualState extends State<PilihMakananManual> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
   static const Color _bg = Color(0xFFF4F6F0);
   static const Color _surface = Colors.white;
-  static const Color _textDark = Color(0xFF1B2A1B);
+  static const Color _textDark = Color(0xFF2E7D32);
   static const Color _textMuted = Color(0xFF5A7A5A);
 
   static const int _itemsPerPage = 10;
   int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Load foods immediately if not already loaded
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<FoodController>().loadFoods();
+    });
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        setState(() => _currentPage = 0);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,26 +53,12 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
     final authCtrl = context.watch<AuthController>();
     final userId = authCtrl.currentUser?.id ?? '';
     
-    // Filter manual logs for current user and unique-ify by name
-    final Map<String, LogModel> uniqueManuals = {};
-    for (var log in foodCtrl.allLogs) {
-      if (log.isManual && log.userId == userId) {
-        // Simpan yang terbaru (consumedAt paling baru)
-        final existing = uniqueManuals[log.foodName.toLowerCase()];
-        if (existing == null || log.consumedAt.isAfter(existing.consumedAt)) {
-          uniqueManuals[log.foodName.toLowerCase()] = log;
-        }
-      }
-    }
+    final manualItems = foodCtrl.manualFoods
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-    final manualLogs = uniqueManuals.values.toList()
-      ..sort((a, b) => b.consumedAt.compareTo(a.consumedAt));
-
-    final totalPages = manualLogs.isEmpty ? 1 : (manualLogs.length / _itemsPerPage).ceil();
-    final safeCurrentPage = _currentPage.clamp(0, totalPages - 1);
-    final startIndex = safeCurrentPage * _itemsPerPage;
-    final endIndex = (startIndex + _itemsPerPage).clamp(0, manualLogs.length);
-    final pageItems = manualLogs.isEmpty ? <LogModel>[] : manualLogs.sublist(startIndex, endIndex);
+    // Split items by type: Makanan (Meal) vs Komposisi (Individual Ingredient)
+    final meals = manualItems.where((f) => !f.isManualIngredient).toList();
+    final ingredients = manualItems.where((f) => f.isManualIngredient).toList();
 
     return Scaffold(
       backgroundColor: _bg,
@@ -64,61 +74,102 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
           'Tambah Log Manual',
           style: TextStyle(color: _textDark, fontWeight: FontWeight.w800, fontSize: 18),
         ),
-        actions: [
-          if (manualLogs.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: Center(
-                child: Text(
-                  '${manualLogs.length} item',
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF5A7A5A), fontWeight: FontWeight.w600),
-                ),
-              ),
-            ),
+        bottom: TabBar(
+          controller: _tabController,
+          labelColor: _textDark,
+          unselectedLabelColor: _textMuted,
+          indicatorColor: _textDark,
+          indicatorWeight: 3,
+          tabs: const [
+            Tab(text: 'Makanan'),
+            Tab(text: 'Komposisi'),
+          ],
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildTabContent(meals),
+          _buildTabContent(ingredients),
         ],
       ),
-      body: manualLogs.isEmpty
-          ? _buildEmptyState()
-          : Column(
-              children: [
-                if (manualLogs.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
-                    child: Row(
-                      children: [
-                        const Text('Log manual saya', style: TextStyle(fontSize: 12, color: _textMuted, fontWeight: FontWeight.w600)),
-                        const Spacer(),
-                        if (totalPages > 1)
-                          Text('Hal. ${safeCurrentPage + 1}/$totalPages', style: const TextStyle(fontSize: 12, color: _textMuted)),
-                      ],
-                    ),
-                  ),
-                Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(20, 6, 20, 8),
-                    itemCount: pageItems.length,
-                    itemBuilder: (context, index) => _buildManualLogCard(pageItems[index]),
-                  ),
-                ),
-                if (totalPages > 1) _buildPagination(safeCurrentPage, totalPages),
-                const SizedBox(height: 80),
-              ],
-            ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const FormTambahMakananManual()),
-          );
-          if (result == true) {
-            // Refresh handled by Provider
+          if (_tabController.index == 0) {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const FormTambahMakananManual()),
+            );
+            if (result == true) {
+              // Refresh handled by Provider
+            }
+          } else {
+            // New ingredient input from "Komposisi" tab
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ManualIngredientInputPage()),
+            );
+            if (result != null && result is Map) {
+              // Save as manual ingredient
+              final foodCtrl = context.read<FoodController>();
+              final foodId = 'manual_${DateTime.now().millisecondsSinceEpoch}';
+              final newIngredient = FoodModel(
+                id: foodId,
+                name: result['name'],
+                category: 'Lainnya',
+                calories: (result['calories'] / result['grams']) * 100,
+                protein: (result['protein'] / result['grams']) * 100,
+                carbs: (result['carbs'] / result['grams']) * 100,
+                fat: (result['fat'] / result['grams']) * 100,
+                defaultServingSize: result['grams'],
+                isApproved: true,
+                createdAt: DateTime.now(),
+                isManualIngredient: true,
+              );
+              await foodCtrl.addFood(newIngredient);
+            }
           }
         },
         backgroundColor: const Color(0xFF2E7D32),
         elevation: 4,
         icon: const Icon(Icons.add_rounded, color: Colors.white),
-        label: const Text('Tambah Baru', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        label: Text(_tabController.index == 0 ? 'Tambah Baru' : 'Tambah Bahan', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
+    );
+  }
+
+  Widget _buildTabContent(List<FoodModel> items) {
+    if (items.isEmpty) return _buildEmptyState();
+
+    final totalPages = (items.length / _itemsPerPage).ceil();
+    final safeCurrentPage = _currentPage.clamp(0, totalPages - 1);
+    final startIndex = safeCurrentPage * _itemsPerPage;
+    final endIndex = (startIndex + _itemsPerPage).clamp(0, items.length);
+    final pageItems = items.sublist(startIndex, endIndex);
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          child: Row(
+            children: [
+              Text('${items.length} item tersimpan', style: const TextStyle(fontSize: 12, color: _textMuted, fontWeight: FontWeight.w600)),
+              const Spacer(),
+              if (totalPages > 1)
+                Text('Hal. ${safeCurrentPage + 1}/$totalPages', style: const TextStyle(fontSize: 12, color: _textMuted)),
+            ],
+          ),
+        ),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(20, 6, 20, 8),
+            itemCount: pageItems.length,
+            itemBuilder: (context, index) => _buildManualFoodCard(pageItems[index]),
+          ),
+        ),
+        if (totalPages > 1) _buildPagination(safeCurrentPage, totalPages),
+        const SizedBox(height: 80),
+      ],
     );
   }
 
@@ -173,13 +224,13 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: enabled ? const Color(0xFFD0E8D0) : Colors.transparent),
         ),
-        child: Icon(icon, size: 18, color: enabled ? const Color(0xFF2E7D32) : _textMuted.withValues(alpha: 0.3)),
+        child: Icon(icon, size: 18, color: enabled ? const Color(0xFF2E7D32) : _textMuted.withOpacity(0.3)),
       ),
     );
   }
 
-  Widget _buildManualLogCard(LogModel log) {
-    final Color accentColor = _getCategoryColor(log.category);
+  Widget _buildManualFoodCard(FoodModel food) {
+    final Color accentColor = _getCategoryColor(food.category);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -188,7 +239,7 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: Colors.black.withOpacity(0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -201,7 +252,7 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
             Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: () => _showLogDetail(log),
+                onTap: () => _showFoodDetail(food),
                 child: Padding(
                   padding: const EdgeInsets.all(14),
                   child: Row(
@@ -210,19 +261,35 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
                         width: 50,
                         height: 50,
                         decoration: BoxDecoration(
-                          color: accentColor.withValues(alpha: 0.12),
+                          color: accentColor.withOpacity(0.12),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Center(
-                          child: Text(
-                            log.foodName.isNotEmpty ? log.foodName[0].toUpperCase() : '?',
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              color: accentColor,
-                            ),
-                          ),
-                        ),
+                        child: food.imageUrl != null 
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: food.imageUrl!.startsWith('http')
+                                    ? Image.network(food.imageUrl!, fit: BoxFit.cover)
+                                    : Image.file(
+                                        File(food.imageUrl!),
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => Center(
+                                          child: Text(
+                                            food.name.isNotEmpty ? food.name[0].toUpperCase() : '?',
+                                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: accentColor),
+                                          ),
+                                        ),
+                                      ),
+                              )
+                            : Center(
+                                child: Text(
+                                  food.name.isNotEmpty ? food.name[0].toUpperCase() : '?',
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w800,
+                                    color: accentColor,
+                                  ),
+                                ),
+                              ),
                       ),
                       const SizedBox(width: 14),
                       Expanded(
@@ -230,7 +297,7 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              log.foodName,
+                              food.name,
                               style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
@@ -239,7 +306,7 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              '${log.category} • ${log.servingSize.toInt()}g',
+                              '${food.category} • ${food.defaultServingSize.toInt()}g',
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: _textMuted,
@@ -248,11 +315,11 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
                             const SizedBox(height: 8),
                             Row(
                               children: [
-                                _nutriChip('P ${log.protein.toStringAsFixed(1)}g', const Color(0xFFFFEBEE), const Color(0xFFE53935)),
+                                _nutriChip('P ${food.protein.round()}g', const Color(0xFFFFEBEE), const Color(0xFFE53935)),
                                 const SizedBox(width: 4),
-                                _nutriChip('K ${log.carbs.toStringAsFixed(1)}g', const Color(0xFFFFF8E1), const Color(0xFFF59E0B)),
+                                _nutriChip('K ${food.carbs.round()}g', const Color(0xFFFFF8E1), const Color(0xFFF59E0B)),
                                 const SizedBox(width: 4),
-                                _nutriChip('L ${log.fat.toStringAsFixed(1)}g', const Color(0xFFFFF3E0), const Color(0xFFFF8C00)),
+                                _nutriChip('L ${food.fat.round()}g', const Color(0xFFFFF3E0), const Color(0xFFFF8C00)),
                               ],
                             ),
                           ],
@@ -262,34 +329,40 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            '${log.calories.toInt()}',
+                            '${food.calories.toInt()}',
                             style: const TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFF4CAF50),
+                              color: Color(0xFF2E7D32),
                             ),
                           ),
                           const Text(
                             'kkal',
                             style: TextStyle(fontSize: 10, color: _textMuted),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            log.formattedTime,
-                            style: const TextStyle(fontSize: 10, color: Color(0xFF9E9E9E)),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _actionButton(
+                                icon: Icons.edit_rounded,
+                                color: Colors.blue,
+                                onTap: () => _editManualFood(context, food),
+                              ),
+                              const SizedBox(width: 8),
+                              _actionButton(
+                                icon: Icons.delete_outline_rounded,
+                                color: Colors.red,
+                                onTap: () => _confirmDeleteManualFood(context, food),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                      const SizedBox(width: 24), // Buffer for the menu button
                     ],
                   ),
                 ),
               ),
-            ),
-            Positioned(
-              top: 4,
-              right: 4,
-              child: _buildMoreAction(context, log),
             ),
           ],
         ),
@@ -297,64 +370,45 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
     );
   }
 
-  Widget _buildMoreAction(BuildContext context, LogModel log) {
-    return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert_rounded, color: _textMuted, size: 20),
-      onSelected: (val) {
-        if (val == 'edit') {
-          _editManualLog(context, log);
-        } else if (val == 'delete') {
-          _confirmDeleteManualLog(context, log);
-        }
-      },
-      itemBuilder: (context) => [
-        const PopupMenuItem(
-          value: 'edit',
-          child: Row(
-            children: [
-              Icon(Icons.edit_rounded, size: 18, color: Colors.blue),
-              SizedBox(width: 10),
-              Text('Edit Definisi'),
-            ],
-          ),
+  Widget _actionButton({required IconData icon, required Color color, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
         ),
-        const PopupMenuItem(
-          value: 'delete',
-          child: Row(
-            children: [
-              Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
-              SizedBox(width: 10),
-              Text('Hapus Item', style: TextStyle(color: Colors.red)),
-            ],
-          ),
-        ),
-      ],
+        child: Icon(icon, color: color, size: 20),
+      ),
     );
   }
 
-  void _editManualLog(BuildContext context, LogModel log) async {
+  void _editManualFood(BuildContext context, FoodModel food) async {
+    // Need to convert FoodModel back to a LogModel-like structure if needed, 
+    // or just update FormTambahMakananManual to accept FoodModel
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => FormTambahMakananManual(initialLog: log)),
+      MaterialPageRoute(builder: (_) => FormTambahMakananManual(initialFood: food)),
     );
     if (result == true) {
       // Refresh handled by Provider
     }
   }
 
-  void _confirmDeleteManualLog(BuildContext context, LogModel log) {
+  void _confirmDeleteManualFood(BuildContext context, FoodModel food) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Hapus Makanan?'),
-        content: Text('Semua catatan riwayat untuk "${log.foodName}" juga akan ikut terhapus. Lanjutkan?'),
+        content: Text('Hapus "${food.name}" dari database manual Anda?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
           TextButton(
             onPressed: () async {
-              final authCtrl = context.read<AuthController>();
               final foodCtrl = context.read<FoodController>();
-              await foodCtrl.deleteManualFood(authCtrl.currentUser?.id ?? '', log.foodName);
+              await foodCtrl.deleteFood(food.id);
               if (context.mounted) Navigator.pop(ctx);
             },
             child: const Text('Hapus', style: TextStyle(color: Colors.red)),
@@ -364,22 +418,7 @@ class _PilihMakananManualState extends State<PilihMakananManual> {
     );
   }
 
-  void _showLogDetail(LogModel log) {
-    // Convert LogModel to FoodModel for FoodDetailView
-    // Total nutrition in LogModel is for log.servingSize, we need per 100g
-    final factor = 100 / log.servingSize;
-    final food = FoodModel(
-      id: 'manual_${log.foodName.replaceAll(' ', '_').toLowerCase()}',
-      name: log.foodName,
-      category: log.category,
-      calories: log.calories * factor,
-      protein: log.protein * factor,
-      carbs: log.carbs * factor,
-      fat: log.fat * factor,
-      defaultServingSize: log.servingSize,
-      createdAt: log.consumedAt,
-    );
-
+  void _showFoodDetail(FoodModel food) {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => FoodDetailView(food: food, isManual: true)),

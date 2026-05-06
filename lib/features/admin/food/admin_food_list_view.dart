@@ -4,6 +4,7 @@ import '../../general/food/food_controller.dart';
 import '../../general/food/models/food_model.dart';
 import '../../general/food/food_detail_view.dart';
 import 'admin_food_form_view.dart';
+import 'dart:io';
 
 class AdminFoodListView extends StatefulWidget {
   const AdminFoodListView({super.key});
@@ -136,7 +137,7 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
                   borderRadius: BorderRadius.circular(14),
                   boxShadow: [
                     BoxShadow(
-                      color: _primary.withValues(alpha: 0.35),
+                      color: _primary.withOpacity(0.35),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -210,7 +211,7 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
             child: Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFE8F5E9).withValues(alpha: 0.5),
+                color: const Color(0xFFE8F5E9).withOpacity(0.5),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: const Color(0xFFC8E6C9), width: 1),
               ),
@@ -352,7 +353,7 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: enabled ? const Color(0xFFD0E8D0) : Colors.transparent),
         ),
-        child: Icon(icon, size: 18, color: enabled ? _primary : _textMuted.withValues(alpha: 0.3)),
+        child: Icon(icon, size: 18, color: enabled ? _primary : _textMuted.withOpacity(0.3)),
       ),
     );
   }
@@ -376,7 +377,7 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
           border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
+              color: Colors.black.withOpacity(0.03),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -388,12 +389,19 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: food.imageUrl != null
-                  ? Image.network(
-                      food.imageUrl!,
-                      width: 50, height: 50,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _buildAvatar(food.name, accentColor),
-                    )
+                  ? (food.imageUrl!.startsWith('http')
+                      ? Image.network(
+                          food.imageUrl!,
+                          width: 50, height: 50,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _buildAvatar(food.name, accentColor),
+                        )
+                      : Image.file(
+                          File(food.imageUrl!),
+                          width: 50, height: 50,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _buildAvatar(food.name, accentColor),
+                        ))
                   : _buildAvatar(food.name, accentColor),
             ),
             const SizedBox(width: 14),
@@ -450,7 +458,7 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
                       child: Container(
                         padding: const EdgeInsets.all(5),
                         decoration: BoxDecoration(
-                          color: Colors.blue.withValues(alpha: 0.1),
+                          color: Colors.blue.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Icon(Icons.edit_rounded, color: Colors.blue, size: 16),
@@ -463,7 +471,7 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
                       child: Container(
                         padding: const EdgeInsets.all(5),
                         decoration: BoxDecoration(
-                          color: Colors.red.withValues(alpha: 0.1),
+                          color: Colors.red.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 16),
@@ -483,7 +491,7 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
     return Container(
       width: 50, height: 50,
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: color.withOpacity(0.12),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Center(
