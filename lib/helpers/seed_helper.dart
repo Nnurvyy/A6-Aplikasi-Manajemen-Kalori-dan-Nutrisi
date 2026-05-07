@@ -421,5 +421,8 @@ class SeedHelper {
     for (final f in labelsData) {
       await HiveService.foods.put(f.id, f);
     }
+    
+    // Set flag agar tidak seeding ulang setiap kali
+    await HiveService.settings.put('seed_v3_done', true);
   }
 }
