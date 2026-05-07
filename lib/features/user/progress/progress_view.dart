@@ -57,7 +57,7 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFF2E7D32).withValues(alpha: 0.1),
+                color: const Color(0xFF2E7D32).withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.monitor_weight_outlined, color: Color(0xFF2E7D32), size: 32),
@@ -140,7 +140,7 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
                   color: const Color(0xFFF4F6F0),
-                  border: Border.all(color: const Color(0xFF2E7D32).withValues(alpha: 0.2)),
+                  border: Border.all(color: const Color(0xFF2E7D32).withOpacity(0.2)),
                 ),
                 child: Row(
                   children: [
@@ -154,7 +154,7 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
                         label: 'Bulan',
                       ),
                     ),
-                    Container(width: 1, color: const Color(0xFF2E7D32).withValues(alpha: 0.1)),
+                    Container(width: 1, color: const Color(0xFF2E7D32).withOpacity(0.1)),
                     // Tahun
                     Expanded(
                       flex: 1,
@@ -223,7 +223,7 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
               style: GoogleFonts.poppins(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF2E7D32).withValues(alpha: 0.6))),
+                  color: const Color(0xFF2E7D32).withOpacity(0.6))),
         ),
         Expanded(
           child: ListWheelScrollView(
@@ -430,7 +430,7 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF2E7D32).withValues(alpha: 0.2),
+              color: const Color(0xFF2E7D32).withOpacity(0.2),
               blurRadius: 10,
               offset: const Offset(0, 4),
             )
@@ -457,7 +457,7 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.15),
+                color: Colors.white.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
@@ -482,7 +482,7 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -524,7 +524,7 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
                   case 1: color = const Color(0xFF4CAF50); break; // Green
                   case 2: color = const Color(0xFFFFC107); break; // Yellow
                   case 3: color = const Color(0xFFEF5350); break; // Red
-                  default: color = Colors.grey.withValues(alpha: 0.15); // Empty/Gray
+                  default: color = Colors.grey.withOpacity(0.15); // Empty/Gray
                 }
                 
                 return Container(
@@ -870,7 +870,7 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
           // Nutrient tabs
           Container(
             height: 40,
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8)]),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)]),
             child: TabBar(
               controller: _tabCtrl,
               indicator: BoxDecoration(color: ctrl.activeNutrientColor, borderRadius: BorderRadius.circular(10)),
@@ -903,7 +903,7 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
         decoration: BoxDecoration(
           color: active ? const Color(0xFF2E7D32) : Colors.white,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: active ? [BoxShadow(color: const Color(0xFF2E7D32).withValues(alpha: 0.3), blurRadius: 8)] : [],
+          boxShadow: active ? [BoxShadow(color: const Color(0xFF2E7D32).withOpacity(0.3), blurRadius: 8)] : [],
         ),
         child: Text(label, style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: active ? Colors.white : Colors.grey.shade600)),
       ),
@@ -924,9 +924,9 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
           decoration: BoxDecoration(
-            color: const Color(0xFF2E7D32).withValues(alpha: 0.08),
+            color: const Color(0xFF2E7D32).withOpacity(0.08),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFF2E7D32).withValues(alpha: 0.3)),
+            border: Border.all(color: const Color(0xFF2E7D32).withOpacity(0.3)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -959,7 +959,7 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 6)]),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6)]),
         child: Column(
           children: [
             Text(value, style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700, color: color)),
@@ -985,7 +985,7 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
     return Container(
       height: 240,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)]),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
       child: BarChart(
         BarChartData(
           maxY: maxY == 0 ? 10 : maxY * 1.2,
@@ -1078,7 +1078,7 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
           Container(
             height: 260,
             padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)]),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
             child: _buildWeightChart(ctrl),
           ),
           const SizedBox(height: 16),
@@ -1171,9 +1171,9 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: const Color(0xFF2E7D32).withValues(alpha: 0.08),
+            color: const Color(0xFF2E7D32).withOpacity(0.08),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFF2E7D32).withValues(alpha: 0.3)),
+            border: Border.all(color: const Color(0xFF2E7D32).withOpacity(0.3)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -1250,7 +1250,7 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
               color: const Color(0xFF2E7D32),
               barWidth: 3,
               dotData: FlDotData(show: true, getDotPainter: (_, __, ___, ____) => FlDotCirclePainter(radius: 4, color: const Color(0xFF2E7D32), strokeWidth: 2, strokeColor: Colors.white)),
-              belowBarData: BarAreaData(show: true, color: const Color(0xFF2E7D32).withValues(alpha: 0.08)),
+              belowBarData: BarAreaData(show: true, color: const Color(0xFF2E7D32).withOpacity(0.08)),
             ),
           // System projection line
           LineChartBarData(
@@ -1275,7 +1275,7 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
         decoration: BoxDecoration(
           gradient: const LinearGradient(colors: [Color(0xFF2E7D32), Color(0xFF388E3C)]),
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: const Color(0xFF2E7D32).withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))],
+          boxShadow: [BoxShadow(color: const Color(0xFF2E7D32).withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))],
         ),
         child: Row(
           children: [
