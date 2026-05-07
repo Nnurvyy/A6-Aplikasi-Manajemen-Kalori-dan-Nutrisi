@@ -306,7 +306,7 @@ class _PilihMakananManualState extends State<PilihMakananManual> with SingleTick
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              '${food.category} • ${food.defaultServingSize.toInt()}g',
+                              '${food.defaultServingSize.toInt()}g',
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: _textMuted,
@@ -315,11 +315,11 @@ class _PilihMakananManualState extends State<PilihMakananManual> with SingleTick
                             const SizedBox(height: 8),
                             Row(
                               children: [
-                                _nutriChip('P ${food.protein.round()}g', const Color(0xFFFFEBEE), const Color(0xFFE53935)),
+                                _nutriChip('P ${food.nutritionForAmount(food.defaultServingSize)['protein']?.round()}g', const Color(0xFFFFEBEE), const Color(0xFFE53935)),
                                 const SizedBox(width: 4),
-                                _nutriChip('K ${food.carbs.round()}g', const Color(0xFFFFF8E1), const Color(0xFFF59E0B)),
+                                _nutriChip('K ${food.nutritionForAmount(food.defaultServingSize)['carbs']?.round()}g', const Color(0xFFFFF8E1), const Color(0xFFF59E0B)),
                                 const SizedBox(width: 4),
-                                _nutriChip('L ${food.fat.round()}g', const Color(0xFFFFF3E0), const Color(0xFFFF8C00)),
+                                _nutriChip('L ${food.nutritionForAmount(food.defaultServingSize)['fat']?.round()}g', const Color(0xFFFFF3E0), const Color(0xFFFF8C00)),
                               ],
                             ),
                           ],
@@ -329,7 +329,7 @@ class _PilihMakananManualState extends State<PilihMakananManual> with SingleTick
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            '${food.calories.toInt()}',
+                            '${food.nutritionForAmount(food.defaultServingSize)['calories']?.toInt()}',
                             style: const TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w800,
@@ -394,8 +394,19 @@ class _PilihMakananManualState extends State<PilihMakananManual> with SingleTick
             : FormTambahMakananManual(initialFood: food),
       ),
     );
-    if (result == true) {
-      // Refresh handled by Provider
+    if (result == true || (result != null && result is Map)) {
+      if (result is Map && food.isManualIngredient) {
+        final foodCtrl = context.read<FoodController>();
+        await foodCtrl.updateFood(food.copyWith(
+          name: result['name'],
+          calories: (result['calories'] / result['grams']) * 100,
+          protein: (result['protein'] / result['grams']) * 100,
+          carbs: (result['carbs'] / result['grams']) * 100,
+          fat: (result['fat'] / result['grams']) * 100,
+          defaultServingSize: result['grams'].toDouble(),
+        ));
+      }
+      // Refresh handled by Provider or by calling updateFood
     }
   }
 

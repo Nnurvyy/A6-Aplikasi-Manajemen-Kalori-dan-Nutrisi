@@ -41,8 +41,9 @@ class FoodController extends ChangeNotifier {
   void loadFoods({bool approvedOnly = true}) {
     var all = HiveService.foods.values.cast<FoodModel>().toList();
     
-    // Ensure Air Putih exists
-    if (!all.any((f) => f.name.toLowerCase() == 'air putih')) {
+    // Ensure Air Putih exists and remove duplicates
+    final waterList = all.where((f) => f.name.toLowerCase().trim() == 'air putih').toList();
+    if (waterList.isEmpty) {
       final water = FoodModel(
         id: 'default_water',
         name: 'Air Putih',
@@ -57,6 +58,18 @@ class FoodController extends ChangeNotifier {
       );
       HiveService.foods.put(water.id, water);
       all.add(water);
+    } else if (waterList.length > 1) {
+      // Remove duplicates, keep only one (prefer default_water)
+      final toKeep = waterList.any((f) => f.id == 'default_water') 
+          ? waterList.firstWhere((f) => f.id == 'default_water')
+          : waterList.first;
+      
+      for (var f in waterList) {
+        if (f.id != toKeep.id) {
+          HiveService.foods.delete(f.id);
+          all.removeWhere((item) => item.id == f.id);
+        }
+      }
     }
 
     _allFoods = all
@@ -70,6 +83,17 @@ class FoodController extends ChangeNotifier {
 
   void search(String query) {
     _searchQuery = query;
+    _applyFilter();
+  }
+
+  void clearSearch() {
+    _searchQuery = '';
+    _applyFilter();
+  }
+
+  void resetFilters() {
+    _searchQuery = '';
+    _selectedCategory = 'Semua';
     _applyFilter();
   }
 
@@ -128,6 +152,16 @@ class FoodController extends ChangeNotifier {
     String? imageUrl,
     String? ingredientsJson,
   }) async {
+    final now = DateTime.now();
+    final consumedAtWithTime = DateTime(
+      dateConsumed.year,
+      dateConsumed.month,
+      dateConsumed.day,
+      now.hour,
+      now.minute,
+      now.second,
+    );
+
     final newLog = LogModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       userId: userId,
@@ -137,7 +171,7 @@ class FoodController extends ChangeNotifier {
       carbs: carbs,
       fat: fat,
       mealType: mealType,
-      consumedAt: dateConsumed,
+      consumedAt: consumedAtWithTime,
       syncStatus: 'pending', 
       servingSize: servingSize,
       category: category,
