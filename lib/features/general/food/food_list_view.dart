@@ -5,6 +5,7 @@ import '../../../helpers/app_colors.dart';
 import './food_controller.dart';
 import './models/food_model.dart';
 import './food_detail_view.dart';
+import 'dart:io';
 
 class FoodListView extends StatefulWidget {
   final String? initialSearch;
@@ -17,7 +18,6 @@ class FoodListView extends StatefulWidget {
 
 class _FoodListViewState extends State<FoodListView> {
   final _searchCtrl = TextEditingController();
-  String _selectedCategory = 'Semua';
   int _currentPage = 0;
   static const int _itemsPerPage = 10;
 
@@ -30,11 +30,13 @@ class _FoodListViewState extends State<FoodListView> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final ctrl = context.read<FoodController>();
-      ctrl.loadFoods();
       if (widget.initialSearch != null) {
         _searchCtrl.text = widget.initialSearch!;
         ctrl.search(widget.initialSearch!);
+      } else {
+        ctrl.resetFilters();
       }
+      ctrl.loadFoods();
     });
     _searchCtrl.addListener(() => setState(() => _currentPage = 0));
   }
@@ -50,11 +52,8 @@ class _FoodListViewState extends State<FoodListView> {
     final ctrl = context.watch<FoodController>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Apply category filter client-side (on top of FoodController search)
-    List<FoodModel> foods = ctrl.foods;
-    if (_selectedCategory != 'Semua') {
-      foods = foods.where((f) => f.category == _selectedCategory).toList();
-    }
+    // Use controller's filtered foods and filter out manual ones for this view
+    List<FoodModel> foods = ctrl.foods.where((f) => !f.id.startsWith('manual_')).toList();
 
     final totalPages = foods.isEmpty ? 1 : (foods.length / _itemsPerPage).ceil();
     final safeCurrentPage = _currentPage.clamp(0, totalPages - 1);
@@ -86,7 +85,7 @@ class _FoodListViewState extends State<FoodListView> {
               style: GoogleFonts.poppins(color: Colors.white, fontSize: 14),
               decoration: InputDecoration(
                 hintText: 'Cari makanan...',
-                hintStyle: GoogleFonts.poppins(color: Colors.white.withValues(alpha: 0.6), fontSize: 14),
+                hintStyle: GoogleFonts.poppins(color: Colors.white.withOpacity(0.6), fontSize: 14),
                 prefixIcon: const Icon(Icons.search_rounded, color: Colors.white70),
                 suffixIcon: _searchCtrl.text.isNotEmpty
                     ? IconButton(
@@ -99,7 +98,7 @@ class _FoodListViewState extends State<FoodListView> {
                       )
                     : null,
                 filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.15),
+                fillColor: Colors.white.withOpacity(0.15),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -134,7 +133,7 @@ class _FoodListViewState extends State<FoodListView> {
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
-                        value: _selectedCategory,
+                        value: ctrl.selectedCategory,
                         isExpanded: true,
                         dropdownColor: isDark ? AppColors.darkSurface : Colors.white,
                         icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primary),
@@ -163,10 +162,8 @@ class _FoodListViewState extends State<FoodListView> {
                         )).toList(),
                         onChanged: (val) {
                           if (val != null) {
-                            setState(() {
-                              _selectedCategory = val;
-                              _currentPage = 0;
-                            });
+                            ctrl.setCategory(val);
+                            setState(() => _currentPage = 0);
                           }
                         },
                       ),
@@ -330,7 +327,7 @@ class _FoodListViewState extends State<FoodListView> {
               ? []
               : [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
+                    color: Colors.black.withOpacity(0.04),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   )
@@ -341,12 +338,19 @@ class _FoodListViewState extends State<FoodListView> {
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: food.imageUrl != null
-                  ? Image.network(
-                      food.imageUrl!,
-                      width: 50, height: 50,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _avatar(food.name),
-                    )
+                  ? (food.imageUrl!.startsWith('http') 
+                      ? Image.network(
+                          food.imageUrl!,
+                          width: 50, height: 50,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _avatar(food.name),
+                        )
+                      : Image.file(
+                          File(food.imageUrl!),
+                          width: 50, height: 50,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _avatar(food.name),
+                        ))
                   : _avatar(food.name),
             ),
             const SizedBox(width: 14),
@@ -423,7 +427,7 @@ class _FoodListViewState extends State<FoodListView> {
     return Container(
       width: 50, height: 50,
       decoration: BoxDecoration(
-        color: AppColors.primaryLight.withValues(alpha: 0.12),
+        color: AppColors.primaryLight.withOpacity(0.12),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Center(
@@ -439,7 +443,7 @@ class _FoodListViewState extends State<FoodListView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: color.withOpacity(0.12),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(text,
