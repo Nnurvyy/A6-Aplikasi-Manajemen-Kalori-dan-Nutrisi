@@ -474,17 +474,19 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
       _fatCtrl.clear();
       return;
     }
-    double cal = 0, pro = 0, car = 0, fat = 0;
+    double cal = 0, pro = 0, car = 0, fat = 0, totalGrams = 0;
     for (var ing in _ingredients) {
       cal += ing['calories'];
       pro += ing['protein'];
       car += ing['carbs'];
       fat += ing['fat'];
+      totalGrams += (ing['grams'] ?? 0);
     }
     _calCtrl.text = cal.round().toString();
     _proteinCtrl.text = pro.round().toString();
     _carbsCtrl.text = car.round().toString();
     _fatCtrl.text = fat.round().toString();
+    _servingSizeCtrl.text = totalGrams.round().toString();
   }
 
   Widget _buildNutritionSection() {

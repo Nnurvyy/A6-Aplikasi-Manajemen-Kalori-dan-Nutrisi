@@ -8,6 +8,7 @@ import '../../general/auth/auth_controller.dart';
 import './manual_food_form_view.dart';
 import './manual_ingredient_input_page.dart';
 import 'dart:io';
+import 'dart:convert';
 
 class PilihMakananManual extends StatefulWidget {
   const PilihMakananManual({super.key});
@@ -305,13 +306,22 @@ class _PilihMakananManualState extends State<PilihMakananManual> with SingleTick
                               ),
                             ),
                             const SizedBox(height: 2),
-                            Text(
-                              '${food.defaultServingSize.toInt()}g',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: _textMuted,
-                              ),
-                            ),
+                            Builder(builder: (context) {
+                              double displayGrams = food.defaultServingSize;
+                              if (food.ingredientsJson != null) {
+                                try {
+                                  final List decoded = jsonDecode(food.ingredientsJson!);
+                                  displayGrams = decoded.fold<double>(0, (sum, item) => sum + (item['grams'] ?? 0));
+                                } catch (_) {}
+                              }
+                              return Text(
+                                '${displayGrams.round()}g',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: _textMuted,
+                                ),
+                              );
+                            }),
                             const SizedBox(height: 8),
                             Row(
                               children: [

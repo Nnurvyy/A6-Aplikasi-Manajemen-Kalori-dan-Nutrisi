@@ -18,15 +18,6 @@ class SeedHelper {
   }
 
   static Future<void> _seedUsers() async {
-    final hasNutri = HiveService.users.values.any(
-      (u) => u.role == 'nutritionist',
-    );
-    if (HiveService.users.isNotEmpty && hasNutri) return;
-
-    // Reset users agar seed ulang dengan data lengkap
-    await HiveService.users.clear();
-    await HiveService.settings.delete('current_user_id');
-
     final users = [
       UserModel(
         id: 'admin_001',
@@ -58,22 +49,18 @@ class SeedHelper {
     ];
 
     for (final u in users) {
-      await HiveService.users.put(u.id, u);
+      // Hanya tambah jika ID belum ada
+      if (!HiveService.users.containsKey(u.id)) {
+        await HiveService.users.put(u.id, u);
+      }
     }
   }
 
   static Future<void> _seedFoods() async {
-    // Paksa reset seed jika terdeteksi data lama atau ingin reset database
-    final bool forceReset = HiveService.settings.get('seed_v3_done') != true;
-
-    if (HiveService.foods.length >= 30 && !forceReset) {
-      return;
-    }
-
-    if (forceReset) {
-      await HiveService.foods.clear();
-      await HiveService.settings.put('seed_v3_done', true);
-    }
+    // Gunakan pendekatan put-if-absent atau biarkan data lama tetap ada
+    // Jika ingin update data default, kita bisa gunakan flag versi tanpa clear() total
+    final bool alreadySeeded = HiveService.settings.get('seed_v3_done') == true;
+    if (alreadySeeded && HiveService.foods.length >= 30) return;
 
     final now = DateTime.now();
     final List<FoodModel> labelsData = [
