@@ -26,10 +26,19 @@ class _ManualIngredientInputPageState extends State<ManualIngredientInputPage> {
     super.initState();
     _nameCtrl = TextEditingController(text: widget.initialFood?.name ?? '');
     _gramCtrl = TextEditingController(text: widget.initialFood?.defaultServingSize.toInt().toString() ?? '');
-    _calCtrl = TextEditingController(text: widget.initialFood?.calories.toInt().toString() ?? '');
-    _proCtrl = TextEditingController(text: widget.initialFood?.protein.toInt().toString() ?? '');
-    _carbCtrl = TextEditingController(text: widget.initialFood?.carbs.toInt().toString() ?? '');
-    _fatCtrl = TextEditingController(text: widget.initialFood?.fat.toInt().toString() ?? '');
+    
+    if (widget.initialFood != null) {
+      final nutrition = widget.initialFood!.nutritionForAmount(widget.initialFood!.defaultServingSize);
+      _calCtrl = TextEditingController(text: nutrition['calories']?.round().toString() ?? '');
+      _proCtrl = TextEditingController(text: nutrition['protein']?.round().toString() ?? '');
+      _carbCtrl = TextEditingController(text: nutrition['carbs']?.round().toString() ?? '');
+      _fatCtrl = TextEditingController(text: nutrition['fat']?.round().toString() ?? '');
+    } else {
+      _calCtrl = TextEditingController();
+      _proCtrl = TextEditingController();
+      _carbCtrl = TextEditingController();
+      _fatCtrl = TextEditingController();
+    }
   }
 
   @override
@@ -125,7 +134,7 @@ class _ManualIngredientInputPageState extends State<ManualIngredientInputPage> {
           decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200, width: 2)),
           child: TextField(
             controller: controller,
-            keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+            keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
             decoration: InputDecoration(
               hintText: hint,
               prefixIcon: Icon(icon, color: color ?? _primary, size: 20),
@@ -151,22 +160,16 @@ class _ManualIngredientInputPageState extends State<ManualIngredientInputPage> {
           final fat = double.tryParse(_fatCtrl.text) ?? 0;
 
           if (name.isNotEmpty && gram > 0) {
-            final food = FoodModel(
-              id: widget.initialFood?.id ?? 'manual_ing_${DateTime.now().millisecondsSinceEpoch}',
-              name: name,
-              category: 'Lainnya',
-              calories: cal,
-              protein: pro,
-              carbs: carb,
-              fat: fat,
-              defaultServingSize: gram,
-              isApproved: true,
-              isManualIngredient: true,
-              createdAt: widget.initialFood?.createdAt ?? DateTime.now(),
-            );
-
-            context.read<FoodController>().addFood(food);
-            Navigator.pop(context, true);
+            final result = {
+              'isManual': true,
+              'name': name,
+              'grams': gram,
+              'calories': cal,
+              'protein': pro,
+              'carbs': carb,
+              'fat': fat,
+            };
+            Navigator.pop(context, result);
           }
         },
         style: ElevatedButton.styleFrom(backgroundColor: _primary, padding: const EdgeInsets.symmetric(vertical: 18), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),

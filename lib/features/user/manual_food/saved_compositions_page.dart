@@ -92,15 +92,15 @@ class SavedCompositionsPage extends StatelessWidget {
                     children: [
                       Text(item.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF1B2A1B))),
                       const SizedBox(height: 4),
-                      Text('${item.defaultServingSize.round()}g • ${item.calories.round()} kcal', style: const TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500)),
+                      Text('${item.defaultServingSize.round()}g • ${item.nutritionForAmount(item.defaultServingSize)['calories']?.round()} kcal', style: const TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500)),
                       const SizedBox(height: 10),
                       Row(
                         children: [
-                          _smallNutriChip('P ${item.protein.round()}g', Colors.red.shade50, Colors.red.shade700),
+                          _smallNutriChip('P ${item.nutritionForAmount(item.defaultServingSize)['protein']?.round()}g', Colors.red.shade50, Colors.red.shade700),
                           const SizedBox(width: 6),
-                          _smallNutriChip('K ${item.carbs.round()}g', Colors.amber.shade50, Colors.amber.shade700),
+                          _smallNutriChip('K ${item.nutritionForAmount(item.defaultServingSize)['carbs']?.round()}g', Colors.amber.shade50, Colors.amber.shade700),
                           const SizedBox(width: 6),
-                          _smallNutriChip('L ${item.fat.round()}g', Colors.blue.shade50, Colors.blue.shade700),
+                          _smallNutriChip('L ${item.nutritionForAmount(item.defaultServingSize)['fat']?.round()}g', Colors.blue.shade50, Colors.blue.shade700),
                         ],
                       ),
                     ],

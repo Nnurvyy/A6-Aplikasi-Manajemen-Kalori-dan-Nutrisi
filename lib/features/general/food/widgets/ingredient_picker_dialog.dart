@@ -17,17 +17,17 @@ class _IngredientPickerDialogState extends State<IngredientPickerDialog> {
   @override
   void initState() {
     super.initState();
-    _results = context.read<FoodController>().foods;
+    _results = context.read<FoodController>().allApproved;
   }
 
   void _search(String query) {
     if (query.isEmpty) {
       setState(() {
-        _results = context.read<FoodController>().foods;
+        _results = context.read<FoodController>().allApproved;
       });
       return;
     }
-    final all = context.read<FoodController>().foods;
+    final all = context.read<FoodController>().allApproved;
     setState(() {
       _results = all.where((f) => f.name.toLowerCase().contains(query.toLowerCase())).toList();
     });

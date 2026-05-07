@@ -43,6 +43,40 @@ class FoodModel extends HiveObject {
       'fat': fat * ratio,
     };
   }
+
+  FoodModel copyWith({
+    String? id,
+    String? name,
+    String? category,
+    double? calories,
+    double? protein,
+    double? carbs,
+    double? fat,
+    double? defaultServingSize,
+    bool? isApproved,
+    DateTime? createdAt,
+    String? imageUrl,
+    String? description,
+    String? ingredientsJson,
+    bool? isManualIngredient,
+  }) {
+    return FoodModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      category: category ?? this.category,
+      calories: calories ?? this.calories,
+      protein: protein ?? this.protein,
+      carbs: carbs ?? this.carbs,
+      fat: fat ?? this.fat,
+      defaultServingSize: defaultServingSize ?? this.defaultServingSize,
+      isApproved: isApproved ?? this.isApproved,
+      createdAt: createdAt ?? this.createdAt,
+      imageUrl: imageUrl ?? this.imageUrl,
+      description: description ?? this.description,
+      ingredientsJson: ingredientsJson ?? this.ingredientsJson,
+      isManualIngredient: isManualIngredient ?? this.isManualIngredient,
+    );
+  }
 }
 
 class FoodModelAdapter extends TypeAdapter<FoodModel> {

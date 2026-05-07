@@ -65,10 +65,10 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
   static const Color _surface = Colors.white;
   static const Color _textDark = Color(0xFF1A2E22);
   static const Color _textMuted = Color(0xFF7A9485);
-  static const Color _calColor = Color(0xFFFF6B35);
-  static const Color _proteinColor = Color(0xFF2ECC71);
-  static const Color _carbsColor = Color(0xFFFFB800);
-  static const Color _fatColor = Color(0xFF3498DB);
+  static const Color _calColor = Color(0xFF2E7D32); // Hijau
+  static const Color _proteinColor = Color(0xFFE53935); // Merah
+  static const Color _carbsColor = Color(0xFFFFB300); // Kuning/Amber
+  static const Color _fatColor = Color(0xFFFF9800); // Oren
   static const Color _borderColor = Color(0xFFD5EDE0);
 
   @override
@@ -412,6 +412,16 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
                               '${item['grams'].round()}g • ${item['calories'].round()} kcal',
                               style: const TextStyle(fontSize: 12, color: _textMuted),
                             ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                _smallNutriChip('P ${item['protein']?.round()}g', Colors.red.shade50, Colors.red.shade700),
+                                const SizedBox(width: 4),
+                                _smallNutriChip('K ${item['carbs']?.round()}g', Colors.amber.shade50, Colors.amber.shade800),
+                                const SizedBox(width: 4),
+                                _smallNutriChip('L ${item['fat']?.round()}g', Colors.orange.shade50, Colors.orange.shade800),
+                              ],
+                            ),
                           ],
                         ),
                       ),
@@ -524,11 +534,11 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
   void _editIngredient(int idx) {
     final item = _ingredients[idx];
     final nameCtrl = TextEditingController(text: item['name']);
-    final gramCtrl = TextEditingController(text: item['grams'].toString());
-    final calCtrl = TextEditingController(text: item['calories'].toString());
-    final proCtrl = TextEditingController(text: item['protein'].toString());
-    final carbCtrl = TextEditingController(text: item['carbs'].toString());
-    final fatCtrl = TextEditingController(text: item['fat'].toString());
+    final gramCtrl = TextEditingController(text: item['grams'].round().toString());
+    final calCtrl = TextEditingController(text: item['calories'].round().toString());
+    final proCtrl = TextEditingController(text: item['protein'].round().toString());
+    final carbCtrl = TextEditingController(text: item['carbs'].round().toString());
+    final fatCtrl = TextEditingController(text: item['fat'].round().toString());
 
     showDialog(
       context: context,
@@ -561,7 +571,7 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
                 ],
               ),
               const SizedBox(height: 16),
-              _dialogInputField(label: 'Lemak', controller: fatCtrl, icon: Icons.water_drop, hint: '0', isNumber: true, color: Colors.blue),
+              _dialogInputField(label: 'Lemak', controller: fatCtrl, icon: Icons.water_drop, hint: '0', isNumber: true, color: Colors.orange),
             ],
           ),
         ),
@@ -809,6 +819,14 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
     return Container(
       decoration: BoxDecoration(color: _surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: _borderColor, width: 1.5)),
       child: TextFormField(controller: controller, keyboardType: keyboardType, inputFormatters: inputFormatters, validator: validator, decoration: InputDecoration(hintText: hint, prefixIcon: Icon(icon, color: _textMuted), border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(vertical: 14))),
+    );
+  }
+
+  Widget _smallNutriChip(String label, Color bg, Color text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
+      child: Text(label, style: TextStyle(color: text, fontSize: 10, fontWeight: FontWeight.bold)),
     );
   }
 }

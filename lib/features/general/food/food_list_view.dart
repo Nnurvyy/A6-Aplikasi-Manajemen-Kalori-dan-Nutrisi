@@ -18,7 +18,6 @@ class FoodListView extends StatefulWidget {
 
 class _FoodListViewState extends State<FoodListView> {
   final _searchCtrl = TextEditingController();
-  String _selectedCategory = 'Semua';
   int _currentPage = 0;
   static const int _itemsPerPage = 10;
 
@@ -31,11 +30,13 @@ class _FoodListViewState extends State<FoodListView> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final ctrl = context.read<FoodController>();
-      ctrl.loadFoods();
       if (widget.initialSearch != null) {
         _searchCtrl.text = widget.initialSearch!;
         ctrl.search(widget.initialSearch!);
+      } else {
+        ctrl.resetFilters();
       }
+      ctrl.loadFoods();
     });
     _searchCtrl.addListener(() => setState(() => _currentPage = 0));
   }
@@ -51,11 +52,8 @@ class _FoodListViewState extends State<FoodListView> {
     final ctrl = context.watch<FoodController>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Apply category filter client-side (on top of FoodController search)
+    // Use controller's filtered foods and filter out manual ones for this view
     List<FoodModel> foods = ctrl.foods.where((f) => !f.id.startsWith('manual_')).toList();
-    if (_selectedCategory != 'Semua') {
-      foods = foods.where((f) => f.category == _selectedCategory).toList();
-    }
 
     final totalPages = foods.isEmpty ? 1 : (foods.length / _itemsPerPage).ceil();
     final safeCurrentPage = _currentPage.clamp(0, totalPages - 1);
@@ -135,7 +133,7 @@ class _FoodListViewState extends State<FoodListView> {
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
-                        value: _selectedCategory,
+                        value: ctrl.selectedCategory,
                         isExpanded: true,
                         dropdownColor: isDark ? AppColors.darkSurface : Colors.white,
                         icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primary),
@@ -164,10 +162,8 @@ class _FoodListViewState extends State<FoodListView> {
                         )).toList(),
                         onChanged: (val) {
                           if (val != null) {
-                            setState(() {
-                              _selectedCategory = val;
-                              _currentPage = 0;
-                            });
+                            ctrl.setCategory(val);
+                            setState(() => _currentPage = 0);
                           }
                         },
                       ),
