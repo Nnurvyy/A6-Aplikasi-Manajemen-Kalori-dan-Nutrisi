@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../auth/auth_controller.dart';
-import './submission_model.dart';
+import './submission_controller.dart';
 
 class AddSubmissionScreen extends StatefulWidget {
   const AddSubmissionScreen({super.key});
@@ -23,10 +23,6 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
 
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
-  final _calCtrl = TextEditingController();
-  final _proteinCtrl = TextEditingController();
-  final _carbsCtrl = TextEditingController();
-  final _fatCtrl = TextEditingController();
 
   File? _imageFile;
   bool _isSaving = false;
@@ -34,10 +30,6 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
   @override
   void dispose() {
     _nameCtrl.dispose();
-    _calCtrl.dispose();
-    _proteinCtrl.dispose();
-    _carbsCtrl.dispose();
-    _fatCtrl.dispose();
     super.dispose();
   }
 
@@ -108,6 +100,8 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
     );
   }
 
+  /// PERUBAHAN UTAMA: _submit sekarang memanggil controller.addSubmission
+  /// yang akan upload foto ke Storage dan simpan ke Firestore.
   void _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_imageFile == null) {
@@ -122,26 +116,38 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
 
     final auth = context.read<AuthController>();
     final user = auth.currentUser;
+    if (user == null) return;
 
     setState(() => _isSaving = true);
-    await Future.delayed(const Duration(milliseconds: 400));
 
-    final result = SubmissionModel(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      userId: user?.id ?? 'unknown',
-      userName: user?.name ?? 'User',
-      foodName: _nameCtrl.text.trim(),
-      imagePath: _imageFile!.path,
-      calories: double.tryParse(_calCtrl.text),
-      protein: double.tryParse(_proteinCtrl.text),
-      carbs: double.tryParse(_carbsCtrl.text),
-      fat: double.tryParse(_fatCtrl.text),
-      createdAt: DateTime.now(),
-    );
+    try {
+      await context.read<SubmissionController>().addSubmission(
+        userId: user.id,
+        userName: user.name,
+        foodName: _nameCtrl.text.trim(),
+        localImagePath: _imageFile!.path, // ← path lokal, di-upload controller
+      );
 
-    if (mounted) {
-      setState(() => _isSaving = false);
-      Navigator.pop(context, result);
+      if (mounted) {
+        Navigator.pop(context, true); // true = berhasil
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pengajuan berhasil dikirim!'),
+            backgroundColor: Color(0xFF2E7D32),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengirim: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -184,13 +190,36 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
                           ? 'Nama wajib diisi'
                           : null,
             ),
-            const SizedBox(height: 20),
-            _sectionHeader(
-              'Perkiraan Nutrisi',
-              '(opsional — isi jika kamu tahu)',
-            ),
             const SizedBox(height: 12),
-            _nutriGrid(),
+            // Info bahwa data nutrisi diisi oleh ahli gizi
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F5E9),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFA5D6A7)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.info_outline_rounded,
+                    color: Color(0xFF2E7D32),
+                    size: 18,
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Data nutrisi akan diisi oleh ahli gizi setelah pengajuanmu disetujui admin.',
+                      style: TextStyle(
+                        color: Color(0xFF2E7D32),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 28),
             _buildSubmitButton(),
             const SizedBox(height: 16),
@@ -226,7 +255,6 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
                         fit: BoxFit.cover,
                       ),
                     ),
-                    // Overlay edit button
                     Positioned(
                       right: 10,
                       bottom: 10,
@@ -290,146 +318,14 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
     );
   }
 
-  Widget _label(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontWeight: FontWeight.w700,
-        fontSize: 13,
-        color: _textDark,
-      ),
-    );
-  }
-
-  Widget _sectionHeader(String title, String subtitle) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        const Icon(Icons.bar_chart_rounded, color: _primary, size: 18),
-        const SizedBox(width: 6),
-        Text(
-          title,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 15,
-            color: _textDark,
-          ),
-        ),
-        const SizedBox(width: 6),
-        Text(subtitle, style: TextStyle(color: _textMuted, fontSize: 11)),
-      ],
-    );
-  }
-
-  Widget _nutriGrid() {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: _nutriField(
-                ctrl: _calCtrl,
-                label: 'Kalori',
-                unit: 'kal',
-                color: const Color(0xFFFF6B35),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _nutriField(
-                ctrl: _proteinCtrl,
-                label: 'Protein',
-                unit: 'g',
-                color: _primary,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _nutriField(
-                ctrl: _carbsCtrl,
-                label: 'Karbohidrat',
-                unit: 'g',
-                color: const Color(0xFFFFB800),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _nutriField(
-                ctrl: _fatCtrl,
-                label: 'Lemak',
-                unit: 'g',
-                color: const Color(0xFF3498DB),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _nutriField({
-    required TextEditingController ctrl,
-    required String label,
-    required String unit,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3), width: 1.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: ctrl,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
-                  ],
-                  style: const TextStyle(
-                    color: _textDark,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'opsional',
-                    hintStyle: TextStyle(
-                      color: _textMuted.withOpacity(0.5),
-                      fontSize: 13,
-                    ),
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
-              ),
-              Text(unit, style: TextStyle(color: _textMuted, fontSize: 12)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _label(String text) => Text(
+    text,
+    style: const TextStyle(
+      fontWeight: FontWeight.w700,
+      fontSize: 13,
+      color: _textDark,
+    ),
+  );
 
   Widget _field({
     required TextEditingController ctrl,

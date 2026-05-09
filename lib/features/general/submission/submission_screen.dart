@@ -17,21 +17,13 @@ class SubmissionScreen extends StatelessWidget {
   static const _textMuted = Color(0xFF7A9485);
 
   void _goToAdd(BuildContext context) async {
-    // AddSubmissionScreen mengembalikan SubmissionModel langsung
-    final result = await Navigator.push<SubmissionModel>(
+    // PERUBAHAN: AddSubmissionScreen sekarang langsung save ke Firestore.
+    // Cukup push saja, tidak perlu terima result dan panggil addSubmission lagi.
+    await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const AddSubmissionScreen()),
     );
-    if (result == null) return;
-    if (!context.mounted) return;
-
-    // Simpan ke SubmissionController (Hive) — langsung terbaca admin & nutri
-    await context.read<SubmissionController>().addSubmission(
-      userId: result.userId,
-      userName: result.userName,
-      foodName: result.foodName,
-      imagePath: result.imagePath,
-    );
+    // Stream Firestore otomatis update list — tidak perlu setState manual
   }
 
   @override
@@ -39,8 +31,13 @@ class SubmissionScreen extends StatelessWidget {
     final user = context.watch<AuthController>().currentUser;
     if (user == null) return const SizedBox();
 
-    // Watch SubmissionController → otomatis rebuild saat ada perubahan
     final ctrl = context.watch<SubmissionController>();
+
+    // Tampilkan loading saat pertama kali load
+    if (ctrl.isLoading && ctrl.all.isEmpty) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     final items = ctrl.byUser(user.id);
 
     return Scaffold(
