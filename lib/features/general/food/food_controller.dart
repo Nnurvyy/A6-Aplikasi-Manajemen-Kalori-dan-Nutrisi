@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import './models/food_model.dart';
 import './models/log_model.dart';
 import '../../../services/hive_service.dart';
+import '../../../services/food_log_sync_service.dart';
+import '../../../services/food_log_firestore_service.dart';
 
 class FoodController extends ChangeNotifier {
   List<FoodModel> _allFoods = [];
@@ -145,9 +147,9 @@ class FoodController extends ChangeNotifier {
     required double carbs,
     required double fat,
     required String mealType,
-    required DateTime dateConsumed, 
+    required DateTime dateConsumed,
     required double servingSize,
-    int quantity = 1, // New parameter
+    int quantity = 1,
     bool isManual = false,
     String? imageUrl,
     String? ingredientsJson,
@@ -181,9 +183,9 @@ class FoodController extends ChangeNotifier {
       quantity: quantity,
     );
 
-    await HiveService.logs.put(newLog.id, newLog);
+    await FoodLogSyncService.saveLog(newLog); 
     notifyListeners();
-    return true; 
+    return true;
   }
 
   Future<void> updateLog(LogModel log) async {
@@ -234,12 +236,39 @@ class FoodController extends ChangeNotifier {
   }
 
   Future<void> updateSpecificLog(LogModel updatedLog) async {
+    // Update di Hive
     await HiveService.logs.put(updatedLog.id, updatedLog);
+
+    // Sync update ke Firebase jika online
+    if (await FoodLogSyncService.isOnline()) {
+      try {
+        await FoodLogFirestoreService.upsertLog(updatedLog);
+      } catch (e) {
+        // Tandai ulang sebagai pending agar di-retry saat sync berikutnya
+        updatedLog.syncStatus = 'pending';
+        await updatedLog.save();
+      }
+    } else {
+      updatedLog.syncStatus = 'pending';
+      await updatedLog.save();
+    }
+
     notifyListeners();
   }
 
   Future<void> deleteLog(String logId) async {
+    // Hapus dari Hive
     await HiveService.logs.delete(logId);
+
+    // Hapus dari Firebase jika online
+    if (await FoodLogSyncService.isOnline()) {
+      try {
+        await FoodLogFirestoreService.deleteLog(logId);
+      } catch (e) {
+        print('[FoodController] Gagal hapus dari Firebase: $e');
+      }
+    }
+
     notifyListeners();
   }
 }

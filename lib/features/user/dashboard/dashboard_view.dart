@@ -785,13 +785,24 @@ class _DashboardBodyState extends State<DashboardBody> {
                 const SizedBox(height: 4),
                 Text(
                   "${item.consumedAt.hour.toString().padLeft(2, '0')}:${item.consumedAt.minute.toString().padLeft(2, '0')}",
-                  //_controller.formatMealTime(item.consumedAt),
                   style: const TextStyle(
                     fontSize: 11,
                     color: Color(0xFF9E9E9E),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
+
+                // ─── TAMBAHKAN INI ───────────────────────────────
+                const SizedBox(height: 4),
+                Icon(
+                  item.syncStatus == 'synced' ? Icons.cloud_done_rounded : Icons.cloud_upload_rounded,
+                  size: 14,
+                  color: item.syncStatus == 'synced'
+                      ? const Color(0xFF4CAF50)  // hijau = sudah di cloud
+                      : const Color(0xFFF59E0B), // oranye = masih pending
+                ),
+                // ────────────────────────────────────────────────
+
               ],
             ),
           ],
