@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../features/general/auth/models/user_model.dart';
 import '../features/general/food/models/food_model.dart';
 import '../services/hive_service.dart';
@@ -7,6 +8,7 @@ class SeedHelper {
   static Future<void> seedIfEmpty() async {
     await _seedUsers();
     await _seedFoods();
+    await seedFirebaseFoods(); // ← Tambahan untuk Firebase
 
     // Debug Print: Pastikan isi database tampil di terminal
     print('--- DEBUG: ISI DATABASE MAKANAN ---');
@@ -424,5 +426,29 @@ class SeedHelper {
     
     // Set flag agar tidak seeding ulang setiap kali
     await HiveService.settings.put('seed_v3_done', true);
+  }
+
+  /// Sinkronisasi data makanan ke Firebase Firestore
+  static Future<void> seedFirebaseFoods() async {
+    final firestore = FirebaseFirestore.instance;
+    
+    try {
+      // Cek apakah koleksi foods di cloud sudah ada isinya
+      final snapshot = await firestore.collection('foods').limit(1).get();
+      
+      if (snapshot.docs.isEmpty) {
+        print('--- SEEDING FIREBASE FOODS ---');
+        // Ambil semua data dari Hive
+        final foods = HiveService.foods.values.toList();
+        
+        // Upload satu-persatu
+        for (var f in foods) {
+          await firestore.collection('foods').doc(f.id).set(f.toMap());
+        }
+        print('--- FIREBASE FOODS SEEDED SUCCESSFULLY ---');
+      }
+    } catch (e) {
+      print('--- ERROR SEEDING FIREBASE: $e ---');
+    }
   }
 }
