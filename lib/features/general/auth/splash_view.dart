@@ -7,6 +7,7 @@ import '../../user/user_main_view.dart';
 import './login_view.dart';
 import '../../admin/admin_main_view.dart';
 import '../../nutritionist/nutri_main_view.dart';
+import '../../general/submission/submission_controller.dart'; // ← TAMBAH
 
 class SplashView extends StatefulWidget {
   const SplashView({super.key});
@@ -41,22 +42,36 @@ class _SplashViewState extends State<SplashView>
     Future.delayed(const Duration(milliseconds: 2200), _navigate);
   }
 
-  void _navigate() {
+  Future<void> _navigate() async {
     if (!mounted) return;
     final auth = context.read<AuthController>();
+
     Widget target;
     if (!auth.isLoggedIn) {
+      // Belum login → langsung ke LoginView, tidak perlu init submission
       target = const LoginView();
     } else {
-      final role = auth.currentUser?.role;
-      if (role == 'admin') {
+      final user = auth.currentUser!;
+
+      // ── Init SubmissionController sesuai role ──────────────────────────
+      // Admin & Nutritionist → stream SEMUA submission
+      // User biasa          → stream submission milik sendiri saja
+      await context.read<SubmissionController>().init(
+        role: user.role,
+        userId: user.id,
+      );
+      // ──────────────────────────────────────────────────────────────────
+
+      if (user.role == 'admin') {
         target = const AdminMainView();
-      } else if (role == 'nutritionist') {
+      } else if (user.role == 'nutritionist') {
         target = const NutriMainView();
       } else {
         target = const UserMainView();
       }
     }
+
+    if (!mounted) return;
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         pageBuilder: (_, __, ___) => target,
