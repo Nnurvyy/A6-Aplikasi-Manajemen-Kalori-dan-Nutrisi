@@ -33,6 +33,8 @@ class _WatchlistViewState extends State<WatchlistView> {
     final endIndex = (startIndex + _itemsPerPage).clamp(0, items.length);
     final pageItems = items.isEmpty ? <WatchlistModel>[] : items.sublist(startIndex, endIndex);
 
+    final isMonitor = context.watch<AuthController>().isMonitoring;
+
     return Scaffold(
       backgroundColor: _bg,
       appBar: AppBar(
@@ -328,28 +330,31 @@ class _WatchlistViewState extends State<WatchlistView> {
   }
 
   Widget _buildEmptyState() {
+    final isMonitor = context.watch<AuthController>().isMonitoring;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
             padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE8F5E9),
+            decoration: const BoxDecoration(
+              color: Color(0xFFE8F5E9),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.bookmark_border_rounded, size: 40, color: Color(0xFF2E7D32)),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Belum ada makanan tersimpan',
-            style: TextStyle(color: _textDark, fontWeight: FontWeight.bold, fontSize: 16),
+          Text(
+            isMonitor ? 'Belum ada makanan tersimpan oleh Anak' : 'Belum ada makanan tersimpan',
+            style: const TextStyle(color: _textDark, fontWeight: FontWeight.bold, fontSize: 16),
           ),
-          const SizedBox(height: 4),
-          const Text(
-            'Simpan makanan favoritmu untuk akses cepat',
-            style: TextStyle(color: _textMuted, fontSize: 13),
-          ),
+          if (!isMonitor) ...[
+            const SizedBox(height: 4),
+            const Text(
+              'Simpan makanan favoritmu untuk akses cepat',
+              style: TextStyle(color: _textMuted, fontSize: 13),
+            ),
+          ],
         ],
       ),
     );
