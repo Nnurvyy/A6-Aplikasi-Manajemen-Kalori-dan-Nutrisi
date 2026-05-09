@@ -10,13 +10,14 @@ import './features/general/food/models/log_model.dart';
 import './features/general/food/models/watchlist_model.dart';
 import './features/general/food/watchlist_controller.dart';
 import './features/user/progress/models/weight_log_model.dart';
-import './features/general/submission/submission_hive_model.dart';
+
+// Hapus SubmissionHiveModel — tidak dipakai lagi
+// import './features/general/submission/submission_hive_model.dart';
+
 import './features/general/submission/submission_controller.dart';
 import './helpers/date_controller.dart';
-
 import './services/hive_service.dart';
 import './helpers/seed_helper.dart';
-
 import './features/general/auth/auth_controller.dart';
 import './features/general/food/food_controller.dart';
 import './features/general/auth/splash_view.dart';
@@ -27,9 +28,7 @@ import 'firebase_options.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -47,27 +46,25 @@ void main() async {
 
   await Hive.initFlutter();
 
-  // Register semua adapter
+  // Register adapter — HAPUS SubmissionHiveModelAdapter
   Hive.registerAdapter(UserModelAdapter());
   Hive.registerAdapter(FoodModelAdapter());
   Hive.registerAdapter(LogModelAdapter());
   Hive.registerAdapter(WatchlistModelAdapter());
   Hive.registerAdapter(WeightLogModelAdapter());
-  Hive.registerAdapter(SubmissionHiveModelAdapter()); // ← baru
+  // Hive.registerAdapter(SubmissionHiveModelAdapter()); ← HAPUS BARIS INI
 
   await HiveService.initBoxes();
   await SeedHelper.seedIfEmpty();
 
-  // Inisialisasi SubmissionController sebelum runApp
-  final submissionCtrl = SubmissionController();
-  await submissionCtrl.init();
+  // SubmissionController TIDAK diinit di sini lagi.
+  // Init dilakukan di SplashView / setelah login, karena butuh userId & role.
 
-  runApp(NutriTrackApp(submissionCtrl: submissionCtrl));
+  runApp(const NutriTrackApp());
 }
 
 class NutriTrackApp extends StatelessWidget {
-  final SubmissionController submissionCtrl;
-  const NutriTrackApp({super.key, required this.submissionCtrl});
+  const NutriTrackApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -77,8 +74,8 @@ class NutriTrackApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => FoodController()),
         ChangeNotifierProvider(create: (_) => WatchlistController()),
         ChangeNotifierProvider(create: (_) => DateController()),
-        // SubmissionController global — shared antara Admin & Nutritionist
-        ChangeNotifierProvider.value(value: submissionCtrl),
+        // SubmissionController tetap global tapi diinit saat login
+        ChangeNotifierProvider(create: (_) => SubmissionController()),
       ],
       child: MaterialApp(
         title: 'NutriTrack',
