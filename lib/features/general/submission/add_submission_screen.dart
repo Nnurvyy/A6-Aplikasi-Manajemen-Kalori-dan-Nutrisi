@@ -206,7 +206,7 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
       child: Container(
         height: 200,
         decoration: BoxDecoration(
-          color: _imageFile != null ? _primary.withValues(alpha: 0.08) : Colors.white,
+          color: _imageFile != null ? _primary.withOpacity(0.08) : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: _imageFile != null ? _primary : _border,
@@ -263,7 +263,7 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: _primary.withValues(alpha: 0.1),
+                        color: _primary.withOpacity(0.1),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -382,7 +382,7 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
+        border: Border.all(color: color.withOpacity(0.3), width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -414,7 +414,7 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
                   decoration: InputDecoration(
                     hintText: 'opsional',
                     hintStyle: TextStyle(
-                      color: _textMuted.withValues(alpha: 0.5),
+                      color: _textMuted.withOpacity(0.5),
                       fontSize: 13,
                     ),
                     border: InputBorder.none,
@@ -449,7 +449,7 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
         style: const TextStyle(color: _textDark, fontSize: 14),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(color: _textMuted.withValues(alpha: 0.6)),
+          hintStyle: TextStyle(color: _textMuted.withOpacity(0.6)),
           prefixIcon: Icon(icon, color: _textMuted, size: 20),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
@@ -479,7 +479,7 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
                   ? []
                   : [
                     BoxShadow(
-                      color: _primary.withValues(alpha: 0.4),
+                      color: _primary.withOpacity(0.4),
                       blurRadius: 14,
                       offset: const Offset(0, 6),
                     ),

@@ -13,6 +13,8 @@ class FoodModel extends HiveObject {
   DateTime createdAt;
   String? imageUrl;
   String? description;
+  String? ingredientsJson;
+  bool isManualIngredient;
 
   FoodModel({
     required this.id,
@@ -27,6 +29,8 @@ class FoodModel extends HiveObject {
     required this.createdAt,
     this.imageUrl,
     this.description,
+    this.ingredientsJson,
+    this.isManualIngredient = false,
   });
 
   /// Hitung nutrisi untuk jumlah tertentu (gram)
@@ -38,6 +42,78 @@ class FoodModel extends HiveObject {
       'carbs': carbs * ratio,
       'fat': fat * ratio,
     };
+  }
+
+  FoodModel copyWith({
+    String? id,
+    String? name,
+    String? category,
+    double? calories,
+    double? protein,
+    double? carbs,
+    double? fat,
+    double? defaultServingSize,
+    bool? isApproved,
+    DateTime? createdAt,
+    String? imageUrl,
+    String? description,
+    String? ingredientsJson,
+    bool? isManualIngredient,
+  }) {
+    return FoodModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      category: category ?? this.category,
+      calories: calories ?? this.calories,
+      protein: protein ?? this.protein,
+      carbs: carbs ?? this.carbs,
+      fat: fat ?? this.fat,
+      defaultServingSize: defaultServingSize ?? this.defaultServingSize,
+      isApproved: isApproved ?? this.isApproved,
+      createdAt: createdAt ?? this.createdAt,
+      imageUrl: imageUrl ?? this.imageUrl,
+      description: description ?? this.description,
+      ingredientsJson: ingredientsJson ?? this.ingredientsJson,
+      isManualIngredient: isManualIngredient ?? this.isManualIngredient,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'category': category,
+      'calories': calories,
+      'protein': protein,
+      'carbs': carbs,
+      'fat': fat,
+      'defaultServingSize': defaultServingSize,
+      'isApproved': isApproved,
+      'createdAt': createdAt.toIso8601String(),
+      'imageUrl': imageUrl,
+      'description': description,
+      'ingredientsJson': ingredientsJson,
+      'isManualIngredient': isManualIngredient,
+    };
+  }
+
+  factory FoodModel.fromMap(Map<String, dynamic> map) {
+    return FoodModel(
+      id: map['id'] ?? '',
+      name: map['name'] ?? '',
+      category: map['category'] ?? 'lainnya',
+      calories: (map['calories'] as num?)?.toDouble() ?? 0.0,
+      protein: (map['protein'] as num?)?.toDouble() ?? 0.0,
+      carbs: (map['carbs'] as num?)?.toDouble() ?? 0.0,
+      fat: (map['fat'] as num?)?.toDouble() ?? 0.0,
+      defaultServingSize: (map['defaultServingSize'] as num?)?.toDouble() ?? 100.0,
+      isApproved: map['isApproved'] ?? true,
+      createdAt: map['createdAt'] != null ? DateTime.parse(map['createdAt']) : DateTime.now(),
+      imageUrl: map['imageUrl'],
+      description: map['description'],
+      ingredientsJson: map['ingredientsJson'],
+      isManualIngredient: map['isManualIngredient'] ?? false,
+    );
   }
 }
 
@@ -64,13 +140,15 @@ class FoodModelAdapter extends TypeAdapter<FoodModel> {
       imageUrl: f[9] as String?,
       description: f[10] as String?,
       defaultServingSize: f[11] as double? ?? 100,
+      ingredientsJson: f[12] as String?,
+      isManualIngredient: f[13] as bool? ?? false,
     );
   }
 
   @override
   void write(BinaryWriter writer, FoodModel obj) {
     writer
-      ..writeByte(12)
+      ..writeByte(14)
       ..writeByte(0)..write(obj.id)
       ..writeByte(1)..write(obj.name)
       ..writeByte(2)..write(obj.category)
@@ -82,6 +160,8 @@ class FoodModelAdapter extends TypeAdapter<FoodModel> {
       ..writeByte(8)..write(obj.createdAt)
       ..writeByte(9)..write(obj.imageUrl)
       ..writeByte(10)..write(obj.description)
-      ..writeByte(11)..write(obj.defaultServingSize);
+      ..writeByte(11)..write(obj.defaultServingSize)
+      ..writeByte(12)..write(obj.ingredientsJson)
+      ..writeByte(13)..write(obj.isManualIngredient);
   }
 }

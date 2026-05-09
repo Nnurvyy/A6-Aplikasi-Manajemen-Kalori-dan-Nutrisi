@@ -22,7 +22,7 @@ class SubmissionInfoDialog extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: _primary.withValues(alpha: 0.1),
+                    color: _primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(Icons.info_outline_rounded,
@@ -54,7 +54,7 @@ class SubmissionInfoDialog extends StatelessWidget {
               decoration: BoxDecoration(
                 color: const Color(0xFFFFF8E1),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFFFB800).withValues(alpha: 0.4)),
+                border: Border.all(color: const Color(0xFFFFB800).withOpacity(0.4)),
               ),
               child: Row(
                 children: [

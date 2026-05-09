@@ -46,6 +46,48 @@ class UserModel extends HiveObject {
     final cal = dailyCalorieNeed ?? 2000.0;
     return CalorieHelper.calculateMacros(cal);
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'email': email,
+      'password': password,
+      'role': role,
+      'weight': weight,
+      'height': height,
+      'age': age,
+      'gender': gender,
+      'activityLevel': activityLevel,
+      'dailyCalorieNeed': dailyCalorieNeed,
+      'birthDate': birthDate?.toIso8601String(),
+      'isBlocked': isBlocked,
+      'targetWeightGainPerMonth': targetWeightGainPerMonth,
+      'initialWeight': initialWeight,
+      'targetHistory': targetHistory,
+    };
+  }
+
+  factory UserModel.fromMap(Map<String, dynamic> map) {
+    return UserModel(
+      id: map['id'] ?? '',
+      name: map['name'] ?? '',
+      email: map['email'] ?? '',
+      password: map['password'] ?? '',
+      role: map['role'] ?? 'user',
+      weight: (map['weight'] as num?)?.toDouble(),
+      height: (map['height'] as num?)?.toDouble(),
+      age: map['age'] as int?,
+      gender: map['gender'],
+      activityLevel: map['activityLevel'],
+      dailyCalorieNeed: (map['dailyCalorieNeed'] as num?)?.toDouble(),
+      birthDate: map['birthDate'] != null ? DateTime.parse(map['birthDate']) : null,
+      isBlocked: map['isBlocked'] ?? false,
+      targetWeightGainPerMonth: (map['targetWeightGainPerMonth'] as num?)?.toDouble(),
+      initialWeight: (map['initialWeight'] as num?)?.toDouble(),
+      targetHistory: map['targetHistory'] != null ? Map<String, double>.from(map['targetHistory']) : null,
+    );
+  }
 }
 
 class UserModelAdapter extends TypeAdapter<UserModel> {
