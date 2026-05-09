@@ -16,6 +16,8 @@ import '../general/food/models/watchlist_model.dart';
 import '../general/food/watchlist_view.dart';
 import '../general/food/food_detail_view.dart';
 import './progress/progress_view.dart';
+import './manual_food/saved_compositions_page.dart';
+import './manual_food/child_log_view.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // USER MAIN VIEW
@@ -33,19 +35,33 @@ class _UserMainViewState extends State<UserMainView>
   // ── Navigasi ─────────────────────────────────────────────────────────────
   int _currentIndex = 0;
 
-  static const List<_NavItem> _navItems = [
+  static const List<_NavItem> _navItemsNormal = [
     _NavItem(icon: Icons.home_rounded, label: 'Home'),
     _NavItem(icon: Icons.bar_chart_rounded, label: 'Progress'),
     _NavItem(icon: Icons.assignment_rounded, label: 'Pengajuan'),
     _NavItem(icon: Icons.person_rounded, label: 'Profile'),
   ];
 
+  static const List<_NavItem> _navItemsMonitor = [
+    _NavItem(icon: Icons.home_rounded, label: 'Home'),
+    _NavItem(icon: Icons.bar_chart_rounded, label: 'Progress'),
+    _NavItem(icon: Icons.child_care_rounded, label: 'Anak'),
+    _NavItem(icon: Icons.person_outline_rounded, label: 'Anda'),
+  ];
+
   // Pages
-  static final List<Widget> _pages = [
-    const DashboardView(),
-    const ProgressView(),
+  static final List<Widget> _pagesNormal = [
+    const DashboardView(key: ValueKey('dash_normal')),
+    const ProgressView(key: ValueKey('progress_normal')),
     const SubmissionScreen(),
-    const ProfileView(),
+    const ProfileView(key: ValueKey('profile_normal')),
+  ];
+
+  static final List<Widget> _pagesMonitor = [
+    const DashboardView(key: ValueKey('dash_monitor')),
+    const ProgressView(key: ValueKey('progress_monitor')),
+    const ProfileView(key: ValueKey('profile_monitor')),
+    const ParentProfilePlaceholder(),
   ];
 
   // ── Speed Dial ───────────────────────────────────────────────────────────
@@ -237,15 +253,24 @@ class _UserMainViewState extends State<UserMainView>
 
   @override
   Widget build(BuildContext context) {
+    final isMonitor = context.watch<AuthController>().isMonitoring;
+    final pages = isMonitor ? _pagesMonitor : _pagesNormal;
+    final navItems = isMonitor ? _navItemsMonitor : _navItemsNormal;
+
+    // Pastikan _currentIndex valid jika berpindah mode (dari 5 item ke 4 item)
+    if (_currentIndex >= pages.length) {
+      _currentIndex = 0;
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F0),
       body: Stack(
         children: [
           // ── Halaman aktif ──────────────────────────────────────────────
-          IndexedStack(index: _currentIndex, children: _pages),
+          IndexedStack(index: _currentIndex, children: pages),
 
           // ── Backdrop gelap ─────────────────────────────────────────────
-          if (_dialOpen)
+          if (_dialOpen && !isMonitor)
             AnimatedBuilder(
               animation: _backdropAnim,
               builder:
@@ -264,7 +289,7 @@ class _UserMainViewState extends State<UserMainView>
             ),
 
           // ── Speed Dial Cards ───────────────────────────────────────────
-          if (_dialOpen)
+          if (_dialOpen && !isMonitor)
             Positioned(
               left: 16,
               right: 16,
@@ -301,8 +326,8 @@ class _UserMainViewState extends State<UserMainView>
         ],
       ),
 
-      // ── FAB ─────────────────────────────────────────────────────────────
-      floatingActionButton: AnimatedBuilder(
+      // ── FAB (Hanya untuk mode normal) ───────────────────────────────────
+      floatingActionButton: isMonitor ? null : AnimatedBuilder(
         animation: _rotateAnim,
         builder: (_, __) {
           return GestureDetector(
@@ -341,26 +366,34 @@ class _UserMainViewState extends State<UserMainView>
           );
         },
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButtonLocation: isMonitor ? null : FloatingActionButtonLocation.centerDocked,
 
       // ── Bottom Nav ───────────────────────────────────────────────────────
       bottomNavigationBar: BottomAppBar(
         color: const Color(0xFF2E7D32),
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8,
+        shape: isMonitor ? null : const CircularNotchedRectangle(),
+        notchMargin: isMonitor ? 0 : 8,
         padding: EdgeInsets.zero,
         child: SafeArea(
           top: false,
           child: SizedBox(
             height: 60,
             child: Row(
-              children: [
-                _buildNavBtn(0),
-                _buildNavBtn(1),
-                const SizedBox(width: 64), // notch space
-                _buildNavBtn(2),
-                _buildNavBtn(3),
-              ],
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: isMonitor 
+                ? [
+                    _buildNavBtn(0, navItems),
+                    _buildNavBtn(1, navItems),
+                    _buildNavBtn(2, navItems),
+                    _buildNavBtn(3, navItems),
+                  ]
+                : [
+                    _buildNavBtn(0, navItems),
+                    _buildNavBtn(1, navItems),
+                    const SizedBox(width: 64), // notch space
+                    _buildNavBtn(2, navItems),
+                    _buildNavBtn(3, navItems),
+                  ],
             ),
           ),
         ),
@@ -368,8 +401,8 @@ class _UserMainViewState extends State<UserMainView>
     );
   }
 
-  Widget _buildNavBtn(int index) {
-    final item = _navItems[index];
+  Widget _buildNavBtn(int index, List<_NavItem> items) {
+    final item = items[index];
     final isActive = _currentIndex == index;
     return Expanded(
       child: InkWell(
@@ -714,50 +747,158 @@ class _SavedFoodSheet extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RIWAYAT PLACEHOLDER
+// PARENT PROFILE (MODE PANTAU)
 // ═══════════════════════════════════════════════════════════════════════════
 
-class _RiwayatPlaceholder extends StatelessWidget {
-  const _RiwayatPlaceholder();
+class ParentProfilePlaceholder extends StatelessWidget {
+  const ParentProfilePlaceholder({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthController>();
+    final mainUser = auth.mainUser;
+
+    if (mainUser == null) return const Center(child: CircularProgressIndicator());
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F0),
+      backgroundColor: const Color(0xFFF4FAF4),
       body: SafeArea(
-        child: Center(
+        child: SingleChildScrollView(
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4CAF50).withOpacity(0.1),
-                  shape: BoxShape.circle,
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(20, 40, 20, 40),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF1B5E20), Color(0xFF43A047)],
+                  ),
+                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
                 ),
-                child: const Icon(
-                  Icons.history_rounded,
-                  size: 40,
-                  color: Color(0xFF4CAF50),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white38, width: 2),
+                      ),
+                      child: const Icon(Icons.shield_rounded, color: Colors.white, size: 40),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      mainUser.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      mainUser.email,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 16),
-              const Text(
-                'Riwayat',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1B2A1B),
+              const SizedBox(height: 32),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Pengaturan Akun Anda',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1A2E1A),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          _buildActionTile(
+                            icon: Icons.exit_to_app_rounded,
+                            label: 'Kembali ke Mode Normal',
+                            color: const Color(0xFF2E7D32),
+                            bg: const Color(0xFFE8F5E9),
+                            onTap: () {
+                              auth.stopMonitoring();
+                            },
+                          ),
+                          const Divider(height: 1, color: Color(0xFFE8F5E9)),
+                          _buildActionTile(
+                            icon: Icons.logout_rounded,
+                            label: 'Keluar (Logout)',
+                            color: Colors.red[600]!,
+                            bg: Colors.red[50]!,
+                            onTap: () async {
+                              await auth.logout();
+                              // Assuming login view routing is handled by stream or we need to push
+                              Navigator.pushNamedAndRemoveUntil(context, '/', (r) => false);
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Fitur ini akan segera hadir',
-                style: TextStyle(color: Colors.grey, fontSize: 14),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionTile({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required Color bg,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF1A2E1A)),
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 20),
+          ],
         ),
       ),
     );
