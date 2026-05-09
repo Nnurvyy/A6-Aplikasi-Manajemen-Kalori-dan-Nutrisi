@@ -77,6 +77,44 @@ class FoodModel extends HiveObject {
       isManualIngredient: isManualIngredient ?? this.isManualIngredient,
     );
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'category': category,
+      'calories': calories,
+      'protein': protein,
+      'carbs': carbs,
+      'fat': fat,
+      'defaultServingSize': defaultServingSize,
+      'isApproved': isApproved,
+      'createdAt': createdAt.toIso8601String(),
+      'imageUrl': imageUrl,
+      'description': description,
+      'ingredientsJson': ingredientsJson,
+      'isManualIngredient': isManualIngredient,
+    };
+  }
+
+  factory FoodModel.fromMap(Map<String, dynamic> map) {
+    return FoodModel(
+      id: map['id'] ?? '',
+      name: map['name'] ?? '',
+      category: map['category'] ?? 'lainnya',
+      calories: (map['calories'] as num?)?.toDouble() ?? 0.0,
+      protein: (map['protein'] as num?)?.toDouble() ?? 0.0,
+      carbs: (map['carbs'] as num?)?.toDouble() ?? 0.0,
+      fat: (map['fat'] as num?)?.toDouble() ?? 0.0,
+      defaultServingSize: (map['defaultServingSize'] as num?)?.toDouble() ?? 100.0,
+      isApproved: map['isApproved'] ?? true,
+      createdAt: map['createdAt'] != null ? DateTime.parse(map['createdAt']) : DateTime.now(),
+      imageUrl: map['imageUrl'],
+      description: map['description'],
+      ingredientsJson: map['ingredientsJson'],
+      isManualIngredient: map['isManualIngredient'] ?? false,
+    );
+  }
 }
 
 class FoodModelAdapter extends TypeAdapter<FoodModel> {
