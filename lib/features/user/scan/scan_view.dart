@@ -104,7 +104,7 @@ class _ScanFoodViewState extends State<ScanFoodView> {
         color: isDark ? AppColors.darkSurface : Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 20)
+          BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 20)
         ],
       ),
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
@@ -115,7 +115,7 @@ class _ScanFoodViewState extends State<ScanFoodView> {
           Container(
             width: 40, height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey.withValues(alpha: 0.3),
+              color: Colors.grey.withOpacity(0.3),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -316,9 +316,9 @@ class _ScanFoodViewState extends State<ScanFoodView> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 20),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
+          color: color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
+          border: Border.all(color: color.withOpacity(0.3)),
         ),
         child: Column(
           children: [

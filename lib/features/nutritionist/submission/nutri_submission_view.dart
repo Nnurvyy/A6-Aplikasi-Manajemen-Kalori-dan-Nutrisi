@@ -72,7 +72,7 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
             margin: const EdgeInsets.only(right: 16),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: _green.withValues(alpha: 0.1),
+              color: _green.withOpacity(0.1),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
@@ -107,7 +107,7 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
                   decoration: BoxDecoration(
                     color: const Color(0xFFF4FAF6),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: _green.withValues(alpha: 0.2)),
+                    border: Border.all(color: _green.withOpacity(0.2)),
                   ),
                   child: TextField(
                     controller: _searchCtrl,
@@ -200,7 +200,7 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: _green.withValues(alpha: 0.08),
+                color: _green.withOpacity(0.08),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -281,10 +281,10 @@ class _NutriListCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: accent.withValues(alpha: 0.3), width: 1.5),
+          border: Border.all(color: accent.withOpacity(0.3), width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
+              color: Colors.black.withOpacity(0.04),
               blurRadius: 10,
               offset: const Offset(0, 3),
             ),
@@ -338,7 +338,7 @@ class _NutriListCard extends StatelessWidget {
                     vertical: 5,
                   ),
                   decoration: BoxDecoration(
-                    color: accent.withValues(alpha: 0.12),
+                    color: accent.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -386,7 +386,7 @@ class _NutriListCard extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  color: _green.withValues(alpha: 0.06),
+                  color: _green.withOpacity(0.06),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Row(
@@ -416,7 +416,7 @@ class _NutriListCard extends StatelessWidget {
     width: 46,
     height: 46,
     decoration: BoxDecoration(
-      color: accent.withValues(alpha: 0.12),
+      color: accent.withOpacity(0.12),
       borderRadius: BorderRadius.circular(12),
     ),
     child: Center(

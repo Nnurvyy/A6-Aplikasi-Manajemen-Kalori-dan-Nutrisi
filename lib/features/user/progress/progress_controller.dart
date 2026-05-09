@@ -143,7 +143,8 @@ class ProgressController extends ChangeNotifier {
       final ms = int.parse(user.id.replaceAll('user_', ''));
       accountCreated = DateTime.fromMillisecondsSinceEpoch(ms);
     } catch (_) {
-      accountCreated = createdAt;
+      // Jika ID bukan angka (seperti UID Firebase), gunakan waktu sekarang
+      accountCreated = DateTime.now();
     }
 
     if (accountCreated == null) return;

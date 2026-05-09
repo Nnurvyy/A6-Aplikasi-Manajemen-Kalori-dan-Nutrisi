@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../general/food/food_controller.dart';
 import '../../general/food/models/food_model.dart';
+import '../../general/food/widgets/ingredient_picker_dialog.dart';
+import 'dart:convert';
 
 class AdminFoodFormView extends StatefulWidget {
   final FoodModel? initialFood;
@@ -29,12 +31,14 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
   String _selectedCategory = 'Lauk';
   File? _pickedImage;
   String? _existingImageUrl;
+  
+  List<Map<String, dynamic>> _ingredients = [];
 
   static const List<String> _categories = [
     'Makanan Pokok', 'Lauk', 'Sayuran', 'Buah', 'Minuman', 'Snack', 'Lainnya'
   ];
 
-  static const Color _primary = Color(0xFF4CAF50);
+  static const Color _primary = Color(0xFF2E7D32);
   static const Color _dark = Color(0xFF1B2A1B);
   static const Color _muted = Color(0xFF5A7A5A);
   static const Color _bg = Color(0xFFF4F6F0);
@@ -52,11 +56,18 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
       final serv = f.defaultServingSize;
       final ratio = serv / 100;
       _servingSizeCtrl = TextEditingController(text: serv.toStringAsFixed(0));
-      _caloriesCtrl = TextEditingController(text: (f.calories * ratio).toStringAsFixed(1));
-      _proteinCtrl  = TextEditingController(text: (f.protein  * ratio).toStringAsFixed(1));
-      _carbsCtrl    = TextEditingController(text: (f.carbs    * ratio).toStringAsFixed(1));
-      _fatCtrl      = TextEditingController(text: (f.fat      * ratio).toStringAsFixed(1));
+      _caloriesCtrl = TextEditingController(text: (f.calories * ratio).round().toString());
+      _proteinCtrl  = TextEditingController(text: (f.protein  * ratio).round().toString());
+      _carbsCtrl    = TextEditingController(text: (f.carbs    * ratio).round().toString());
+      _fatCtrl      = TextEditingController(text: (f.fat      * ratio).round().toString());
       if (_categories.contains(f.category)) _selectedCategory = f.category;
+
+      if (f.ingredientsJson != null) {
+        try {
+          final List dynamicList = jsonDecode(f.ingredientsJson!);
+          _ingredients = dynamicList.map((e) => Map<String, dynamic>.from(e)).toList();
+        } catch (_) {}
+      }
     } else {
       _servingSizeCtrl = TextEditingController(text: '100');
       _caloriesCtrl = TextEditingController();
@@ -102,7 +113,7 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
             Text('Pilih Sumber Foto', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: _dark)),
             const SizedBox(height: 16),
             ListTile(
-              leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: _primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.camera_alt_rounded, color: _primary)),
+              leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: _primary.withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.camera_alt_rounded, color: _primary)),
               title: Text('Kamera', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
               onTap: () async {
                 Navigator.pop(ctx);
@@ -111,7 +122,7 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
               },
             ),
             ListTile(
-              leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.photo_library_rounded, color: Colors.blue)),
+              leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.photo_library_rounded, color: Colors.blue)),
               title: Text('Galeri', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
               onTap: () async {
                 Navigator.pop(ctx);
@@ -121,7 +132,7 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
             ),
             if (_pickedImage != null || _existingImageUrl != null)
               ListTile(
-                leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.delete_outline_rounded, color: Colors.red)),
+                leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.delete_outline_rounded, color: Colors.red)),
                 title: Text('Hapus Foto', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.red)),
                 onTap: () { Navigator.pop(ctx); setState(() { _pickedImage = null; _existingImageUrl = null; }); },
               ),
@@ -157,6 +168,7 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
       createdAt: widget.initialFood?.createdAt ?? DateTime.now(),
       imageUrl: _pickedImage?.path ?? _existingImageUrl,
       description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
+      ingredientsJson: _ingredients.isEmpty ? null : jsonEncode(_ingredients),
     );
 
     if (widget.initialFood == null) {
@@ -211,7 +223,7 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [Colors.transparent, catColor.withValues(alpha: 0.85)],
+                        colors: [Colors.transparent, catColor.withOpacity(0.85)],
                       ),
                     ),
                   ),
@@ -226,7 +238,7 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(20),
-                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 6, offset: const Offset(0, 2))],
+                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 6, offset: const Offset(0, 2))],
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -251,7 +263,7 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(20)),
+                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
                           child: Text(isEdit ? 'Edit Makanan' : 'Tambah Makanan Baru', style: GoogleFonts.poppins(fontSize: 11, color: Colors.white70)),
                         ),
                         const SizedBox(height: 4),
@@ -301,15 +313,15 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
                         Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: catColor.withValues(alpha: 0.07),
+                            color: catColor.withOpacity(0.07),
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: catColor.withValues(alpha: 0.3)),
+                            border: Border.all(color: catColor.withOpacity(0.3)),
                           ),
                           child: Row(
                             children: [
                               Container(
                                 padding: const EdgeInsets.all(9),
-                                decoration: BoxDecoration(color: catColor.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
+                                decoration: BoxDecoration(color: catColor.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
                                 child: Icon(Icons.scale_rounded, color: catColor, size: 20),
                               ),
                               const SizedBox(width: 12),
@@ -324,6 +336,7 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
                                     border: InputBorder.none, isDense: true,
                                   ),
                                   onChanged: (_) => setState(() {}),
+                                  readOnly: _ingredients.isNotEmpty,
                                   validator: (v) => (v == null || v.isEmpty) ? 'Wajib diisi' : null,
                                 ),
                               ),
@@ -335,7 +348,7 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
 
                         // Calories — full width
                         _nutriField(controller: _caloriesCtrl, label: 'Kalori', unit: 'kcal',
-                          icon: Icons.local_fire_department_rounded, color: catColor, bgColor: catColor.withValues(alpha: 0.07), fullWidth: true),
+                          icon: Icons.local_fire_department_rounded, color: catColor, bgColor: catColor.withOpacity(0.07), fullWidth: true),
                         const SizedBox(height: 10),
 
                         // Protein + Karbo side by side
@@ -357,6 +370,74 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
                     ),
                   ),
 
+                  // Komposisi Bahan
+                  _sectionCard(
+                    icon: Icons.kitchen_rounded,
+                    title: 'Komposisi Bahan (Opsional)',
+                    subtitle: 'Tambah bahan untuk menghitung nutrisi otomatis',
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: () async {
+                            final result = await showDialog(
+                              context: context,
+                              builder: (ctx) => const IngredientPickerDialog(),
+                            );
+                            if (result != null && result is Map) {
+                              final food = result['food'] as FoodModel;
+                              final grams = result['grams'] as double;
+                              final nutri = food.nutritionForAmount(grams);
+                              setState(() {
+                                _ingredients.add({
+                                  'id': food.id,
+                                  'name': food.name,
+                                  'grams': grams,
+                                  'calories': nutri['calories'],
+                                  'protein': nutri['protein'],
+                                  'carbs': nutri['carbs'],
+                                  'fat': nutri['fat'],
+                                });
+                              });
+                              _calculateFromIngredients();
+                            }
+                          },
+                          icon: const Icon(Icons.add_rounded, size: 18, color: Colors.white),
+                          label: Text('Tambah Bahan', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
+                          style: ElevatedButton.styleFrom(backgroundColor: _primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                        ),
+                        if (_ingredients.isNotEmpty) const SizedBox(height: 12),
+                        if (_ingredients.isNotEmpty)
+                          Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey[200]!),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: _ingredients.length,
+                              separatorBuilder: (_, __) => const Divider(height: 1),
+                              itemBuilder: (ctx, idx) {
+                                final item = _ingredients[idx];
+                                return ListTile(
+                                  title: Text(item['name'], style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold)),
+                                  subtitle: Text('${item['grams'].round()}g • ${item['calories'].round()} kcal', style: GoogleFonts.poppins(fontSize: 11)),
+                                  trailing: IconButton(
+                                    icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
+                                    onPressed: () {
+                                      setState(() => _ingredients.removeAt(idx));
+                                      _calculateFromIngredients();
+                                    },
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+
                   // Live preview
                   _previewCard(catColor),
 
@@ -373,8 +454,8 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
   Widget _placeholder(Color color) => Container(
-    decoration: BoxDecoration(gradient: LinearGradient(colors: [color, color.withValues(alpha: 0.7)], begin: Alignment.topLeft, end: Alignment.bottomRight)),
-    child: Center(child: Icon(Icons.fastfood_rounded, size: 70, color: Colors.white.withValues(alpha: 0.4))),
+    decoration: BoxDecoration(gradient: LinearGradient(colors: [color, color.withOpacity(0.7)], begin: Alignment.topLeft, end: Alignment.bottomRight)),
+    child: Center(child: Icon(Icons.fastfood_rounded, size: 70, color: Colors.white.withOpacity(0.4))),
   );
 
   Widget _sectionCard({required IconData icon, required String title, String? subtitle, required Widget child}) {
@@ -384,14 +465,14 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: _primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+              Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: _primary.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
                 child: Icon(icon, color: _primary, size: 17)),
               const SizedBox(width: 10),
               Column(
@@ -438,7 +519,7 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
     required String unit, required IconData icon, required Color color, required Color bgColor, bool fullWidth = false}) {
     final inner = Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(13), border: Border.all(color: color.withValues(alpha: 0.25))),
+      decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(13), border: Border.all(color: color.withOpacity(0.25))),
       child: Row(
         children: [
           Icon(icon, color: color, size: 16),
@@ -454,15 +535,16 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
                   style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w700, color: _dark),
                   decoration: InputDecoration(
                     border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero,
-                    hintText: '0', hintStyle: GoogleFonts.poppins(color: _muted.withValues(alpha: 0.4), fontSize: 15),
+                    hintText: '0', hintStyle: GoogleFonts.poppins(color: _muted.withOpacity(0.4), fontSize: 15),
                   ),
+                  readOnly: _ingredients.isNotEmpty,
                   onChanged: (_) => setState(() {}),
                   validator: (v) => (v == null || v.isEmpty) ? 'Wajib' : null,
                 ),
               ],
             ),
           ),
-          Text(unit, style: GoogleFonts.poppins(fontSize: 11, color: color.withValues(alpha: 0.8), fontWeight: FontWeight.w700)),
+          Text(unit, style: GoogleFonts.poppins(fontSize: 11, color: color.withOpacity(0.8), fontWeight: FontWeight.w700)),
         ],
       ),
     );
@@ -495,7 +577,7 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
                 duration: const Duration(milliseconds: 180),
                 padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
                 decoration: BoxDecoration(
-                  color: isSelected ? cc : cc.withValues(alpha: 0.08),
+                  color: isSelected ? cc : cc.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: cc.withValues(alpha: isSelected ? 1 : 0.3)),
                 ),
@@ -519,9 +601,9 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [catColor.withValues(alpha: 0.10), catColor.withValues(alpha: 0.04)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+        gradient: LinearGradient(colors: [catColor.withOpacity(0.10), catColor.withOpacity(0.04)], begin: Alignment.topLeft, end: Alignment.bottomRight),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: catColor.withValues(alpha: 0.2)),
+        border: Border.all(color: catColor.withOpacity(0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -540,10 +622,10 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _prevStat('${cal.toInt()}', 'kcal', Icons.local_fire_department_rounded, catColor),
-              _prevStat('${prot.toStringAsFixed(1)}g', 'Protein', Icons.fitness_center_rounded, const Color(0xFFE53935)),
-              _prevStat('${carb.toStringAsFixed(1)}g', 'Karbo', Icons.grain_rounded, const Color(0xFFF59E0B)),
-              _prevStat('${fat.toStringAsFixed(1)}g', 'Lemak', Icons.opacity_rounded, const Color(0xFFFF8C00)),
+              _prevStat('${cal.round()}', 'kcal', Icons.local_fire_department_rounded, catColor),
+              _prevStat('${prot.round()}g', 'Protein', Icons.fitness_center_rounded, const Color(0xFFE53935)),
+              _prevStat('${carb.round()}g', 'Karbo', Icons.grain_rounded, const Color(0xFFF59E0B)),
+              _prevStat('${fat.round()}g', 'Lemak', Icons.opacity_rounded, const Color(0xFFFF8C00)),
             ],
           ),
         ],
@@ -560,5 +642,29 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
         Text(label, style: GoogleFonts.poppins(fontSize: 9, color: _muted)),
       ],
     );
+  }
+
+  void _calculateFromIngredients() {
+    if (_ingredients.isEmpty) {
+      if (_servingSizeCtrl.text == '0') _servingSizeCtrl.text = '100';
+      _caloriesCtrl.clear();
+      _proteinCtrl.clear();
+      _carbsCtrl.clear();
+      _fatCtrl.clear();
+      return;
+    }
+    double cal = 0, pro = 0, car = 0, fat = 0, totalGrams = 0;
+    for (var ing in _ingredients) {
+      cal += ing['calories'];
+      pro += ing['protein'];
+      car += ing['carbs'];
+      fat += ing['fat'];
+      totalGrams += ing['grams'];
+    }
+    _servingSizeCtrl.text = totalGrams.round().toString();
+    _caloriesCtrl.text = cal.round().toString();
+    _proteinCtrl.text = pro.round().toString();
+    _carbsCtrl.text = car.round().toString();
+    _fatCtrl.text = fat.round().toString();
   }
 }
