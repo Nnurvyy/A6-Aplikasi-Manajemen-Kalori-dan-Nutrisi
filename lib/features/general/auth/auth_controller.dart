@@ -5,6 +5,8 @@ import './models/user_model.dart';
 import '../../../services/hive_service.dart';
 import '../../../helpers/calorie_helper.dart';
 import 'package:intl/intl.dart';
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 
 class AuthController extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -235,12 +237,12 @@ class AuthController extends ChangeNotifier {
         targetWeightGainPerMonth: targetWeightGainPerMonth,
       );
 
-      // 3. Buat Object UserModel
+      // 3. Buat Object UserModel dengan password yang di-hash
       final newUser = UserModel(
         id: uid,
         name: name,
         email: email,
-        password: password,
+        password: _hashPassword(password),
         role: 'user',
         weight: weight,
         height: height,
@@ -310,5 +312,11 @@ class AuthController extends ChangeNotifier {
   void _setLoading(bool val) {
     _isLoading = val;
     notifyListeners();
+  }
+
+  String _hashPassword(String password) {
+    final bytes = utf8.encode(password);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
   }
 }
