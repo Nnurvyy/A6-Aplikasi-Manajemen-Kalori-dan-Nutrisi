@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class FoodModel extends HiveObject {
   String id;
@@ -32,6 +33,49 @@ class FoodModel extends HiveObject {
     this.ingredientsJson,
     this.isManualIngredient = false,
   });
+
+  factory FoodModel.fromFirestore(Map<String, dynamic> map, String docId) {
+    return FoodModel(
+      id: docId,
+      name: map['name'] ?? '',
+      category: map['category'] ?? 'Lainnya',
+      calories: (map['calories'] as num?)?.toDouble() ?? 0.0,
+      protein: (map['protein'] as num?)?.toDouble() ?? 0.0,
+      carbs: (map['carbs'] as num?)?.toDouble() ?? 0.0,
+      fat: (map['fat'] as num?)?.toDouble() ?? 0.0,
+      defaultServingSize: (map['defaultServingSize'] as num?)?.toDouble() ?? 100.0,
+      isApproved: map['isApproved'] ?? true,
+      createdAt: map['createdAt'] != null 
+          ? (map['createdAt'] is Timestamp 
+              ? (map['createdAt'] as Timestamp).toDate() 
+              : DateTime.parse(map['createdAt']))
+          : DateTime.now(),
+      imageUrl: map['imageUrl'],
+      description: map['description'],
+      ingredientsJson: map['ingredientsJson'],
+      isManualIngredient: map['isManualIngredient'] ?? false,
+    );
+  }
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'id': id,
+      'name': name,
+      'category': category,
+      'calories': calories,
+      'protein': protein,
+      'carbs': carbs,
+      'fat': fat,
+      'defaultServingSize': defaultServingSize,
+      'isApproved': isApproved,
+      'createdAt': createdAt.toIso8601String(),
+      'imageUrl': imageUrl,
+      'description': description,
+      'ingredientsJson': ingredientsJson,
+      'isManualIngredient': isManualIngredient,
+    };
+  }
+
 
   /// Hitung nutrisi untuk jumlah tertentu (gram)
   Map<String, double> nutritionForAmount(double grams) {
