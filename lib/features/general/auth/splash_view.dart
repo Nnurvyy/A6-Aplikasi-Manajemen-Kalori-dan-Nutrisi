@@ -45,41 +45,35 @@ class _SplashViewState extends State<SplashView>
   Future<void> _navigate() async {
     if (!mounted) return;
     final auth = context.read<AuthController>();
+    final user = auth.currentUser;
 
-    Widget target;
-    if (!auth.isLoggedIn) {
-      // Belum login → langsung ke LoginView, tidak perlu init submission
-      target = const LoginView();
-    } else {
-      final user = auth.currentUser!;
-
-      // ── Init SubmissionController sesuai role ──────────────────────────
-      // Admin & Nutritionist → stream SEMUA submission
-      // User biasa          → stream submission milik sendiri saja
-      await context.read<SubmissionController>().init(
-        role: user.role,
-        userId: user.id,
-      );
-      // ──────────────────────────────────────────────────────────────────
-
-      if (user.role == 'admin') {
-        target = const AdminMainView();
-      } else if (user.role == 'nutritionist') {
-        target = const NutriMainView();
-      } else {
-        target = const UserMainView();
-      }
+    if (user == null) {
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const LoginView()));
+      return;
     }
 
-    if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      PageRouteBuilder(
-        pageBuilder: (_, __, ___) => target,
-        transitionsBuilder:
-            (_, anim, __, child) => FadeTransition(opacity: anim, child: child),
-        transitionDuration: const Duration(milliseconds: 500),
-      ),
+    // Init stream Firestore sesuai role
+    await context.read<SubmissionController>().init(
+      role: user.role,
+      userId: user.id,
     );
+
+    if (!mounted) return;
+
+    Widget target;
+    if (user.role == 'admin') {
+      target = const AdminMainView();
+    } else if (user.role == 'nutritionist') {
+      target = const NutriMainView();
+    } else {
+      target = const UserMainView();
+    }
+
+    Navigator.of(
+      context,
+    ).pushReplacement(MaterialPageRoute(builder: (_) => target));
   }
 
   @override

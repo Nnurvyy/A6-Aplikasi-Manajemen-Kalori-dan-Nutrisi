@@ -9,6 +9,7 @@ import '../widgets/nt_button.dart';
 import '../widgets/nt_text_field.dart';
 import '../../admin/admin_main_view.dart';
 import '../../nutritionist/nutri_main_view.dart';
+import '../../general/submission/submission_controller.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -47,7 +48,17 @@ class _LoginViewState extends State<LoginView> {
     }
   }
 
-  void _navigate(String role) {
+  void _navigate(String role) async {
+    final user = context.read<AuthController>().currentUser!;
+
+    // WAJIB: init stream Firestore sesuai role
+    await context.read<SubmissionController>().init(
+      role: user.role,
+      userId: user.id,
+    );
+
+    if (!mounted) return;
+
     Widget target;
     if (role == 'admin') {
       target = const AdminMainView();
