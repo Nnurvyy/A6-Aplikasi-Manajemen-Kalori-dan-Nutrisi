@@ -8,6 +8,7 @@ import './profile/profile_view.dart';
 import './scan/scan_view.dart';
 import './scan/scan_controller.dart';
 import '../general/submission/submission_screen.dart';
+import '../general/submission/submission_controller.dart';
 import '../general/food/food_list_view.dart';
 import './manual_food/manual_food_selection_view.dart';
 import '../general/auth/auth_controller.dart';
@@ -102,9 +103,9 @@ class _UserMainViewState extends State<UserMainView>
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authCtrl = context.read<AuthController>();
-      final userId = authCtrl.currentUser?.id;
-      if (userId != null) {
-        context.read<WatchlistController>().loadWatchlist(userId);
+      final user = authCtrl.currentUser;
+      if (user != null) {
+        context.read<WatchlistController>().loadWatchlist(user.id);
       }
       // Cek apakah perlu modal input BB (handled inside ProgressView)
     });

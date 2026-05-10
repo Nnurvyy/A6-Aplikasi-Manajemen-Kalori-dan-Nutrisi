@@ -1,7 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../general/submission/submission_model.dart';
+import '../../general/submission/widgets/submission_image_widget.dart';
 import '../../general/submission/submission_controller.dart';
 
 class AdminSubmissionView extends StatefulWidget {
@@ -358,11 +358,12 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
                                     SizedBox(
                                       width: double.infinity,
                                       height: 160,
-                                      child: Image.file(
-                                        File(item.imagePath),
+                                      child: SubmissionImage(
+                                        imagePath: item.imagePath,
+                                        width: double.infinity,
+                                        height: 160,
                                         fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (_, __, ___) => _imgErrBox(160),
+                                        placeholder: _imgErrBox(160),
                                       ),
                                     ),
                                     Positioned(
@@ -1213,25 +1214,24 @@ class _ImageViewerPage extends StatelessWidget {
         child: InteractiveViewer(
           minScale: 0.5,
           maxScale: 4,
-          child: Image.file(
-            File(imagePath),
+          child: SubmissionImage(
+            imagePath: imagePath,
             fit: BoxFit.contain,
-            errorBuilder:
-                (_, __, ___) => const Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.broken_image_rounded,
-                      color: Colors.white54,
-                      size: 64,
-                    ),
-                    SizedBox(height: 12),
-                    Text(
-                      'Foto tidak dapat ditampilkan',
-                      style: TextStyle(color: Colors.white54),
-                    ),
-                  ],
+            placeholder: const Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.broken_image_rounded,
+                  color: Colors.white54,
+                  size: 64,
                 ),
+                SizedBox(height: 12),
+                Text(
+                  'Foto tidak dapat ditampilkan',
+                  style: TextStyle(color: Colors.white54),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -1308,10 +1308,12 @@ class _SubmissionCard extends StatelessWidget {
                     SizedBox(
                       width: double.infinity,
                       height: 130,
-                      child: Image.file(
-                        File(item.imagePath),
+                      child: SubmissionImage(
+                        imagePath: item.imagePath,
+                        width: double.infinity,
+                        height: 130,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _noImage(),
+                        placeholder: _noImage(),
                       ),
                     ),
                     if (showActions)
@@ -1547,9 +1549,7 @@ class _SubmissionCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Colors.red.withOpacity(0.05),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: Colors.red.withOpacity(0.2),
-                        ),
+                        border: Border.all(color: Colors.red.withOpacity(0.2)),
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,

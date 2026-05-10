@@ -1,6 +1,6 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import './submission_model.dart';
+import './widgets/submission_image_widget.dart';
 
 class SubmissionDetailScreen extends StatelessWidget {
   final SubmissionModel submission;
@@ -46,106 +46,14 @@ class SubmissionDetailScreen extends StatelessWidget {
   }
 
   Widget _buildImageWidget() {
-    final path = submission.imagePath;
-
-    if (path.isEmpty) return _imagePlaceholder();
-
-    // URL cloud (Firebase Storage)
-    if (path.startsWith('http')) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Image.network(
-          path,
-          width: double.infinity,
-          height: 220,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _imagePlaceholder(),
-          loadingBuilder: (_, child, progress) {
-            if (progress == null) return child;
-            return Container(
-              height: 220,
-              decoration: BoxDecoration(
-                color: _primary.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Center(child: CircularProgressIndicator()),
-            );
-          },
-        ),
-      );
-    }
-
-    // File lokal (belum tersync ke cloud)
-    if (!path.startsWith('assets') && File(path).existsSync()) {
-      return Stack(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Image.file(
-              File(path),
-              width: double.infinity,
-              height: 220,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => _imagePlaceholder(),
-            ),
-          ),
-          // Badge "belum tersync" di atas gambar
-          if (!submission.isSynced)
-            Positioned(
-              top: 10,
-              right: 10,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade700,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(
-                      width: 12,
-                      height: 12,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    ),
-                    SizedBox(width: 6),
-                    Text(
-                      'Mengirim ke cloud...',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        ],
-      );
-    }
-
-    // Asset
-    if (path.startsWith('assets')) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Image.asset(
-          path,
-          width: double.infinity,
-          height: 220,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _imagePlaceholder(),
-        ),
-      );
-    }
-
-    return _imagePlaceholder();
+    return SubmissionImage(
+      imagePath: submission.imagePath,
+      width: double.infinity,
+      height: 220,
+      fit: BoxFit.cover,
+      borderRadius: BorderRadius.circular(16),
+      placeholder: _imagePlaceholder(),
+    );
   }
 
   Widget _imagePlaceholder() {
