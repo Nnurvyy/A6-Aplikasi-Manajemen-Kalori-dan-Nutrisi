@@ -161,7 +161,6 @@ class FoodController extends ChangeNotifier {
     
     await HiveService.foods.put(food.id, food);
 
-    _allFoods.add(food);
     _applyFilter();
 
     _db.collection('foods').doc(food.id).set(food.toMap()).then((_) {
@@ -180,7 +179,8 @@ class FoodController extends ChangeNotifier {
     loadFromLocal();
 
     try {
-      await _db.collection('foods').doc(food.id).update(food.toFirestore());
+      //await _db.collection('foods').doc(food.id).update(food.toFirestore());
+      await _db.collection('foods').doc(food.id).set(food.toFirestore(), SetOptions(merge: true));
     } catch (e) {
       debugPrint("Cloud Update Error: $e");
     }
