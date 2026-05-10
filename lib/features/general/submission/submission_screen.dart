@@ -8,17 +8,35 @@ import './submission_detail_screen.dart';
 import './widgets/submission_card.dart';
 import './widgets/submission_info_dialog.dart';
 
-class SubmissionScreen extends StatelessWidget {
+class SubmissionScreen extends StatefulWidget {
   const SubmissionScreen({super.key});
 
+  @override
+  State<SubmissionScreen> createState() => _SubmissionScreenState();
+}
+
+class _SubmissionScreenState extends State<SubmissionScreen> {
   static const _green = Color(0xFF2E7D32);
   static const _bg = Color(0xFFF4FAF6);
   static const _textDark = Color(0xFF1A2E22);
   static const _textMuted = Color(0xFF7A9485);
 
+  @override
+  void initState() {
+    super.initState();
+    // Panggil init() sekali saat screen pertama dibuka
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = context.read<AuthController>().currentUser;
+      if (user != null) {
+        context.read<SubmissionController>().init(
+          role: user.role,
+          userId: user.id,
+        );
+      }
+    });
+  }
+
   void _goToAdd(BuildContext context) async {
-    // PERUBAHAN: AddSubmissionScreen sekarang langsung save ke Firestore.
-    // Cukup push saja, tidak perlu terima result dan panggil addSubmission lagi.
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const AddSubmissionScreen()),
@@ -32,6 +50,21 @@ class SubmissionScreen extends StatelessWidget {
     if (user == null) return const SizedBox();
 
     final ctrl = context.watch<SubmissionController>();
+
+    // Tampilkan error kalau stream Firestore gagal
+    if (ctrl.error != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(ctrl.error!),
+              backgroundColor: Colors.redAccent,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+      });
+    }
 
     // Tampilkan loading saat pertama kali load
     if (ctrl.isLoading && ctrl.all.isEmpty) {

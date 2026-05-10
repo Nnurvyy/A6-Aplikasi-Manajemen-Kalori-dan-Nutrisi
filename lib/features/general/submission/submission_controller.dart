@@ -52,12 +52,12 @@ class SubmissionController extends ChangeNotifier {
   // ── Init ─────────────────────────────────────────────────────────────────
 
   Future<void> init({required String role, required String userId}) async {
+    debugPrint(
+      '[Controller] init() dipanggil — role: $role, userId: $userId',
+    ); // ← TAMBAH
     _setLoading(true);
-
-    // 1. Baca antrian lokal dari Hive dulu → tampil seketika tanpa internet
     _loadLocalQueue(userId);
 
-    // 2. Start stream Firestore
     final stream =
         (role == 'admin' || role == 'nutritionist')
             ? SubmissionFirebaseService.streamAll()
@@ -65,18 +65,21 @@ class SubmissionController extends ChangeNotifier {
 
     stream.listen(
       (cloudItems) {
+        debugPrint(
+          '[Controller] Stream dapat ${cloudItems.length} item',
+        ); // ← TAMBAH
         _cloudItems = cloudItems;
         _error = null;
         _setLoading(false);
         _cleanSyncedLocalItems();
       },
       onError: (e) {
+        debugPrint('[Controller] Stream ERROR: $e'); // ← TAMBAH
         _error = 'Gagal memuat data: $e';
         _setLoading(false);
       },
     );
 
-    // 3. Retry semua pending di Hive yang belum terupload
     if (role == 'user') {
       _retryPendingUploads(userId);
     }
@@ -144,9 +147,9 @@ class SubmissionController extends ChangeNotifier {
     required String foodName,
     required String localImagePath,
   }) async {
+    debugPrint('[addSubmission] Dipanggil: $foodName'); // ← TAMBAH
     final id = 'sub_${DateTime.now().millisecondsSinceEpoch}';
 
-    // 1. Simpan ke Hive dulu — aman walau app ditutup
     final pending = PendingSubmissionModel(
       id: id,
       userId: userId,
@@ -156,18 +159,22 @@ class SubmissionController extends ChangeNotifier {
       createdAt: DateTime.now(),
     );
     await HiveService.pendingSubs.put(id, pending);
+    debugPrint('[addSubmission] Tersimpan di Hive: $id'); // ← TAMBAH
 
-    // 2. Tampilkan langsung di list (isSynced: false)
     _localItems.insert(0, _pendingToModel(pending));
     notifyListeners();
 
-    // 3. Upload ke cloud di background (tanpa await)
+    debugPrint('[addSubmission] Memanggil _uploadToCloud...'); // ← TAMBAH
     _uploadToCloud(pending);
   }
 
   Future<void> _uploadToCloud(PendingSubmissionModel p) async {
+    debugPrint('[Upload] Mulai upload: ${p.id} – ${p.foodName}'); // ← TAMBAH
     try {
       if (!File(p.localImagePath).existsSync()) {
+        debugPrint(
+          '[Upload] File tidak ditemukan: ${p.localImagePath}',
+        ); // ← TAMBAH
         await HiveService.pendingSubs.delete(p.id);
         _localItems.removeWhere((e) => e.id == p.id);
         notifyListeners();
@@ -178,6 +185,7 @@ class SubmissionController extends ChangeNotifier {
         p.localImagePath,
         p.id,
       );
+      debugPrint('[Upload] Foto berhasil diupload: $imageUrl'); // ← TAMBAH
 
       final model = SubmissionModel(
         id: p.id,
@@ -190,14 +198,13 @@ class SubmissionController extends ChangeNotifier {
         isSynced: true,
       );
       await SubmissionFirebaseService.add(model);
+      debugPrint('[Upload] Berhasil simpan ke Firestore: ${p.id}'); // ← TAMBAH
 
-      // Berhasil → hapus dari Hive (stream Firestore akan isi _cloudItems)
       await HiveService.pendingSubs.delete(p.id);
       _localItems.removeWhere((e) => e.id == p.id);
       notifyListeners();
     } catch (e) {
-      // Gagal (offline) → tetap di Hive, retry saat init() berikutnya
-      debugPrint('[SubmissionController] Upload gagal, akan retry nanti: $e');
+      debugPrint('[Upload] GAGAL: $e'); // ← TAMBAH
     }
   }
 
