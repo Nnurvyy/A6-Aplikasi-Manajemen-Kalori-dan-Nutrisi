@@ -46,27 +46,97 @@ class SubmissionDetailScreen extends StatelessWidget {
   }
 
   Widget _buildImageWidget() {
-    // File lokal dari image_picker
-    if (submission.imagePath.isNotEmpty &&
-        !submission.imagePath.startsWith('assets') &&
-        File(submission.imagePath).existsSync()) {
+    final path = submission.imagePath;
+
+    if (path.isEmpty) return _imagePlaceholder();
+
+    // URL cloud (Firebase Storage)
+    if (path.startsWith('http')) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(16),
-        child: Image.file(
-          File(submission.imagePath),
+        child: Image.network(
+          path,
           width: double.infinity,
           height: 220,
           fit: BoxFit.cover,
           errorBuilder: (_, __, ___) => _imagePlaceholder(),
+          loadingBuilder: (_, child, progress) {
+            if (progress == null) return child;
+            return Container(
+              height: 220,
+              decoration: BoxDecoration(
+                color: _primary.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Center(child: CircularProgressIndicator()),
+            );
+          },
         ),
       );
     }
-    // Asset path
-    if (submission.imagePath.startsWith('assets')) {
+
+    // File lokal (belum tersync ke cloud)
+    if (!path.startsWith('assets') && File(path).existsSync()) {
+      return Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Image.file(
+              File(path),
+              width: double.infinity,
+              height: 220,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => _imagePlaceholder(),
+            ),
+          ),
+          // Badge "belum tersync" di atas gambar
+          if (!submission.isSynced)
+            Positioned(
+              top: 10,
+              right: 10,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade700,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    ),
+                    SizedBox(width: 6),
+                    Text(
+                      'Mengirim ke cloud...',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      );
+    }
+
+    // Asset
+    if (path.startsWith('assets')) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: Image.asset(
-          submission.imagePath,
+          path,
           width: double.infinity,
           height: 220,
           fit: BoxFit.cover,
@@ -74,12 +144,13 @@ class SubmissionDetailScreen extends StatelessWidget {
         ),
       );
     }
+
     return _imagePlaceholder();
   }
 
   Widget _imagePlaceholder() {
     return Container(
-      height: 200,
+      height: 220,
       decoration: BoxDecoration(
         color: _primary.withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
@@ -115,6 +186,40 @@ class SubmissionDetailScreen extends StatelessWidget {
         children: [
           _buildImageWidget(),
           const SizedBox(height: 16),
+
+          // Banner belum tersync
+          if (!submission.isSynced) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orange.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.cloud_off_rounded,
+                    color: Colors.orange.shade700,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Pengajuan ini belum tersimpan ke cloud. '
+                      'Akan otomatis dikirim saat koneksi tersedia.',
+                      style: TextStyle(
+                        color: Colors.orange.shade800,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
           _infoCard(),
           const SizedBox(height: 16),
           if (submission.calories != null ||
@@ -143,6 +248,13 @@ class SubmissionDetailScreen extends StatelessWidget {
             Icons.calendar_today_rounded,
             'Tanggal',
             _formatDate(submission.createdAt),
+          ),
+          _row(
+            submission.isSynced
+                ? Icons.cloud_done_rounded
+                : Icons.cloud_off_rounded,
+            'Status Cloud',
+            submission.isSynced ? 'Tersimpan di cloud' : 'Belum tersync',
           ),
         ],
       ),
@@ -219,10 +331,19 @@ class SubmissionDetailScreen extends StatelessWidget {
               ],
             ),
           ),
-          if (submission.reviewNote != null) ...[
+          if (submission.reviewNote != null &&
+              submission.reviewNote!.isNotEmpty) ...[
             const SizedBox(height: 10),
             Text(
-              'Catatan: ${submission.reviewNote}',
+              'Catatan Admin: ${submission.reviewNote}',
+              style: TextStyle(color: _textMuted, fontSize: 13),
+            ),
+          ],
+          if (submission.nutriNote != null &&
+              submission.nutriNote!.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Catatan Ahli Gizi: ${submission.nutriNote}',
               style: TextStyle(color: _textMuted, fontSize: 13),
             ),
           ],

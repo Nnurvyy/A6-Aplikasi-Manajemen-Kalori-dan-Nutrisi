@@ -1,18 +1,15 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'submission_model.dart';
 import '../../../services/submission_firebase_service.dart';
 
 /// Controller global yang di-share antara User, Admin, dan Nutritionist.
 /// Data bersumber dari Firestore (realtime stream) — tidak ada Hive di sini.
+/// Mendukung offline-first: item langsung muncul di list sebelum upload selesai.
 class SubmissionController extends ChangeNotifier {
   List<SubmissionModel> _items = [];
   bool _isLoading = false;
   String? _error;
-
-  // Stream subscription agar bisa di-cancel saat dispose
-  Stream<List<SubmissionModel>>? _activeStream;
 
   // ── Public getters ────────────────────────────────────────────────────────
 
@@ -46,16 +43,30 @@ class SubmissionController extends ChangeNotifier {
   Future<void> init({required String role, required String userId}) async {
     _setLoading(true);
 
-    // Pilih stream yang tepat
     final stream =
         (role == 'admin' || role == 'nutritionist')
             ? SubmissionFirebaseService.streamAll()
             : SubmissionFirebaseService.streamByUser(userId);
 
-    // Dengarkan perubahan Firestore secara realtime
     stream.listen(
-      (items) {
-        _items = items;
+      (cloudItems) {
+        // Gabungkan: item cloud yang sudah sync + item lokal yang belum sync
+        // (supaya item optimistic tidak hilang saat stream update pertama kali)
+        final unsyncedIds =
+            _items.where((i) => !i.isSynced).map((i) => i.id).toSet();
+
+        final unsynced = _items.where((i) => !i.isSynced).toList();
+
+        // Buang item unsynced dari cloud jika sudah masuk (replace by stream)
+        final merged = [
+          ...unsynced.where((u) => !cloudItems.any((c) => c.id == u.id)),
+          ...cloudItems,
+        ];
+
+        // Sort by createdAt descending
+        merged.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+        _items = merged;
         _error = null;
         _setLoading(false);
       },
@@ -71,42 +82,62 @@ class SubmissionController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── User: ajukan makanan ──────────────────────────────────────────────────
+  // ── User: ajukan makanan (offline-first / optimistic UI) ──────────────────
 
   Future<void> addSubmission({
     required String userId,
     required String userName,
     required String foodName,
-    required String localImagePath, // path file lokal dari kamera/galeri
+    required String localImagePath,
   }) async {
-    _setLoading(true);
-    try {
-      final id = 'sub_${DateTime.now().millisecondsSinceEpoch}';
+    final id = 'sub_${DateTime.now().millisecondsSinceEpoch}';
 
-      // 1. Upload foto ke Firebase Storage, dapat URL
+    // 1. Langsung tampilkan di list pakai path lokal (optimistic)
+    //    isSynced = false → card tampilkan ikon "belum ke cloud"
+    final localModel = SubmissionModel(
+      id: id,
+      userId: userId,
+      userName: userName,
+      foodName: foodName,
+      imagePath: localImagePath,
+      status: SubmissionStatus.pending,
+      createdAt: DateTime.now(),
+      isSynced: false,
+    );
+
+    _items.insert(0, localModel);
+    notifyListeners();
+
+    try {
+      // 2. Upload foto ke Firebase Storage → dapat URL
       final imageUrl = await SubmissionFirebaseService.uploadImage(
         localImagePath,
         id,
       );
 
-      // 2. Simpan dokumen ke Firestore
-      final model = SubmissionModel(
-        id: id,
-        userId: userId,
-        userName: userName,
-        foodName: foodName,
-        imagePath: imageUrl, // URL cloud, bukan path lokal
-        status: SubmissionStatus.pending,
-        createdAt: DateTime.now(),
+      // 3. Simpan ke Firestore dengan URL cloud
+      final cloudModel = localModel.copyWith(
+        imagePath: imageUrl,
+        isSynced: true,
       );
+      await SubmissionFirebaseService.add(cloudModel);
 
-      await SubmissionFirebaseService.add(model);
-      // Stream akan otomatis update _items — tidak perlu notifyListeners manual
+      // 4. Update item lokal sementara pakai URL cloud
+      //    (stream akan replace ini otomatis, tapi ini buat langsung refresh gambar)
+      final idx = _items.indexWhere((i) => i.id == id);
+      if (idx != -1) {
+        _items[idx] = cloudModel;
+        notifyListeners();
+      }
     } catch (e) {
+      // Gagal → tandai item sebagai belum sync, biarkan tetap tampil di list
+      final idx = _items.indexWhere((i) => i.id == id);
+      if (idx != -1) {
+        _items[idx] = localModel.copyWith(isSynced: false);
+        notifyListeners();
+      }
       _error = 'Gagal mengirim pengajuan: $e';
       notifyListeners();
-    } finally {
-      _setLoading(false);
     }
   }
 
