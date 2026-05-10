@@ -8,40 +8,19 @@ import './submission_detail_screen.dart';
 import './widgets/submission_card.dart';
 import './widgets/submission_info_dialog.dart';
 
-class SubmissionScreen extends StatefulWidget {
+class SubmissionScreen extends StatelessWidget {
   const SubmissionScreen({super.key});
 
-  @override
-  State<SubmissionScreen> createState() => _SubmissionScreenState();
-}
-
-class _SubmissionScreenState extends State<SubmissionScreen> {
   static const _green = Color(0xFF2E7D32);
   static const _bg = Color(0xFFF4FAF6);
   static const _textDark = Color(0xFF1A2E22);
   static const _textMuted = Color(0xFF7A9485);
-
-  @override
-  void initState() {
-    super.initState();
-    // Panggil init() sekali saat screen pertama dibuka
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final user = context.read<AuthController>().currentUser;
-      if (user != null) {
-        context.read<SubmissionController>().init(
-          role: user.role,
-          userId: user.id,
-        );
-      }
-    });
-  }
 
   void _goToAdd(BuildContext context) async {
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const AddSubmissionScreen()),
     );
-    // Stream Firestore otomatis update list — tidak perlu setState manual
   }
 
   @override
@@ -51,7 +30,6 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
 
     final ctrl = context.watch<SubmissionController>();
 
-    // Tampilkan error kalau stream Firestore gagal
     if (ctrl.error != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ScaffoldMessenger.of(context)
@@ -66,7 +44,6 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       });
     }
 
-    // Tampilkan loading saat pertama kali load
     if (ctrl.isLoading && ctrl.all.isEmpty) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }

@@ -1,6 +1,6 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import '../submission_model.dart';
+import './submission_image_widget.dart';
 
 class SubmissionCard extends StatelessWidget {
   final SubmissionModel item;
@@ -46,59 +46,25 @@ class SubmissionCard extends StatelessWidget {
   }
 
   Widget _buildImage() {
-    final path = item.imagePath;
-
-    if (path.isEmpty) return _placeholder();
-
-    // URL cloud (Firebase Storage) — sudah tersync
-    if (path.startsWith('http')) {
-      return Image.network(
-        path,
+    return SubmissionImage(
+      imagePath: item.imagePath,
+      width: 90,
+      height: 90,
+      fit: BoxFit.cover,
+      placeholder: _placeholder(),
+      loadingWidget: Container(
         width: 90,
         height: 90,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _placeholder(),
-        loadingBuilder: (_, child, progress) {
-          if (progress == null) return child;
-          return Container(
-            width: 90,
-            height: 90,
-            color: _primary.withOpacity(0.08),
-            child: const Center(
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
-          );
-        },
-      );
-    }
-
-    // File lokal — belum upload (offline / sedang proses)
-    if (!path.startsWith('assets') && File(path).existsSync()) {
-      return Image.file(
-        File(path),
-        width: 90,
-        height: 90,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _placeholder(),
-      );
-    }
-
-    // Asset
-    if (path.startsWith('assets')) {
-      return Image.asset(
-        path,
-        width: 90,
-        height: 90,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _placeholder(),
-      );
-    }
-
-    return _placeholder();
+        color: _primary.withOpacity(0.08),
+        child: const Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _placeholder() {

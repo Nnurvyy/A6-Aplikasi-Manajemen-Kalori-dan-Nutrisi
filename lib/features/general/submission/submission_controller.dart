@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'submission_model.dart';
@@ -9,7 +10,7 @@ import '../../../services/hive_service.dart';
 ///
 /// Offline-first flow:
 /// 1. User submit → langsung simpan ke Hive (antrian lokal) + tampil di list
-/// 2. Upload ke Storage + Firestore berjalan di background
+/// 2. Upload gambar ke Cloudinary + simpan data ke Firestore di background
 /// 3. Berhasil → hapus dari Hive, item sekarang hidup dari stream Firestore
 /// 4. App ditutup sebelum upload selesai → Hive tetap ada
 /// 5. Buka app lagi → init() baca Hive, retry upload yang tertunda otomatis
@@ -52,9 +53,7 @@ class SubmissionController extends ChangeNotifier {
   // ── Init ─────────────────────────────────────────────────────────────────
 
   Future<void> init({required String role, required String userId}) async {
-    debugPrint(
-      '[Controller] init() dipanggil — role: $role, userId: $userId',
-    ); // ← TAMBAH
+    debugPrint('[Controller] init() dipanggil — role: $role, userId: $userId');
     _setLoading(true);
     _loadLocalQueue(userId);
 
@@ -65,22 +64,21 @@ class SubmissionController extends ChangeNotifier {
 
     stream.listen(
       (cloudItems) {
-        debugPrint(
-          '[Controller] Stream dapat ${cloudItems.length} item',
-        ); // ← TAMBAH
+        debugPrint('[Controller] Stream dapat ${cloudItems.length} item');
         _cloudItems = cloudItems;
         _error = null;
         _setLoading(false);
         _cleanSyncedLocalItems();
       },
       onError: (e) {
-        debugPrint('[Controller] Stream ERROR: $e'); // ← TAMBAH
+        debugPrint('[Controller] Stream ERROR: $e');
         _error = 'Gagal memuat data: $e';
         _setLoading(false);
       },
     );
 
     if (role == 'user') {
+      // Retry sequential — satu per satu agar tidak race condition
       _retryPendingUploads(userId);
     }
   }
@@ -122,20 +120,21 @@ class SubmissionController extends ChangeNotifier {
       userId: p.userId,
       userName: p.userName,
       foodName: p.foodName,
-      imagePath: p.localImagePath,
+      imagePath: p.localImagePath, // path lokal sementara sebelum sync
       status: SubmissionStatus.pending,
       createdAt: p.createdAt,
       isSynced: false,
     );
   }
 
+  // Retry sequential — await satu per satu agar tidak paralel
   Future<void> _retryPendingUploads(String userId) async {
     final pending =
         HiveService.pendingSubs.values
             .where((p) => p.userId == userId)
             .toList();
     for (final p in pending) {
-      _uploadToCloud(p);
+      await _uploadToCloud(p);
     }
   }
 
@@ -147,7 +146,7 @@ class SubmissionController extends ChangeNotifier {
     required String foodName,
     required String localImagePath,
   }) async {
-    debugPrint('[addSubmission] Dipanggil: $foodName'); // ← TAMBAH
+    debugPrint('[addSubmission] Dipanggil: $foodName');
     final id = 'sub_${DateTime.now().millisecondsSinceEpoch}';
 
     final pending = PendingSubmissionModel(
@@ -158,53 +157,70 @@ class SubmissionController extends ChangeNotifier {
       localImagePath: localImagePath,
       createdAt: DateTime.now(),
     );
+
     await HiveService.pendingSubs.put(id, pending);
-    debugPrint('[addSubmission] Tersimpan di Hive: $id'); // ← TAMBAH
+    debugPrint('[addSubmission] Tersimpan di Hive: $id');
 
     _localItems.insert(0, _pendingToModel(pending));
     notifyListeners();
 
-    debugPrint('[addSubmission] Memanggil _uploadToCloud...'); // ← TAMBAH
-    _uploadToCloud(pending);
+    // Upload berjalan di background, error ditangkap agar tidak Unhandled Exception
+    debugPrint('[addSubmission] Memanggil _uploadToCloud...');
+    unawaited(
+      _uploadToCloud(pending).catchError((e) {
+        debugPrint('[Upload] Background error tertangkap: $e');
+      }),
+    );
   }
 
   Future<void> _uploadToCloud(PendingSubmissionModel p) async {
-    debugPrint('[Upload] Mulai upload: ${p.id} – ${p.foodName}'); // ← TAMBAH
+    debugPrint('[Upload] Mulai upload ke Cloudinary: ${p.id} – ${p.foodName}');
     try {
+      // Jika file lokal tidak ada, jangan hapus dari Hive
       if (!File(p.localImagePath).existsSync()) {
-        debugPrint(
-          '[Upload] File tidak ditemukan: ${p.localImagePath}',
-        ); // ← TAMBAH
-        await HiveService.pendingSubs.delete(p.id);
-        _localItems.removeWhere((e) => e.id == p.id);
+        debugPrint('[Upload] File tidak ditemukan: ${p.localImagePath}');
+        _error =
+            'File gambar tidak ditemukan untuk "${p.foodName}". '
+            'Silakan coba submit ulang.';
         notifyListeners();
         return;
       }
 
+      // Upload gambar ke Cloudinary — dapat URL permanen
       final imageUrl = await SubmissionFirebaseService.uploadImage(
         p.localImagePath,
         p.id,
+        onProgress: (progress) {
+          debugPrint('[Upload] Progress: ${(progress * 100).toInt()}%');
+        },
       );
-      debugPrint('[Upload] Foto berhasil diupload: $imageUrl'); // ← TAMBAH
+      debugPrint('[Upload] Cloudinary berhasil: $imageUrl');
 
+      // Simpan data submission + URL gambar ke Firestore
       final model = SubmissionModel(
         id: p.id,
         userId: p.userId,
         userName: p.userName,
         foodName: p.foodName,
-        imagePath: imageUrl,
+        imagePath: imageUrl, // URL Cloudinary permanen
         status: SubmissionStatus.pending,
         createdAt: p.createdAt,
         isSynced: true,
       );
-      await SubmissionFirebaseService.add(model);
-      debugPrint('[Upload] Berhasil simpan ke Firestore: ${p.id}'); // ← TAMBAH
 
+      await SubmissionFirebaseService.add(model);
+      debugPrint('[Upload] Berhasil simpan ke Firestore: ${p.id}');
+
+      // Hapus dari Hive setelah berhasil
       await HiveService.pendingSubs.delete(p.id);
       _localItems.removeWhere((e) => e.id == p.id);
+      _error = null;
       notifyListeners();
     } catch (e) {
-      debugPrint('[Upload] GAGAL: $e'); // ← TAMBAH
+      // Error ditangkap — item tetap di Hive untuk retry berikutnya
+      debugPrint('[Upload] GAGAL: $e');
+      _error = 'Upload gagal untuk "${p.foodName}". Akan dicoba ulang.';
+      notifyListeners();
     }
   }
 
