@@ -153,6 +153,7 @@ class FoodController extends ChangeNotifier {
     bool isManual = false,
     String? imageUrl,
     String? ingredientsJson,
+    BuildContext? context,
   }) async {
     final now = DateTime.now();
     final consumedAtWithTime = DateTime(
@@ -174,7 +175,7 @@ class FoodController extends ChangeNotifier {
       fat: fat,
       mealType: mealType,
       consumedAt: consumedAtWithTime,
-      syncStatus: 'pending', 
+      syncStatus: 'pending',
       servingSize: servingSize,
       category: category,
       isManual: isManual,
@@ -182,11 +183,18 @@ class FoodController extends ChangeNotifier {
       ingredientsJson: ingredientsJson,
       quantity: quantity,
     );
-    
+
+    // 1. Simpan ke Hive dulu — ini yang paling penting, tidak boleh gagal
+    await HiveService.logs.put(newLog.id, newLog);
+
+    // 2. Refresh UI segera setelah Hive tersimpan
     notifyListeners();
-    await FoodLogSyncService.saveLog(newLog); 
-    
-    return true;
+
+    // 3. Upload ke Firebase di background — TANPA await agar tidak blocking
+    // try-catch di dalam saveLog sudah menangani error offline
+    FoodLogSyncService.saveLog(newLog, onSynced: () => notifyListeners());
+
+    return true; // selalu return true karena Hive sudah pasti tersimpan
   }
 
   Future<void> updateLog(LogModel log) async {
@@ -258,43 +266,13 @@ class FoodController extends ChangeNotifier {
   }
 
   Future<void> deleteLog(String logId, {BuildContext? context, String? foodName}) async {
-    // 1. Hapus dari Hive
+    // 1. Hapus dari Hive dulu — selalu berhasil online maupun offline
     await HiveService.logs.delete(logId);
 
-    // 2. Langsung refresh UI
+    // 2. Refresh UI segera
     notifyListeners();
 
-    // 3. Tampilkan feedback ke user
-    if (context != null && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            foodName != null
-                ? '$foodName berhasil dihapus dari riwayat'
-                : 'Data berhasil dihapus dari riwayat',
-          ),
-          backgroundColor: const Color(0xFFE53935),
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 3),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
-    }
-
-    // 4. Hapus dari Firebase di background
-    if (await FoodLogSyncService.isOnline()) {
-      try {
-        await FoodLogFirestoreService.deleteLog(logId);
-      } catch (e) {
-        print('[FoodController] Gagal hapus dari Firebase: $e');
-      }
-    } else {
-      // Tandai sebagai "perlu dihapus" — simpan id ke pending delete list
-      final pendingDeletes = HiveService.settings.get(
-        'pending_deletes', defaultValue: <String>[],
-      );
-      pendingDeletes.add(logId);
-      await HiveService.settings.put('pending_deletes', pendingDeletes);
-    }
+    // 3. Hapus dari Firebase di background — TANPA await
+    FoodLogSyncService.deleteLog(logId);
   }
 }
