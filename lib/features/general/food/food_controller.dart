@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import './models/food_model.dart';
 import './models/log_model.dart';
 import '../../../services/hive_service.dart';
+import '../../../services/food_log_sync_service.dart';
+import '../../../services/food_log_firestore_service.dart';
 
 class FoodController extends ChangeNotifier {
   List<FoodModel> _allFoods = [];
@@ -145,12 +147,13 @@ class FoodController extends ChangeNotifier {
     required double carbs,
     required double fat,
     required String mealType,
-    required DateTime dateConsumed, 
+    required DateTime dateConsumed,
     required double servingSize,
-    int quantity = 1, // New parameter
+    int quantity = 1,
     bool isManual = false,
     String? imageUrl,
     String? ingredientsJson,
+    BuildContext? context,
   }) async {
     final now = DateTime.now();
     final consumedAtWithTime = DateTime(
@@ -172,7 +175,7 @@ class FoodController extends ChangeNotifier {
       fat: fat,
       mealType: mealType,
       consumedAt: consumedAtWithTime,
-      syncStatus: 'pending', 
+      syncStatus: 'pending',
       servingSize: servingSize,
       category: category,
       isManual: isManual,
@@ -181,9 +184,17 @@ class FoodController extends ChangeNotifier {
       quantity: quantity,
     );
 
+    // 1. Simpan ke Hive dulu — ini yang paling penting, tidak boleh gagal
     await HiveService.logs.put(newLog.id, newLog);
+
+    // 2. Refresh UI segera setelah Hive tersimpan
     notifyListeners();
-    return true; 
+
+    // 3. Upload ke Firebase di background — TANPA await agar tidak blocking
+    // try-catch di dalam saveLog sudah menangani error offline
+    FoodLogSyncService.saveLog(newLog, onSynced: () => notifyListeners());
+
+    return true; // selalu return true karena Hive sudah pasti tersimpan
   }
 
   Future<void> updateLog(LogModel log) async {
@@ -234,12 +245,34 @@ class FoodController extends ChangeNotifier {
   }
 
   Future<void> updateSpecificLog(LogModel updatedLog) async {
+    // Update di Hive
     await HiveService.logs.put(updatedLog.id, updatedLog);
+
+    // Sync update ke Firebase jika online
+    if (await FoodLogSyncService.isOnline()) {
+      try {
+        await FoodLogFirestoreService.upsertLog(updatedLog);
+      } catch (e) {
+        // Tandai ulang sebagai pending agar di-retry saat sync berikutnya
+        updatedLog.syncStatus = 'pending';
+        await updatedLog.save();
+      }
+    } else {
+      updatedLog.syncStatus = 'pending';
+      await updatedLog.save();
+    }
+
     notifyListeners();
   }
 
-  Future<void> deleteLog(String logId) async {
+  Future<void> deleteLog(String logId, {BuildContext? context, String? foodName}) async {
+    // 1. Hapus dari Hive dulu — selalu berhasil online maupun offline
     await HiveService.logs.delete(logId);
+
+    // 2. Refresh UI segera
     notifyListeners();
+
+    // 3. Hapus dari Firebase di background — TANPA await
+    FoodLogSyncService.deleteLog(logId);
   }
 }

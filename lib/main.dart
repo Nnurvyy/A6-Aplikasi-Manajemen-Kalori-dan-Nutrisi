@@ -24,6 +24,8 @@ import './features/general/auth/splash_view.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
+import 'services/food_log_sync_service.dart';   
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -57,6 +59,8 @@ void main() async {
 
   await HiveService.initBoxes();
   await SeedHelper.seedIfEmpty();
+  
+  FoodLogSyncService.syncPendingLogs();
 
   // Inisialisasi SubmissionController sebelum runApp
   final submissionCtrl = SubmissionController();
