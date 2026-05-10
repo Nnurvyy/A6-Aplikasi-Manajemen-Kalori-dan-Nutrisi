@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../services/hive_service.dart';
 import '../services/food_log_firestore_service.dart';
@@ -64,16 +65,42 @@ static Future<void> syncPendingDeletes() async {
   }
 }
 
-  static Future<void> saveLog(LogModel log) async {
-    await HiveService.logs.put(log.id, log);
-
+  static Future<void> saveLog(LogModel log, {VoidCallback? onSynced}) async {
     if (await isOnline()) {
       try {
         await FoodLogFirestoreService.upsertLog(log);
         log.syncStatus = 'synced';
         await log.save();
+        onSynced?.call(); // ← panggil callback setelah berhasil sync
       } catch (e) {
-        print('[FoodLogSyncService] Upload langsung gagal, akan di-retry: $e');
+        print('[FoodLogSyncService] Upload gagal, akan di-retry: $e');
+      }
+    }
+  }
+
+  static Future<void> deleteLog(String logId) async {
+    if (await isOnline()) {
+      try {
+        await FoodLogFirestoreService.deleteLog(logId);
+      } catch (e) {
+        // Simpan ke pending deletes untuk di-retry nanti
+        final pendingDeletes = HiveService.settings.get(
+          'pending_deletes', defaultValue: <String>[],
+        ) as List;
+        if (!pendingDeletes.contains(logId)) {
+          pendingDeletes.add(logId);
+          await HiveService.settings.put('pending_deletes', pendingDeletes);
+        }
+        print('[FoodLogSyncService] Hapus gagal, disimpan ke pending: $e');
+      }
+    } else {
+      // Offline — simpan ke pending deletes
+      final pendingDeletes = HiveService.settings.get(
+        'pending_deletes', defaultValue: <String>[],
+      ) as List;
+      if (!pendingDeletes.contains(logId)) {
+        pendingDeletes.add(logId);
+        await HiveService.settings.put('pending_deletes', pendingDeletes);
       }
     }
   }
