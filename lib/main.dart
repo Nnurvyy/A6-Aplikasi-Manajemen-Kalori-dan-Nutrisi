@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // ← TAMBAH
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import './features/general/auth/models/user_model.dart';
 import './features/general/food/models/food_model.dart';
@@ -12,6 +12,7 @@ import './features/general/food/models/watchlist_model.dart';
 import './features/general/food/watchlist_controller.dart';
 import './features/user/progress/models/weight_log_model.dart';
 import './features/general/submission/submission_controller.dart';
+import './features/general/submission/model/pending_submission_model.dart';
 import './helpers/date_controller.dart';
 import './services/hive_service.dart';
 import './helpers/seed_helper.dart';
@@ -26,14 +27,10 @@ void main() async {
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // ── Offline-First: Firestore cache lokal ──────────────────────────────────
-  // Data submission tersimpan di device, bisa dibaca walau tanpa internet.
-  // Saat online kembali, perubahan otomatis di-sync ke Firestore.
   FirebaseFirestore.instance.settings = const Settings(
     persistenceEnabled: true,
     cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
   );
-  // ─────────────────────────────────────────────────────────────────────────
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -56,6 +53,7 @@ void main() async {
   Hive.registerAdapter(LogModelAdapter());
   Hive.registerAdapter(WatchlistModelAdapter());
   Hive.registerAdapter(WeightLogModelAdapter());
+  Hive.registerAdapter(PendingSubmissionModelAdapter()); // ← TAMBAH
 
   await HiveService.initBoxes();
   await SeedHelper.seedIfEmpty();
