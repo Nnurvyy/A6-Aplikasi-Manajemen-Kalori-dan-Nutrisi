@@ -433,6 +433,18 @@ class _UserCard extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
+
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    
+                    Icon(
+                      user.isSynced ? Icons.cloud_upload_rounded : Icons.cloud_done_rounded,
+                      size: 16,
+                      color: user.isSynced ? Colors.green : Colors.orange,
+                    ),
+                    const SizedBox(width: 8),
+
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
@@ -461,7 +473,9 @@ class _UserCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
+        ]
+        ),
+      )
     );
   }
 
