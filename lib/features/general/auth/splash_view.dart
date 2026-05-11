@@ -7,6 +7,7 @@ import '../../user/user_main_view.dart';
 import './login_view.dart';
 import '../../admin/admin_main_view.dart';
 import '../../nutritionist/nutri_main_view.dart';
+import '../../general/submission/submission_controller.dart'; // ← TAMBAH
 
 class SplashView extends StatefulWidget {
   const SplashView({super.key});
@@ -41,30 +42,38 @@ class _SplashViewState extends State<SplashView>
     Future.delayed(const Duration(milliseconds: 2200), _navigate);
   }
 
-  void _navigate() {
+  Future<void> _navigate() async {
     if (!mounted) return;
     final auth = context.read<AuthController>();
-    Widget target;
-    if (!auth.isLoggedIn) {
-      target = const LoginView();
-    } else {
-      final role = auth.currentUser?.role;
-      if (role == 'admin') {
-        target = const AdminMainView();
-      } else if (role == 'nutritionist') {
-        target = const NutriMainView();
-      } else {
-        target = const UserMainView();
-      }
+    final user = auth.currentUser;
+
+    if (user == null) {
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const LoginView()));
+      return;
     }
-    Navigator.of(context).pushReplacement(
-      PageRouteBuilder(
-        pageBuilder: (_, __, ___) => target,
-        transitionsBuilder:
-            (_, anim, __, child) => FadeTransition(opacity: anim, child: child),
-        transitionDuration: const Duration(milliseconds: 500),
-      ),
+
+    // Init stream Firestore sesuai role
+    await context.read<SubmissionController>().init(
+      role: user.role,
+      userId: user.id,
     );
+
+    if (!mounted) return;
+
+    Widget target;
+    if (user.role == 'admin') {
+      target = const AdminMainView();
+    } else if (user.role == 'nutritionist') {
+      target = const NutriMainView();
+    } else {
+      target = const UserMainView();
+    }
+
+    Navigator.of(
+      context,
+    ).pushReplacement(MaterialPageRoute(builder: (_) => target));
   }
 
   @override

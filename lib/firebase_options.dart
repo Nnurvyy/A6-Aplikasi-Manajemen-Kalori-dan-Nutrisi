@@ -85,4 +85,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'nutritrack-app-47ac2.firebasestorage.app',
     measurementId: 'G-HBSXZ9PY9Q',
   );
+
 }

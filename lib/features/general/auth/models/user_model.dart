@@ -10,10 +10,10 @@ class UserModel extends HiveObject {
   /// 'user' | 'admin' | 'nutritionist'
   String role;
 
-  double? weight;     // kg
-  double? height;     // cm
+  double? weight; // kg
+  double? height; // cm
   int? age;
-  String? gender;     // 'Laki-laki' | 'Perempuan'
+  String? gender; // 'Laki-laki' | 'Perempuan'
   String? activityLevel;
   double? dailyCalorieNeed;
   DateTime? birthDate;
@@ -21,6 +21,7 @@ class UserModel extends HiveObject {
   double? targetWeightGainPerMonth; // kg/bulan (pos = naik, neg = turun)
   double? initialWeight; // kg (saat pertama kali mendaftar)
   Map<String, double>? targetHistory; // Key: "yyyy-MM", Value: target
+  bool isSynced ;
 
   UserModel({
     required this.id,
@@ -39,6 +40,7 @@ class UserModel extends HiveObject {
     this.targetWeightGainPerMonth,
     this.initialWeight,
     this.targetHistory,
+    this.isSynced = true,
   });
 
   /// Target makro harian (gram) - Menggunakan logic baru dari CalorieHelper
@@ -65,6 +67,7 @@ class UserModel extends HiveObject {
       'targetWeightGainPerMonth': targetWeightGainPerMonth,
       'initialWeight': initialWeight,
       'targetHistory': targetHistory,
+      'isSynced': isSynced,
     };
   }
 
@@ -81,11 +84,14 @@ class UserModel extends HiveObject {
       gender: map['gender'],
       activityLevel: map['activityLevel'],
       dailyCalorieNeed: (map['dailyCalorieNeed'] as num?)?.toDouble(),
-      birthDate: map['birthDate'] != null ? DateTime.parse(map['birthDate']) : null,
+      birthDate:
+          map['birthDate'] != null ? DateTime.parse(map['birthDate']) : null,
       isBlocked: map['isBlocked'] ?? false,
-      targetWeightGainPerMonth: (map['targetWeightGainPerMonth'] as num?)?.toDouble(),
+      targetWeightGainPerMonth:
+          (map['targetWeightGainPerMonth'] as num?)?.toDouble(),
       initialWeight: (map['initialWeight'] as num?)?.toDouble(),
       targetHistory: map['targetHistory'] != null ? Map<String, double>.from(map['targetHistory']) : null,
+      isSynced: map['isSynced'] ?? true,
     );
   }
 }
@@ -117,13 +123,14 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
       targetWeightGainPerMonth: (f[14] as num?)?.toDouble(),
       initialWeight: (f[15] as num?)?.toDouble(),
       targetHistory: f[16] != null ? Map<String, double>.from(f[16] as Map) : null,
+      isSynced: f[17] as bool? ?? true,
     );
   }
 
   @override
   void write(BinaryWriter writer, UserModel obj) {
     writer
-      ..writeByte(16) 
+      ..writeByte(17) 
       ..writeByte(0)..write(obj.id)
       ..writeByte(1)..write(obj.name)
       ..writeByte(2)..write(obj.email)
@@ -139,6 +146,7 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
       ..writeByte(13)..write(obj.isBlocked)
       ..writeByte(14)..write(obj.targetWeightGainPerMonth)
       ..writeByte(15)..write(obj.initialWeight)
-      ..writeByte(16)..write(obj.targetHistory);
+      ..writeByte(16)..write(obj.targetHistory)
+      ..writeByte(17)..write(obj.isSynced);
   }
 }
