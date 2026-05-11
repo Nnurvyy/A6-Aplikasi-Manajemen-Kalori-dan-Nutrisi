@@ -185,6 +185,7 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
         createdAt: widget.initialFood?.createdAt ?? DateTime.now(),
         imageUrl: _image?.path,
         ingredientsJson: _ingredients.isEmpty ? null : jsonEncode(_ingredients),
+        userId: userId, // ← TAMBAHKAN INI
       );
 
       if (widget.initialFood != null) {
@@ -769,8 +770,11 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
             fat: ((result['fat'] as num) / (result['grams'] as num)) * 100,
             defaultServingSize: (result['grams'] as num).toDouble(),
             isApproved: true,
-            createdAt: DateTime.now(),
+            createdAt: DateTime.now(), // ← KEMBALIKAN INI
+            imageUrl: null,
+            ingredientsJson: null,
             isManualIngredient: true,
+            userId: context.read<AuthController>().currentUser?.id,
           );
           await foodCtrl.addFood(newIngredient);
         }

@@ -48,6 +48,25 @@ class FoodLogFirestoreService {
         .toList();
   }
 
+  static Future<List<LogModel>> getLogsByMonth(
+    String userId,
+    DateTime month,
+  ) async {
+    final startOfMonth = DateTime(month.year, month.month, 1);
+    final endOfMonth = DateTime(month.year, month.month + 1, 1);
+
+    final snapshot = await _db
+        .collection(_collection)
+        .where('userId', isEqualTo: userId)
+        .where('consumedAt', isGreaterThanOrEqualTo: startOfMonth.toIso8601String())
+        .where('consumedAt', isLessThan: endOfMonth.toIso8601String())
+        .get();
+
+    return snapshot.docs
+        .map((doc) => LogModel.fromJson(doc.data()))
+        .toList();
+  }
+
   static Future<void> deleteLog(String logId) async {
     await _db.collection(_collection).doc(logId).delete();
   }

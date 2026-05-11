@@ -37,6 +37,11 @@ class _DashboardBodyState extends State<DashboardBody> {
         final initialDate = _controller.days[_controller.selectedDayIndex].date;
         context.read<DateController>().setDate(initialDate);
         _scrollToSelectedDay();
+
+        // Sync foods for current user
+        final auth = context.read<AuthController>();
+        final foodCtrl = context.read<FoodController>();
+        foodCtrl.syncWithFirebase(userId: auth.currentUser?.id);
       }
     });
   }
