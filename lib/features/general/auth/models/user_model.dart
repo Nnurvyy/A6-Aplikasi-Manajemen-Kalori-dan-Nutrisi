@@ -21,6 +21,7 @@ class UserModel extends HiveObject {
   double? targetWeightGainPerMonth; // kg/bulan (pos = naik, neg = turun)
   double? initialWeight; // kg (saat pertama kali mendaftar)
   Map<String, double>? targetHistory; // Key: "yyyy-MM", Value: target
+  bool isSynced ;
 
   UserModel({
     required this.id,
@@ -39,6 +40,7 @@ class UserModel extends HiveObject {
     this.targetWeightGainPerMonth,
     this.initialWeight,
     this.targetHistory,
+    this.isSynced = true,
   });
 
   /// Target makro harian (gram) - Menggunakan logic baru dari CalorieHelper
@@ -65,6 +67,7 @@ class UserModel extends HiveObject {
       'targetWeightGainPerMonth': targetWeightGainPerMonth,
       'initialWeight': initialWeight,
       'targetHistory': targetHistory,
+      'isSynced': isSynced,
     };
   }
 
@@ -87,10 +90,8 @@ class UserModel extends HiveObject {
       targetWeightGainPerMonth:
           (map['targetWeightGainPerMonth'] as num?)?.toDouble(),
       initialWeight: (map['initialWeight'] as num?)?.toDouble(),
-      targetHistory:
-          map['targetHistory'] != null
-              ? Map<String, double>.from(map['targetHistory'])
-              : null,
+      targetHistory: map['targetHistory'] != null ? Map<String, double>.from(map['targetHistory']) : null,
+      isSynced: map['isSynced'] ?? true,
     );
   }
 }
@@ -121,46 +122,31 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
       isBlocked: f[13] as bool? ?? false,
       targetWeightGainPerMonth: (f[14] as num?)?.toDouble(),
       initialWeight: (f[15] as num?)?.toDouble(),
-      targetHistory:
-          f[16] != null ? Map<String, double>.from(f[16] as Map) : null,
+      targetHistory: f[16] != null ? Map<String, double>.from(f[16] as Map) : null,
+      isSynced: f[17] as bool? ?? true,
     );
   }
 
   @override
   void write(BinaryWriter writer, UserModel obj) {
     writer
-      ..writeByte(16)
-      ..writeByte(0)
-      ..write(obj.id)
-      ..writeByte(1)
-      ..write(obj.name)
-      ..writeByte(2)
-      ..write(obj.email)
-      ..writeByte(3)
-      ..write(obj.password)
-      ..writeByte(4)
-      ..write(obj.role)
-      ..writeByte(5)
-      ..write(obj.weight)
-      ..writeByte(6)
-      ..write(obj.height)
-      ..writeByte(7)
-      ..write(obj.age)
-      ..writeByte(8)
-      ..write(obj.gender)
-      ..writeByte(9)
-      ..write(obj.activityLevel)
-      ..writeByte(11)
-      ..write(obj.dailyCalorieNeed)
-      ..writeByte(12)
-      ..write(obj.birthDate)
-      ..writeByte(13)
-      ..write(obj.isBlocked)
-      ..writeByte(14)
-      ..write(obj.targetWeightGainPerMonth)
-      ..writeByte(15)
-      ..write(obj.initialWeight)
-      ..writeByte(16)
-      ..write(obj.targetHistory);
+      ..writeByte(17) 
+      ..writeByte(0)..write(obj.id)
+      ..writeByte(1)..write(obj.name)
+      ..writeByte(2)..write(obj.email)
+      ..writeByte(3)..write(obj.password)
+      ..writeByte(4)..write(obj.role)
+      ..writeByte(5)..write(obj.weight)
+      ..writeByte(6)..write(obj.height)
+      ..writeByte(7)..write(obj.age)
+      ..writeByte(8)..write(obj.gender)
+      ..writeByte(9)..write(obj.activityLevel)
+      ..writeByte(11)..write(obj.dailyCalorieNeed)
+      ..writeByte(12)..write(obj.birthDate)
+      ..writeByte(13)..write(obj.isBlocked)
+      ..writeByte(14)..write(obj.targetWeightGainPerMonth)
+      ..writeByte(15)..write(obj.initialWeight)
+      ..writeByte(16)..write(obj.targetHistory)
+      ..writeByte(17)..write(obj.isSynced);
   }
 }

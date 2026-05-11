@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import './models/food_model.dart';
 import './models/log_model.dart';
 import '../../../services/hive_service.dart';
@@ -6,15 +7,14 @@ import '../../../services/food_log_sync_service.dart';
 import '../../../services/food_log_firestore_service.dart';
 
 class FoodController extends ChangeNotifier {
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+
   List<FoodModel> _allFoods = [];
   List<FoodModel> _filtered = [];
   String _searchQuery = '';
   String _selectedCategory = 'Semua';
-  final bool _isLoading = false;
+  bool _isLoading = false;
 
-  FoodController() {
-    loadFoods();
-  }
 
   List<LogModel> getUserLogs(String userId) {
     return HiveService.logs.values
@@ -36,8 +36,40 @@ class FoodController extends ChangeNotifier {
     'Semua', 'Makanan Pokok', 'Lauk', 'Sayuran', 'Buah', 'Minuman', 'Snack', 'Lainnya'
   ];
 
+  FoodController() {
+    loadFoods();
+    loadFromLocal();
+    syncWithFirebase();
+  }
+
+  void loadFromLocal() {
+    _allFoods = HiveService.foods.values.cast<FoodModel>().toList();
+    _applyFilter();
+  }
+
+  Future<void> syncWithFirebase() async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final snapshot = await _db.collection('foods').get();
+      
+      for (var doc in snapshot.docs) {
+        final food = FoodModel.fromFirestore(doc.data(), doc.id);
+        await HiveService.foods.put(food.id, food);
+      }
+      
+      loadFromLocal(); 
+    } catch (e) {
+      debugPrint("Sync Error: $e");
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+
   double totalCaloriesToday(String userId) {
-    return getUserLogs(userId).fold(0, (sum, item) => sum + item.calories);
+    return getUserLogs(userId).fold(0, (total, item) => total + item.calories);
   }
 
   void loadFoods({bool approvedOnly = true}) {
@@ -119,20 +151,55 @@ class FoodController extends ChangeNotifier {
     notifyListeners();
   }
 
+
   Future<void> addFood(FoodModel food) async {
+    
     await HiveService.foods.put(food.id, food);
-    loadFoods(approvedOnly: false);
+    
+    _allFoods.add(food);
+    
+    _searchQuery = ''; 
+    _applyFilter(); 
+    
+    await HiveService.foods.put(food.id, food);
+
+    _applyFilter();
+
+    _db.collection('foods').doc(food.id).set(food.toMap()).then((_) {
+      
+      debugPrint("Berhasil sinkron ke Firebase!");
+    }).catchError((error) {
+      debugPrint("Gagal sinkron ke Firebase: $error");
+    });
+
   }
 
   Future<void> updateFood(FoodModel food) async {
     await HiveService.foods.put(food.id, food);
     loadFoods(approvedOnly: false);
+
+    loadFromLocal();
+
+    try {
+      await _db.collection('foods').doc(food.id).set(food.toFirestore(), SetOptions(merge: true));
+    } catch (e) {
+      debugPrint("Cloud Update Error: $e");
+    }
   }
 
   Future<void> deleteFood(String id) async {
     await HiveService.foods.delete(id);
     loadFoods(approvedOnly: false);
+
+    loadFromLocal();
+
+    try {
+      await _db.collection('foods').doc(id).delete();
+    } catch (e) {
+      debugPrint("Cloud Delete Error: $e");
+    }
   }
+
 
   FoodModel? findById(String id) => HiveService.foods.get(id);
 
