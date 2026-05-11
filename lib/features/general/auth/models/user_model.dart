@@ -10,10 +10,10 @@ class UserModel extends HiveObject {
   /// 'user' | 'admin' | 'nutritionist'
   String role;
 
-  double? weight;     // kg
-  double? height;     // cm
+  double? weight; // kg
+  double? height; // cm
   int? age;
-  String? gender;     // 'Laki-laki' | 'Perempuan'
+  String? gender; // 'Laki-laki' | 'Perempuan'
   String? activityLevel;
   double? dailyCalorieNeed;
   DateTime? birthDate;
@@ -84,9 +84,11 @@ class UserModel extends HiveObject {
       gender: map['gender'],
       activityLevel: map['activityLevel'],
       dailyCalorieNeed: (map['dailyCalorieNeed'] as num?)?.toDouble(),
-      birthDate: map['birthDate'] != null ? DateTime.parse(map['birthDate']) : null,
+      birthDate:
+          map['birthDate'] != null ? DateTime.parse(map['birthDate']) : null,
       isBlocked: map['isBlocked'] ?? false,
-      targetWeightGainPerMonth: (map['targetWeightGainPerMonth'] as num?)?.toDouble(),
+      targetWeightGainPerMonth:
+          (map['targetWeightGainPerMonth'] as num?)?.toDouble(),
       initialWeight: (map['initialWeight'] as num?)?.toDouble(),
       targetHistory: map['targetHistory'] != null ? Map<String, double>.from(map['targetHistory']) : null,
       isSynced: map['isSynced'] ?? true,

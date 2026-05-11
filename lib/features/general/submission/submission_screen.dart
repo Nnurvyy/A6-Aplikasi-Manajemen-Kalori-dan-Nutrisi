@@ -17,20 +17,9 @@ class SubmissionScreen extends StatelessWidget {
   static const _textMuted = Color(0xFF7A9485);
 
   void _goToAdd(BuildContext context) async {
-    // AddSubmissionScreen mengembalikan SubmissionModel langsung
-    final result = await Navigator.push<SubmissionModel>(
+    await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const AddSubmissionScreen()),
-    );
-    if (result == null) return;
-    if (!context.mounted) return;
-
-    // Simpan ke SubmissionController (Hive) — langsung terbaca admin & nutri
-    await context.read<SubmissionController>().addSubmission(
-      userId: result.userId,
-      userName: result.userName,
-      foodName: result.foodName,
-      imagePath: result.imagePath,
     );
   }
 
@@ -39,8 +28,26 @@ class SubmissionScreen extends StatelessWidget {
     final user = context.watch<AuthController>().currentUser;
     if (user == null) return const SizedBox();
 
-    // Watch SubmissionController → otomatis rebuild saat ada perubahan
     final ctrl = context.watch<SubmissionController>();
+
+    if (ctrl.error != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(ctrl.error!),
+              backgroundColor: Colors.redAccent,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+      });
+    }
+
+    if (ctrl.isLoading && ctrl.all.isEmpty) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     final items = ctrl.byUser(user.id);
 
     return Scaffold(

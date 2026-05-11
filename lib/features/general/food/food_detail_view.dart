@@ -527,7 +527,8 @@ class _FoodDetailViewState extends State<FoodDetailView> {
 
     final foodCtrl = context.read<FoodController>();
     final String updatedIngredientsJson = jsonEncode(_ingredientWeights);
-    
+    final messengerState = ScaffoldMessenger.of(context); // ← simpan SEBELUM pop
+
     if (widget.initialLog != null) {
       final updatedLog = widget.initialLog!.copyWith(
         servingSize: totalGrams,
@@ -556,15 +557,26 @@ class _FoodDetailViewState extends State<FoodDetailView> {
         isManual: widget.isManual,
         imageUrl: widget.food.imageUrl,
         ingredientsJson: updatedIngredientsJson,
+        context: context,
       );
     }
 
     if (mounted) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
+      Navigator.pop(context); // ← pop dulu
+
+      // Pakai messengerState yang sudah disimpan sebelum pop
+      // sehingga SnackBar muncul di dashboard (parent screen)
+      messengerState.showSnackBar(
         SnackBar(
-          content: Text('${widget.food.name} berhasil disimpan'),
+          content: Text(
+            widget.initialLog != null
+                ? '${widget.food.name} berhasil diperbarui'
+                : '${widget.food.name} berhasil ditambahkan ke riwayat',
+          ),
           backgroundColor: AppColors.primary,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 3),
         ),
       );
     }
@@ -588,8 +600,23 @@ class _FoodDetailViewState extends State<FoodDetailView> {
     );
 
     if (confirm == true && mounted) {
+      // Simpan messenger SEBELUM pop
+      final messengerState = ScaffoldMessenger.of(context);
+      final foodName = widget.food.name;
+
       context.read<FoodController>().deleteLog(widget.initialLog!.id);
-      Navigator.pop(context);
+      Navigator.pop(context); // ← pop dulu
+
+      // SnackBar tampil di dashboard (parent screen)
+      messengerState.showSnackBar(
+        SnackBar(
+          content: Text('$foodName berhasil dihapus dari riwayat'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 3),
+        ),
+      );
     }
   }
 }

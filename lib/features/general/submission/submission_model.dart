@@ -17,6 +17,10 @@ class SubmissionModel {
   final String? reviewNote;
   final String? nutriNote;
 
+  /// false = data belum tersimpan ke cloud (masih antri / offline)
+  /// true  = sudah ada di Firestore
+  final bool isSynced;
+
   SubmissionModel({
     required this.id,
     required this.userId,
@@ -31,6 +35,7 @@ class SubmissionModel {
     required this.createdAt,
     this.reviewNote,
     this.nutriNote,
+    this.isSynced = true, // default true — data dari Firestore selalu synced
   });
 
   bool get isNutriFilled =>
@@ -38,6 +43,7 @@ class SubmissionModel {
 
   SubmissionModel copyWith({
     String? foodName,
+    String? imagePath,
     SubmissionStatus? status,
     String? reviewNote,
     double? calories,
@@ -45,13 +51,14 @@ class SubmissionModel {
     double? carbs,
     double? fat,
     String? nutriNote,
+    bool? isSynced,
   }) {
     return SubmissionModel(
       id: id,
       userId: userId,
       userName: userName,
       foodName: foodName ?? this.foodName,
-      imagePath: imagePath,
+      imagePath: imagePath ?? this.imagePath,
       calories: calories ?? this.calories,
       protein: protein ?? this.protein,
       carbs: carbs ?? this.carbs,
@@ -60,6 +67,7 @@ class SubmissionModel {
       createdAt: createdAt,
       reviewNote: reviewNote ?? this.reviewNote,
       nutriNote: nutriNote ?? this.nutriNote,
+      isSynced: isSynced ?? this.isSynced,
     );
   }
 }
