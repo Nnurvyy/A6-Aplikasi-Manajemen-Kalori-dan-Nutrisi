@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import './features/admin/UserManagement/admin_user_controller.dart';
 import './features/general/auth/models/user_model.dart';
 import './features/general/food/models/food_model.dart';
 import './features/general/food/models/log_model.dart';
@@ -76,7 +77,9 @@ class NutriTrackApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => FoodController()),
         ChangeNotifierProvider(create: (_) => WatchlistController()),
         ChangeNotifierProvider(create: (_) => DateController()),
-        ChangeNotifierProvider(create: (_) => SubmissionController()),
+        ChangeNotifierProvider(create: (_) => AdminUserController()),
+        // SubmissionController global — shared antara Admin & Nutritionist
+        ChangeNotifierProvider.value(value: submissionCtrl),
       ],
       child: MaterialApp(
         title: 'NutriTrack',
