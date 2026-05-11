@@ -367,15 +367,27 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
           final isMonitor = context.watch<AuthController>().isMonitoring;
           return Scaffold(
           backgroundColor: const Color(0xFFF4F6F0),
-          body: CustomScrollView(
-            slivers: [
-              _buildAppBar(ctrl),
-              SliverToBoxAdapter(child: _buildStatsSection(ctrl)),
-              SliverToBoxAdapter(child: _buildNutritionSection(ctrl)),
-              SliverToBoxAdapter(child: _buildWeightSection(ctrl)),
-              SliverToBoxAdapter(child: _buildActivityGrid(ctrl)),
-              const SliverToBoxAdapter(child: SizedBox(height: 32)),
-            ],
+          body: RefreshIndicator(
+            onRefresh: () async {
+              final auth = context.read<AuthController>();
+              final user = auth.currentUser;
+              if (user != null) {
+                await ctrl.refreshData(user.id);
+              }
+            },
+            color: const Color(0xFF2E7D32),
+            backgroundColor: Colors.white,
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(), // Important for RefreshIndicator
+              slivers: [
+                _buildAppBar(ctrl),
+                SliverToBoxAdapter(child: _buildStatsSection(ctrl)),
+                SliverToBoxAdapter(child: _buildNutritionSection(ctrl)),
+                SliverToBoxAdapter(child: _buildWeightSection(ctrl)),
+                SliverToBoxAdapter(child: _buildActivityGrid(ctrl)),
+                const SliverToBoxAdapter(child: SizedBox(height: 32)),
+              ],
+            ),
           ),
         );
         },

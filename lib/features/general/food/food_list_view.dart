@@ -203,33 +203,47 @@ class _FoodListViewState extends State<FoodListView> {
 
           // ─── Food list ───
           Expanded(
-            child: foods.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.no_food_rounded,
-                            size: 56,
-                            color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-                        const SizedBox(height: 12),
-                        Text('Makanan tidak ditemukan',
-                            style: GoogleFonts.poppins(
-                                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary)),
-                      ],
-                    ),
-                  )
-                : Column(
-                    children: [
-                      Expanded(
-                        child: ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                          itemCount: pageItems.length,
-                          itemBuilder: (_, i) => _foodCard(context, pageItems[i], isDark),
+            child: RefreshIndicator(
+              onRefresh: () async {
+                final auth = context.read<AuthController>();
+                await ctrl.syncWithFirebase(userId: auth.currentUser?.id);
+              },
+              color: AppColors.primary,
+              backgroundColor: Colors.white,
+              child: foods.isEmpty
+                  ? SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Container(
+                        height: MediaQuery.of(context).size.height * 0.6,
+                        alignment: Alignment.center,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.no_food_rounded,
+                                size: 56,
+                                color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                            const SizedBox(height: 12),
+                            Text('Makanan tidak ditemukan',
+                                style: GoogleFonts.poppins(
+                                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary)),
+                          ],
                         ),
                       ),
-                      if (totalPages > 1) _buildPagination(safeCurrentPage, totalPages, isDark),
-                    ],
-                  ),
+                    )
+                  : Column(
+                      children: [
+                        Expanded(
+                          child: ListView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                            itemCount: pageItems.length,
+                            itemBuilder: (_, i) => _foodCard(context, pageItems[i], isDark),
+                          ),
+                        ),
+                        if (totalPages > 1) _buildPagination(safeCurrentPage, totalPages, isDark),
+                      ],
+                    ),
+            ),
           ),
         ],
       ),
