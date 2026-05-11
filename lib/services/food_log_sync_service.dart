@@ -7,7 +7,7 @@ import '../features/general/food/models/log_model.dart';
 class FoodLogSyncService {
   static Future<bool> isOnline() async {
     final result = await Connectivity().checkConnectivity();
-    return result != ConnectivityResult.none;
+    return !result.contains(ConnectivityResult.none);
   }
 
   static Future<void> syncPendingLogs() async {

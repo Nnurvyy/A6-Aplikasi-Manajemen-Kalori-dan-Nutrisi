@@ -32,7 +32,8 @@ class _PilihMakananManualState extends State<PilihMakananManual> with SingleTick
     super.initState();
     // Load foods immediately if not already loaded
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<FoodController>().loadFoods();
+      final userId = context.read<AuthController>().currentUser?.id;
+      context.read<FoodController>().loadFoods(userId: userId);
     });
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() {
@@ -126,6 +127,7 @@ class _PilihMakananManualState extends State<PilihMakananManual> with SingleTick
                 isApproved: true,
                 createdAt: DateTime.now(),
                 isManualIngredient: true,
+                userId: context.read<AuthController>().currentUser?.id, // ← TAMBAHKAN INI
               );
               await foodCtrl.addFood(newIngredient);
             }

@@ -5,6 +5,7 @@ import '../../../helpers/app_colors.dart';
 import './food_controller.dart';
 import './models/food_model.dart';
 import './food_detail_view.dart';
+import '../auth/auth_controller.dart';
 import 'dart:io';
 
 class FoodListView extends StatefulWidget {
@@ -36,7 +37,7 @@ class _FoodListViewState extends State<FoodListView> {
       } else {
         ctrl.resetFilters();
       }
-      ctrl.loadFoods();
+      ctrl.loadFoods(userId: context.read<AuthController>().currentUser?.id);
     });
     _searchCtrl.addListener(() => setState(() => _currentPage = 0));
   }
