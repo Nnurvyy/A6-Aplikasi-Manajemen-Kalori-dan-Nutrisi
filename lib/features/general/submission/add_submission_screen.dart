@@ -3,13 +3,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-<<<<<<< HEAD:lib/features/screen/submission/add_submission_screen.dart
-import '../../auth/auth_controller.dart';
-import 'submission_model.dart';
-=======
 import '../auth/auth_controller.dart';
 import './submission_controller.dart';
->>>>>>> 39cad47cb319498d4508136c007c0b5a0b7427a0:lib/features/general/submission/add_submission_screen.dart
 
 class AddSubmissionScreen extends StatefulWidget {
   const AddSubmissionScreen({super.key});

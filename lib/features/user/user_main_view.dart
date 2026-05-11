@@ -328,57 +328,64 @@ class _UserMainViewState extends State<UserMainView>
       ),
 
       // ── FAB (Hanya untuk mode normal) ───────────────────────────────────
-      floatingActionButton: isMonitor ? null : AnimatedBuilder(
-        animation: _rotateAnim,
-        builder: (_, __) {
-          return GestureDetector(
-            onTap: _toggleDial,
-            child: Container(
-              width: 58,
-              height: 58,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors:
-                      _dialOpen
-                          ? [const Color(0xFF455A64), const Color(0xFF263238)]
-                          : [const Color(0xFF2E7D32), const Color(0xFF1B5E20)],
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: (_dialOpen ? Colors.black : const Color(0xFF2E7D32))
-                        .withOpacity(0.45),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
+      floatingActionButton:
+          isMonitor
+              ? null
+              : AnimatedBuilder(
+                animation: _rotateAnim,
+                builder: (_, __) {
+                  return GestureDetector(
+                    onTap: _toggleDial,
+                    child: Container(
+                      width: 58,
+                      height: 58,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors:
+                              _dialOpen
+                                  ? [
+                                    const Color(0xFF455A64),
+                                    const Color(0xFF263238),
+                                  ]
+                                  : [
+                                    const Color(0xFF2E7D32),
+                                    const Color(0xFF1B5E20),
+                                  ],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: (_dialOpen
+                                    ? Colors.black
+                                    : const Color(0xFF2E7D32))
+                                .withOpacity(0.45),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Transform.rotate(
+                        angle: _rotateAnim.value * math.pi * 0.75,
+                        child: Icon(
+                          _dialOpen ? Icons.close_rounded : Icons.add_rounded,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
-              child: Transform.rotate(
-                angle: _rotateAnim.value * math.pi * 0.75,
-                child: Icon(
-                  _dialOpen ? Icons.close_rounded : Icons.add_rounded,
-                  color: Colors.white,
-                  size: 28,
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-      floatingActionButtonLocation: isMonitor ? null : FloatingActionButtonLocation.centerDocked,
+      floatingActionButtonLocation:
+          isMonitor ? null : FloatingActionButtonLocation.centerDocked,
 
       // ── Bottom Nav ───────────────────────────────────────────────────────
       bottomNavigationBar: BottomAppBar(
         color: const Color(0xFF2E7D32),
-<<<<<<< HEAD:lib/features/user_main_view.dart
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8,
-=======
         shape: isMonitor ? null : const CircularNotchedRectangle(),
         notchMargin: isMonitor ? 0 : 8,
->>>>>>> 39cad47cb319498d4508136c007c0b5a0b7427a0:lib/features/user/user_main_view.dart
         padding: EdgeInsets.zero,
         child: SafeArea(
           top: false,
@@ -386,20 +393,21 @@ class _UserMainViewState extends State<UserMainView>
             height: 60,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: isMonitor 
-                ? [
-                    _buildNavBtn(0, navItems),
-                    _buildNavBtn(1, navItems),
-                    _buildNavBtn(2, navItems),
-                    _buildNavBtn(3, navItems),
-                  ]
-                : [
-                    _buildNavBtn(0, navItems),
-                    _buildNavBtn(1, navItems),
-                    const SizedBox(width: 64), // notch space
-                    _buildNavBtn(2, navItems),
-                    _buildNavBtn(3, navItems),
-                  ],
+              children:
+                  isMonitor
+                      ? [
+                        _buildNavBtn(0, navItems),
+                        _buildNavBtn(1, navItems),
+                        _buildNavBtn(2, navItems),
+                        _buildNavBtn(3, navItems),
+                      ]
+                      : [
+                        _buildNavBtn(0, navItems),
+                        _buildNavBtn(1, navItems),
+                        const SizedBox(width: 64), // notch space
+                        _buildNavBtn(2, navItems),
+                        _buildNavBtn(3, navItems),
+                      ],
             ),
           ),
         ),
@@ -764,7 +772,8 @@ class ParentProfilePlaceholder extends StatelessWidget {
     final auth = context.watch<AuthController>();
     final mainUser = auth.mainUser;
 
-    if (mainUser == null) return const Center(child: CircularProgressIndicator());
+    if (mainUser == null)
+      return const Center(child: CircularProgressIndicator());
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4FAF4),
@@ -781,7 +790,9 @@ class ParentProfilePlaceholder extends StatelessWidget {
                     end: Alignment.bottomRight,
                     colors: [Color(0xFF1B5E20), Color(0xFF43A047)],
                   ),
-                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
+                  borderRadius: BorderRadius.vertical(
+                    bottom: Radius.circular(32),
+                  ),
                 ),
                 child: Column(
                   children: [
@@ -793,7 +804,11 @@ class ParentProfilePlaceholder extends StatelessWidget {
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white38, width: 2),
                       ),
-                      child: const Icon(Icons.shield_rounded, color: Colors.white, size: 40),
+                      child: const Icon(
+                        Icons.shield_rounded,
+                        color: Colors.white,
+                        size: 40,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -862,7 +877,11 @@ class ParentProfilePlaceholder extends StatelessWidget {
                             onTap: () async {
                               await auth.logout();
                               // Assuming login view routing is handled by stream or we need to push
-                              Navigator.pushNamedAndRemoveUntil(context, '/', (r) => false);
+                              Navigator.pushNamedAndRemoveUntil(
+                                context,
+                                '/',
+                                (r) => false,
+                              );
                             },
                           ),
                         ],
@@ -893,17 +912,28 @@ class ParentProfilePlaceholder extends StatelessWidget {
           children: [
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(
+                color: bg,
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Icon(icon, color: color, size: 20),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF1A2E1A)),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1A2E1A),
+                ),
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 20),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: Colors.grey,
+              size: 20,
+            ),
           ],
         ),
       ),
