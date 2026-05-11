@@ -284,8 +284,12 @@ class FoodController extends ChangeNotifier {
   }
 
   Future<void> updateLog(LogModel log) async {
+    log.syncStatus = 'pending'; // Mark as pending update
     await HiveService.logs.put(log.id, log);
     notifyListeners();
+    
+    // Push update to Firestore in background
+    FoodLogSyncService.saveLog(log, onSynced: () => notifyListeners());
   }
 
   Future<void> deleteManualFood(String userId, String foodName) async {

@@ -245,26 +245,37 @@ class _DashboardBodyState extends State<DashboardBody> {
             _controller.kaloriTarget = kaloriTarget;
             _controller.kaloriConsumed = kaloriConsumed;
 
-            return SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeader(selectedDate, auth),
-                  _buildDaySelector(),
-                  _buildKaloriCard(),
-                  const SizedBox(height: 8),
-                  _buildNutriGrid(
-                    proteinConsumed,
-                    carbsConsumed,
-                    fatConsumed,
-                    waterConsumed,
-                    macros,
-                  ),
-                  const SizedBox(height: 8),
-                  _buildRiwayatHeader(),
-                  _buildRiwayatList(filteredHistory, isMonitor),
-                  const SizedBox(height: 100), // ruang agar tidak ketutup navbar
-                ],
+            return RefreshIndicator(
+              onRefresh: () async {
+                if (user != null) {
+                  await foodController.syncWithFirebase(userId: user.id);
+                  await foodController.syncLogsFromFirebase(userId: user.id);
+                }
+              },
+              color: const Color(0xFF2E7D32),
+              backgroundColor: Colors.white,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(), // Important for RefreshIndicator
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(selectedDate, auth),
+                    _buildDaySelector(),
+                    _buildKaloriCard(),
+                    const SizedBox(height: 8),
+                    _buildNutriGrid(
+                      proteinConsumed,
+                      carbsConsumed,
+                      fatConsumed,
+                      waterConsumed,
+                      macros,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildRiwayatHeader(),
+                    _buildRiwayatList(filteredHistory, isMonitor),
+                    const SizedBox(height: 100), // ruang agar tidak ketutup navbar
+                  ],
+                ),
               ),
             );
           },

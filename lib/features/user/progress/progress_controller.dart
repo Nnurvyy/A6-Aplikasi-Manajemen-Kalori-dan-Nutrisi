@@ -48,6 +48,9 @@ class ProgressController extends ChangeNotifier {
   StreamSubscription? _weightSub;
   StreamSubscription? _userSub;
 
+  bool _isLoading = false;
+  bool get isLoading => _isLoading;
+
   ChartPeriod _period = ChartPeriod.daily;
   ChartPeriod get period => _period;
 
@@ -129,6 +132,17 @@ class ProgressController extends ChangeNotifier {
     });
 
     notifyListeners();
+  }
+
+  Future<void> refreshData(String userId) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      await _syncMonitoringData(userId);
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> _syncMonitoringData(String targetUserId) async {
