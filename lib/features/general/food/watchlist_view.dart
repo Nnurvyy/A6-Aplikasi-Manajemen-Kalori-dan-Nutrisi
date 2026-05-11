@@ -74,7 +74,25 @@ class _WatchlistViewState extends State<WatchlistView> {
         ],
       ),
       body: items.isEmpty
-          ? _buildEmptyState()
+          ? RefreshIndicator(
+              onRefresh: () async {
+                final auth = context.read<AuthController>();
+                final user = auth.currentUser;
+                if (user != null) {
+                  context.read<WatchlistController>().loadWatchlist(user.id);
+                }
+                await Future.delayed(const Duration(seconds: 1)); // Give it some time
+              },
+              color: const Color(0xFF2E7D32),
+              backgroundColor: Colors.white,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: SizedBox(
+                  height: MediaQuery.of(context).size.height - 100,
+                  child: _buildEmptyState(),
+                ),
+              ),
+            )
           : Column(
               children: [
                 // Info bar
@@ -96,15 +114,28 @@ class _WatchlistViewState extends State<WatchlistView> {
                   ),
                 ),
                 Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+                  child: RefreshIndicator(
+                    onRefresh: () async {
+                      final auth = context.read<AuthController>();
+                      final user = auth.currentUser;
+                      if (user != null) {
+                        context.read<WatchlistController>().loadWatchlist(user.id);
+                      }
+                      await Future.delayed(const Duration(seconds: 1));
+                    },
+                    color: const Color(0xFF2E7D32),
+                    backgroundColor: Colors.white,
+                    child: ListView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
                     itemCount: pageItems.length,
                     itemBuilder: (context, index) => _buildWatchlistCard(context, pageItems[index]),
                   ),
                 ),
-                if (totalPages > 1) _buildPagination(safeCurrentPage, totalPages),
-              ],
-            ),
+              ),
+              if (totalPages > 1) _buildPagination(safeCurrentPage, totalPages),
+            ],
+          ),
     );
   }
 

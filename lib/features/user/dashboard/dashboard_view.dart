@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -10,6 +11,7 @@ import '../../../helpers/date_controller.dart';
 import '../manual_food/manual_food_form_view.dart';
 import '../../general/food/food_detail_view.dart';
 import '../../general/food/models/food_model.dart';
+import '../../../services/hive_service.dart';
 import 'dart:io';
 
 /// Widget murni isi dashboard — TANPA Scaffold/BottomNav sendiri.
@@ -41,7 +43,12 @@ class _DashboardBodyState extends State<DashboardBody> {
         // Sync foods for current user
         final auth = context.read<AuthController>();
         final foodCtrl = context.read<FoodController>();
-        foodCtrl.syncWithFirebase(userId: auth.currentUser?.id);
+        final userId = auth.currentUser?.id;
+        
+        if (userId != null) {
+          foodCtrl.syncWithFirebase(userId: userId);
+          foodCtrl.syncLogsFromFirebase(userId: userId); // ← TAMBAHKAN INI
+        }
       }
     });
   }
@@ -192,70 +199,86 @@ class _DashboardBodyState extends State<DashboardBody> {
 
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<AuthController>().currentUser;
+    final auth = context.watch<AuthController>();
+    final user = auth.currentUser;
     final foodController = context.watch<FoodController>();
 
     final kaloriTarget = user?.dailyCalorieNeed ?? 2000.0;
     final macros = user?.macroTargets;
 
-    // Filter history by selected date
-    List<LogModel> history = [];
-    if (user != null) {
-      history = foodController.getUserLogs(user.id);
-    }
-
-    final selectedDate = _controller.days[_controller.selectedDayIndex].date;
-    final filteredHistory =
-        history.where((log) {
-          final logDate = DateTime(
-            log.consumedAt.year,
-            log.consumedAt.month,
-            log.consumedAt.day,
-          );
-          return logDate.isAtSameMomentAs(selectedDate);
-        }).toList();
-
-    // Calculate consumed macros
-    final kaloriConsumed = filteredHistory.fold(0.0, (s, i) => s + i.calories);
-    final proteinConsumed = filteredHistory.fold(0.0, (s, i) => s + i.protein);
-    final carbsConsumed = filteredHistory.fold(0.0, (s, i) => s + i.carbs);
-    final fatConsumed = filteredHistory.fold(0.0, (s, i) => s + i.fat);
-    final waterConsumed = filteredHistory.fold(0.0, (s, i) {
-      if (i.foodName.toLowerCase() == 'air putih') {
-        return s + i.servingSize;
-      }
-      return s;
-    });
-
-    _controller.kaloriTarget = kaloriTarget;
-    _controller.kaloriConsumed = kaloriConsumed;
-
-    final isMonitor = context.watch<AuthController>().isMonitoring;
+    final isMonitor = auth.isMonitoring;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F0),
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(selectedDate, context.watch<AuthController>()),
-              _buildDaySelector(),
-              _buildKaloriCard(),
-              const SizedBox(height: 8),
-              _buildNutriGrid(
-                proteinConsumed,
-                carbsConsumed,
-                fatConsumed,
-                waterConsumed,
-                macros,
+        child: ValueListenableBuilder(
+          valueListenable: HiveService.logs.listenable(),
+          builder: (context, box, child) {
+            final selectedDate = _controller.days[_controller.selectedDayIndex].date;
+            // Re-calculate history whenever box changes
+            List<LogModel> history = [];
+            if (user != null) {
+              history = foodController.getUserLogs(user.id);
+            }
+
+            final filteredHistory = history.where((log) {
+              final logDate = DateTime(
+                log.consumedAt.year,
+                log.consumedAt.month,
+                log.consumedAt.day,
+              );
+              return logDate.isAtSameMomentAs(selectedDate);
+            }).toList();
+
+            // Calculate consumed macros
+            final kaloriConsumed = filteredHistory.fold(0.0, (s, i) => s + i.calories);
+            final proteinConsumed = filteredHistory.fold(0.0, (s, i) => s + i.protein);
+            final carbsConsumed = filteredHistory.fold(0.0, (s, i) => s + i.carbs);
+            final fatConsumed = filteredHistory.fold(0.0, (s, i) => s + i.fat);
+            final waterConsumed = filteredHistory.fold(0.0, (s, i) {
+              if (i.foodName.toLowerCase() == 'air putih') {
+                return s + i.servingSize;
+              }
+              return s;
+            });
+
+            _controller.kaloriTarget = kaloriTarget;
+            _controller.kaloriConsumed = kaloriConsumed;
+
+            return RefreshIndicator(
+              onRefresh: () async {
+                if (user != null) {
+                  await foodController.syncWithFirebase(userId: user.id);
+                  await foodController.syncLogsFromFirebase(userId: user.id);
+                }
+              },
+              color: const Color(0xFF2E7D32),
+              backgroundColor: Colors.white,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(), // Important for RefreshIndicator
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(selectedDate, auth),
+                    _buildDaySelector(),
+                    _buildKaloriCard(),
+                    const SizedBox(height: 8),
+                    _buildNutriGrid(
+                      proteinConsumed,
+                      carbsConsumed,
+                      fatConsumed,
+                      waterConsumed,
+                      macros,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildRiwayatHeader(),
+                    _buildRiwayatList(filteredHistory, isMonitor),
+                    const SizedBox(height: 100), // ruang agar tidak ketutup navbar
+                  ],
+                ),
               ),
-              const SizedBox(height: 8),
-              _buildRiwayatHeader(),
-              _buildRiwayatList(filteredHistory, context.watch<AuthController>().isMonitoring),
-              const SizedBox(height: 100), // ruang agar tidak ketutup navbar
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
