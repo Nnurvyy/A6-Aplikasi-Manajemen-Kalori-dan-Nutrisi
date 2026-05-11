@@ -112,15 +112,6 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_imageFile == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Harap pilih foto makanan terlebih dahulu'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
-      return;
-    }
 
     final user = context.read<AuthController>().currentUser;
     if (user == null) return;
@@ -157,7 +148,7 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
         userId: user.id,
         userName: user.name,
         foodName: _nameCtrl.text.trim(),
-        localImagePath: _imageFile!.path,
+        localImagePath: _imageFile!.path ?? '',
       );
 
       // Langsung update progress ke "selesai" dan keluar
@@ -462,7 +453,7 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
                     ),
                     const SizedBox(height: 10),
                     const Text(
-                      'Ketuk untuk tambah foto',
+                      'Ketuk untuk tambah foto (Opsional jika memang tidak memiliki foto)',
                       style: TextStyle(
                         color: _textDark,
                         fontWeight: FontWeight.w600,
