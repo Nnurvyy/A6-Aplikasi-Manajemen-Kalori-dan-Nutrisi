@@ -1,6 +1,6 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import './submission_model.dart';
+import './widgets/submission_image_widget.dart';
 
 class SubmissionDetailScreen extends StatelessWidget {
   final SubmissionModel submission;
@@ -46,40 +46,19 @@ class SubmissionDetailScreen extends StatelessWidget {
   }
 
   Widget _buildImageWidget() {
-    // File lokal dari image_picker
-    if (submission.imagePath.isNotEmpty &&
-        !submission.imagePath.startsWith('assets') &&
-        File(submission.imagePath).existsSync()) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Image.file(
-          File(submission.imagePath),
-          width: double.infinity,
-          height: 220,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _imagePlaceholder(),
-        ),
-      );
-    }
-    // Asset path
-    if (submission.imagePath.startsWith('assets')) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Image.asset(
-          submission.imagePath,
-          width: double.infinity,
-          height: 220,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _imagePlaceholder(),
-        ),
-      );
-    }
-    return _imagePlaceholder();
+    return SubmissionImage(
+      imagePath: submission.imagePath,
+      width: double.infinity,
+      height: 220,
+      fit: BoxFit.cover,
+      borderRadius: BorderRadius.circular(16),
+      placeholder: _imagePlaceholder(),
+    );
   }
 
   Widget _imagePlaceholder() {
     return Container(
-      height: 200,
+      height: 220,
       decoration: BoxDecoration(
         color: _primary.withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
@@ -115,6 +94,40 @@ class SubmissionDetailScreen extends StatelessWidget {
         children: [
           _buildImageWidget(),
           const SizedBox(height: 16),
+
+          // Banner belum tersync
+          if (!submission.isSynced) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orange.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.cloud_off_rounded,
+                    color: Colors.orange.shade700,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Pengajuan ini belum tersimpan ke cloud. '
+                      'Akan otomatis dikirim saat koneksi tersedia.',
+                      style: TextStyle(
+                        color: Colors.orange.shade800,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
           _infoCard(),
           const SizedBox(height: 16),
           if (submission.calories != null ||
@@ -143,6 +156,13 @@ class SubmissionDetailScreen extends StatelessWidget {
             Icons.calendar_today_rounded,
             'Tanggal',
             _formatDate(submission.createdAt),
+          ),
+          _row(
+            submission.isSynced
+                ? Icons.cloud_done_rounded
+                : Icons.cloud_off_rounded,
+            'Status Cloud',
+            submission.isSynced ? 'Tersimpan di cloud' : 'Belum tersync',
           ),
         ],
       ),
@@ -219,10 +239,19 @@ class SubmissionDetailScreen extends StatelessWidget {
               ],
             ),
           ),
-          if (submission.reviewNote != null) ...[
+          if (submission.reviewNote != null &&
+              submission.reviewNote!.isNotEmpty) ...[
             const SizedBox(height: 10),
             Text(
-              'Catatan: ${submission.reviewNote}',
+              'Catatan Admin: ${submission.reviewNote}',
+              style: TextStyle(color: _textMuted, fontSize: 13),
+            ),
+          ],
+          if (submission.nutriNote != null &&
+              submission.nutriNote!.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Catatan Ahli Gizi: ${submission.nutriNote}',
               style: TextStyle(color: _textMuted, fontSize: 13),
             ),
           ],

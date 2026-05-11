@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import '../../general/submission/submission_hive_model.dart'; 
+import 'package:provider/provider.dart';
+import '../../general/submission/submission_controller.dart';
+import '../../general/submission/submission_model.dart';
 
 class AdminDashboardController extends GetxController {
-  
   final today = DateTime.now().obs;
   final selectedDate = DateTime.now().obs;
   final weekDates = <DateTime>[].obs;
-  
+
   final isPaginatedView = false.obs;
   final currentPage = 0.obs;
   final itemsPerPage = 3;
@@ -19,7 +19,8 @@ class AdminDashboardController extends GetxController {
   void onInit() {
     super.onInit();
     _initDates();
-    _loadDataAsli(); 
+    // Data di-load via listenToSubmissions() yang dipanggil dari View
+    // karena butuh BuildContext untuk akses Provider
   }
 
   void _initDates() {
@@ -27,63 +28,72 @@ class AdminDashboardController extends GetxController {
     DateTime normalizedToday = DateTime(now.year, now.month, now.day);
     today.value = normalizedToday;
     selectedDate.value = normalizedToday;
-    weekDates.value = List.generate(7, (index) => normalizedToday.add(Duration(days: index - 3)));
+    weekDates.value = List.generate(
+      7,
+      (index) => normalizedToday.add(Duration(days: index - 3)),
+    );
   }
 
-  void _loadDataAsli() {
-    try {
-      
-      final box = Hive.box<SubmissionHiveModel>('submissions');
-      
-      final data = box.values.map((item) {
-        String rawStatus = item.status.toString().toLowerCase();
-        String statusStr = 'Menunggu';
-        Color statusColor = Colors.orange;
-        Color bgColor = Colors.orange.shade50;
+  /// Dipanggil dari View dengan context agar bisa akses SubmissionController.
+  /// Setiap kali submissions berubah di Firestore, dashboard ikut update otomatis.
+  void loadFromSubmissionController(List<SubmissionModel> submissions) {
+    final data =
+        submissions.map((item) {
+          String statusStr;
+          Color statusColor;
+          Color bgColor;
 
-        if (rawStatus.contains('approved') || rawStatus.contains('diterima')) {
-          statusStr = 'Diterima';
-          statusColor = const Color(0xFF2E7D32);
-          bgColor = Colors.green.shade50;
-        } else if (rawStatus.contains('canceled') || rawStatus.contains('rejected') || rawStatus.contains('ditolak')) {
-          statusStr = 'Ditolak';
-          statusColor = Colors.red;
-          bgColor = Colors.red.shade50;
-        }
+          switch (item.status) {
+            case SubmissionStatus.approved:
+              statusStr = 'Diterima';
+              statusColor = const Color(0xFF2E7D32);
+              bgColor = Colors.green.shade50;
+              break;
+            case SubmissionStatus.canceled:
+              statusStr = 'Ditolak';
+              statusColor = Colors.red;
+              bgColor = Colors.red.shade50;
+              break;
+            case SubmissionStatus.pending:
+            default:
+              statusStr = 'Menunggu';
+              statusColor = Colors.orange;
+              bgColor = Colors.orange.shade50;
+              break;
+          }
 
-        return {
-          'id': item.id,
-          'name': item.foodName,                               
-          'author': item.userName,                             
-          'status': statusStr,                                 
-          'color': statusColor,
-          'bgColor': bgColor,
-          'icon': '🍲',                                        
-          'date': item.createdAt,                              
-          'calories': item.calories != null ? '${item.calories} kkal' : '-', 
-          'notes': item.reviewNote ?? item.nutriNote ?? '-',   
-        };
-      }).toList();
+          return {
+            'id': item.id,
+            'name': item.foodName,
+            'author': item.userName,
+            'status': statusStr,
+            'color': statusColor,
+            'bgColor': bgColor,
+            'icon': '🍲',
+            'date': item.createdAt,
+            'calories':
+                item.calories != null ? '${item.calories!.toInt()} kkal' : '-',
+            'notes': item.reviewNote ?? item.nutriNote ?? '-',
+          };
+        }).toList();
 
-      allSubmissions.value = data;
-
-    } catch (e) {
-      debugPrint("Gagal load data dari Hive: $e");
-    }
+    allSubmissions.value = data;
   }
+
+  // ── Statistik ─────────────────────────────────────────────────────────────
 
   int get totalPengajuan => allSubmissions.length;
-  int get totalMenunggu => allSubmissions.where((item) => item['status'] == 'Menunggu').length;
-  int get totalDitolak => allSubmissions.where((item) => item['status'] == 'Ditolak').length;
-  
-  int get totalPengguna {
-    
-    return allSubmissions.map((item) => item['author']).toSet().length;
-  }
+  int get totalMenunggu =>
+      allSubmissions.where((item) => item['status'] == 'Menunggu').length;
+  int get totalDitolak =>
+      allSubmissions.where((item) => item['status'] == 'Ditolak').length;
+  int get totalPengguna =>
+      allSubmissions.map((item) => item['author']).toSet().length;
 
-  List<Map<String, dynamic>> getSubmissionsByStatus(String status) {
-    return allSubmissions.where((item) => item['status'] == status).toList();
-  }
+  List<Map<String, dynamic>> getSubmissionsByStatus(String status) =>
+      allSubmissions.where((item) => item['status'] == status).toList();
+
+  // ── Navigasi ──────────────────────────────────────────────────────────────
 
   void changeDate(DateTime date) {
     selectedDate.value = date;
@@ -96,10 +106,7 @@ class AdminDashboardController extends GetxController {
     currentPage.value = 0;
   }
 
-  void changePage(int newPage) {
-    currentPage.value = newPage;
-  }
-
+  void changePage(int newPage) => currentPage.value = newPage;
   void previousPage() {
     if (currentPage.value > 0) currentPage.value--;
   }
