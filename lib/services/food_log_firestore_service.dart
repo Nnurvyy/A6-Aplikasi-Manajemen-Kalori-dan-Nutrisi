@@ -39,12 +39,12 @@ class FoodLogFirestoreService {
     final snapshot = await _db
         .collection(_collection)
         .where('userId', isEqualTo: userId)
-        .where('consumedAt', isGreaterThanOrEqualTo: startOfDay.toIso8601String())
-        .where('consumedAt', isLessThan: endOfDay.toIso8601String())
         .get();
 
     return snapshot.docs
         .map((doc) => LogModel.fromJson(doc.data()))
+        .where((log) => (log.consumedAt.isAtSameMomentAs(startOfDay) || log.consumedAt.isAfter(startOfDay)) && 
+                        log.consumedAt.isBefore(endOfDay))
         .toList();
   }
 
@@ -53,17 +53,17 @@ class FoodLogFirestoreService {
     DateTime month,
   ) async {
     final startOfMonth = DateTime(month.year, month.month, 1);
-    final endOfMonth = DateTime(month.year, month.month + 1, 1);
+    final nextMonth = DateTime(month.year, month.month + 1, 1);
 
     final snapshot = await _db
         .collection(_collection)
         .where('userId', isEqualTo: userId)
-        .where('consumedAt', isGreaterThanOrEqualTo: startOfMonth.toIso8601String())
-        .where('consumedAt', isLessThan: endOfMonth.toIso8601String())
         .get();
 
     return snapshot.docs
         .map((doc) => LogModel.fromJson(doc.data()))
+        .where((log) => (log.consumedAt.isAtSameMomentAs(startOfMonth) || log.consumedAt.isAfter(startOfMonth)) && 
+                        log.consumedAt.isBefore(nextMonth))
         .toList();
   }
 
