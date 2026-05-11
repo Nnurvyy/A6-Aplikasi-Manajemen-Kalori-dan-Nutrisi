@@ -225,9 +225,22 @@ class _WatchlistViewState extends State<WatchlistView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    food.name,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: _textDark),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          food.name,
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: _textDark),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        item.isSynced ? Icons.cloud_done_rounded : Icons.cloud_upload_rounded,
+                        size: 14,
+                        color: item.isSynced ? Colors.blue.withOpacity(0.5) : Colors.orange.withOpacity(0.5),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 2),
                   Row(

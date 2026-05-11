@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import '../../../services/hive_service.dart';
+import '../../../services/food_log_firestore_service.dart';
+import '../../../services/weight_log_firestore_service.dart';
 import '../../general/auth/models/user_model.dart';
 import '../../general/food/models/log_model.dart';
 import './models/weight_log_model.dart';
@@ -97,6 +100,10 @@ class ProgressController extends ChangeNotifier {
     _buildWeightData();
     _buildActivityData();
 
+    if (_isMonitoring) {
+      _syncMonitoringData(user.id);
+    }
+
     _logSub?.cancel();
     _logSub = HiveService.logs.watch().listen((_) {
       _buildNutritionData();
@@ -122,6 +129,39 @@ class ProgressController extends ChangeNotifier {
     });
 
     notifyListeners();
+  }
+
+  Future<void> _syncMonitoringData(String targetUserId) async {
+    try {
+      final conn = await Connectivity().checkConnectivity();
+      if (conn.contains(ConnectivityResult.none)) return;
+
+      debugPrint("Syncing monitoring data for $targetUserId...");
+
+      // 1. Sync Food Logs (Last 3 months to keep it light)
+      final now = DateTime.now();
+      for (int i = 0; i < 3; i++) {
+        final date = DateTime(now.year, now.month - i, 1);
+        final remoteLogs = await FoodLogFirestoreService.getLogsByMonth(targetUserId, date);
+        for (var log in remoteLogs) {
+          await HiveService.logs.put(log.id, log);
+        }
+      }
+
+      // 2. Sync Weight Logs
+      final remoteWeights = await WeightLogFirestoreService.getUserWeightLogs(targetUserId);
+      for (var weight in remoteWeights) {
+        await HiveService.weightLogs.put(weight.id, weight);
+      }
+
+      _buildNutritionData();
+      _buildWeightData();
+      _buildActivityData();
+      notifyListeners();
+      debugPrint("Sync monitoring data finished.");
+    } catch (e) {
+      debugPrint("Error syncing monitoring data: $e");
+    }
   }
 
   @override
@@ -198,6 +238,13 @@ class ProgressController extends ChangeNotifier {
       actualWeight: weight,
     );
     await HiveService.weightLogs.put(key, log);
+    
+    // Sync to Firestore
+    try {
+      await WeightLogFirestoreService.saveWeightLog(log);
+    } catch (e) {
+      debugPrint("Failed to sync weight log to Firestore: $e");
+    }
 
     // SINKRONISASI: Jika yang diinput adalah bulan saat ini, update juga berat di profile user
     final now = DateTime.now();
@@ -225,6 +272,14 @@ class ProgressController extends ChangeNotifier {
       actualWeight: null,
     );
     await HiveService.weightLogs.put(key, log);
+
+    // Sync to Firestore
+    try {
+      await WeightLogFirestoreService.saveWeightLog(log);
+    } catch (e) {
+      debugPrint("Failed to sync skipped weight log: $e");
+    }
+
     _shouldShowWeightModal = false;
     _pendingWeightMonth = null;
     _buildWeightData();

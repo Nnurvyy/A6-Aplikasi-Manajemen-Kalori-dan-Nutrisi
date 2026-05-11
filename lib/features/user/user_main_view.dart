@@ -19,6 +19,7 @@ import '../general/food/food_detail_view.dart';
 import './progress/progress_view.dart';
 import './manual_food/saved_compositions_page.dart';
 import './manual_food/child_log_view.dart';
+import '../general/food/food_controller.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // USER MAIN VIEW
@@ -122,6 +123,7 @@ class _UserMainViewState extends State<UserMainView>
       final user = authCtrl.currentUser;
       if (user != null) {
         context.read<WatchlistController>().loadWatchlist(user.id);
+        context.read<FoodController>().syncWithFirebase(userId: user.id); // ← TAMBAHKAN INI
       }
       // Cek apakah perlu modal input BB (handled inside ProgressView)
     });

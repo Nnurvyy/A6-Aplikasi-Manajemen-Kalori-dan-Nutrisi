@@ -93,3 +93,5 @@ class NutriTrackApp extends StatelessWidget {
     );
   }
 }
+
+final submissionCtrl = SubmissionController();
