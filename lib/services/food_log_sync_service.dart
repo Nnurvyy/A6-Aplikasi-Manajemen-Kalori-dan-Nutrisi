@@ -12,15 +12,21 @@ class FoodLogSyncService {
 
   static Future<void> syncPendingLogs() async {
     if (!await isOnline()) return;
-    await syncPendingDeletes(); // ← tambah ini
+    await syncPendingDeletes();
 
+    debugPrint('[FoodLogSyncService] Checking for pending logs...');
     final pendingLogs = HiveService.logs.values
+        .whereType<LogModel>() // Use whereType to be safe
         .where((log) => log.syncStatus == 'pending')
         .toList();
 
-    if (pendingLogs.isEmpty) return;
+    if (pendingLogs.isEmpty) {
+      debugPrint('[FoodLogSyncService] No pending logs.');
+      return;
+    }
 
     try {
+      debugPrint('[FoodLogSyncService] Syncing ${pendingLogs.length} logs...');
       await FoodLogFirestoreService.upsertLogs(pendingLogs);
 
       for (final log in pendingLogs) {
@@ -28,9 +34,9 @@ class FoodLogSyncService {
         await log.save();
       }
 
-      print('[FoodLogSyncService] ${pendingLogs.length} log berhasil disinkronkan');
+      debugPrint('[FoodLogSyncService] ${pendingLogs.length} logs synced successfully.');
     } catch (e) {
-      print('[FoodLogSyncService] Gagal sync: $e');
+      debugPrint('[FoodLogSyncService] Sync error: $e');
     }
   }
 
