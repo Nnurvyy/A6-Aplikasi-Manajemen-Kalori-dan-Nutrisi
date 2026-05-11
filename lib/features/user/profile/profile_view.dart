@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../general/auth/auth_controller.dart';
 import '../../general/auth/models/user_model.dart';
@@ -7,6 +8,10 @@ import '../../general/auth/login_view.dart';
 import '../../../services/hive_service.dart';
 import 'package:intl/intl.dart';
 import '../progress/models/weight_log_model.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import './qr_scanner_page.dart';
+import 'dart:ui' as ui;
+import 'package:gal/gal.dart';
 
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
@@ -393,11 +398,13 @@ class _ProfileViewState extends State<ProfileView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildHeader(user),
+                  _buildHeader(user, auth),
                   const SizedBox(height: 20),
                   _buildNutrisiTarget(kaloriTarget, macros),
                   const SizedBox(height: 20),
-                  _buildPersonalisasi(user),
+                  _buildPersonalisasi(user, auth),
+                  const SizedBox(height: 20),
+                  _buildParentalControl(auth),
                   const SizedBox(height: 32),
                 ],
               ),
@@ -408,7 +415,435 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
-  Widget _buildHeader(UserModel user) {
+  Widget _buildParentalControl(AuthController auth) {
+    if (auth.isMonitoring) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Kontrol Orang Tua',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1A2E1A),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                _chevronAction(
+                  Icons.qr_code_2_rounded,
+                  'Tampilkan QR / ID Saya',
+                  const Color(0xFFE8F5E9),
+                  _green,
+                  onTap: () => _showMyQR(auth.mainUser!.id),
+                  isFirst: true,
+                ),
+                _divider(),
+                _chevronAction(
+                  Icons.document_scanner_rounded,
+                  'Pantau Aktivitas Anak (Baru)',
+                  const Color(0xFFE3F2FD),
+                  const Color(0xFF42A5F5),
+                  onTap: () => _showScanOrInput(auth),
+                  isLast: !auth.hasMonitoredUser,
+                ),
+                if (auth.hasMonitoredUser) ...[
+                  _divider(),
+                  _chevronAction(
+                    Icons.play_circle_fill_rounded,
+                    'Lanjutkan Pantau Anak (Terakhir)',
+                    const Color(0xFFFFF3E0),
+                    const Color(0xFFFF9800),
+                    onTap: () => auth.resumeMonitoring(),
+                    isLast: true,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmStopMonitoring(AuthController auth) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Kembali ke Utama?'),
+        content: const Text('Anda akan berhenti memantau aktivitas anak ini dan kembali ke profil Anda sendiri.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              auth.stopMonitoring();
+              Navigator.pop(ctx);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: _green),
+            child: const Text('Ya, Kembali'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showMyQR(String myId) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'QR Code & ID Anda',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF1A2E1A),
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Tunjukkan QR ini atau bagikan ID di bawah kepada orang tua Anda agar mereka dapat memantau aktivitas Anda.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: Colors.grey),
+            ),
+            const SizedBox(height: 24),
+            QrImageView(
+              data: myId,
+              version: QrVersions.auto,
+              size: 200.0,
+              backgroundColor: Colors.white,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () async {
+                try {
+                  final painter = QrPainter(
+                    data: myId,
+                    version: QrVersions.auto,
+                    errorCorrectionLevel: QrErrorCorrectLevel.M,
+                    color: const Color(0xFF000000),
+                    emptyColor: const Color(0xFFFFFFFF),
+                    gapless: true,
+                  );
+                  
+                  // Membuat margin putih (Quiet Zone) secara manual agar scanner mudah mendeteksi
+                  const double qrSize = 1024.0;
+                  const double margin = 100.0;
+                  const double totalSize = qrSize + (margin * 2);
+                  
+                  final recorder = ui.PictureRecorder();
+                  final canvas = Canvas(recorder, const Rect.fromLTWH(0, 0, totalSize, totalSize));
+                  
+                  // Gambar background putih
+                  canvas.drawRect(const Rect.fromLTWH(0, 0, totalSize, totalSize), Paint()..color = Colors.white);
+                  
+                  // Gambar QR di tengah
+                  canvas.save();
+                  canvas.translate(margin, margin);
+                  painter.paint(canvas, const Size(qrSize, qrSize));
+                  canvas.restore();
+                  
+                  final img = await recorder.endRecording().toImage(totalSize.toInt(), totalSize.toInt());
+                  final picData = await img.toByteData(format: ui.ImageByteFormat.png);
+                  if (picData != null) {
+                    await Gal.putImageBytes(picData.buffer.asUint8List());
+                    if (mounted) {
+                      Navigator.pop(context); // tutup modal
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Row(
+                            children: [
+                              Icon(Icons.check_circle_rounded, color: Colors.white),
+                              SizedBox(width: 10),
+                              Text('QR Code berhasil disimpan ke Galeri!', style: TextStyle(fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                          backgroundColor: const Color(0xFF2E7D32),
+                          duration: const Duration(seconds: 3),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      );
+                    }
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Gagal menyimpan QR: $e')),
+                    );
+                  }
+                }
+              },
+              icon: const Icon(Icons.download_rounded, color: Colors.white, size: 18),
+              label: const Text('Download QR', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _green,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF4FAF4),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SelectableText(
+                    myId,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: _green,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: myId));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('ID berhasil disalin!')),
+                      );
+                    },
+                    child: const Icon(Icons.copy_rounded, color: _green, size: 20),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showScanOrInput(AuthController auth) {
+    final idCtrl = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Pantau Anak',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1A2E1A),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(child: _inputField('Masukkan ID Anak', idCtrl)),
+                  const SizedBox(width: 12),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 24),
+                    child: IconButton(
+                      onPressed: () async {
+                        final scannedId = await Navigator.push(
+                          ctx,
+                          MaterialPageRoute(builder: (_) => const QRScannerPage()),
+                        );
+                        if (scannedId != null && scannedId is String) {
+                          idCtrl.text = scannedId;
+                        }
+                      },
+                      icon: const Icon(Icons.qr_code_scanner, color: _green, size: 32),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (idCtrl.text.trim().isEmpty) return;
+                    Navigator.pop(ctx);
+                    _confirmStartMonitoring(auth, idCtrl.text.trim());
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _green,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: const Text('Mulai Pantau', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _confirmStartMonitoring(AuthController auth, String childId) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        bool isLoading = false;
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Konfirmasi Pantau'),
+              content: isLoading 
+                ? const SizedBox(height: 50, child: Center(child: CircularProgressIndicator()))
+                : Text('Apakah Anda yakin ingin mulai memantau aktivitas akun dengan ID:\n$childId?'),
+              actions: isLoading ? [] : [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    setState(() => isLoading = true);
+                    final success = await auth.startMonitoring(childId);
+                    if (mounted) {
+                      Navigator.pop(ctx);
+                      if (!success) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(auth.errorMessage ?? 'Gagal memantau')),
+                        );
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _green,
+                    foregroundColor: Colors.white, // Agar teks putih dan kontras
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Ya, Pantau', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ],
+            );
+          }
+        );
+      },
+    );
+  }
+
+  Widget _chevronAction(
+    IconData icon,
+    String label,
+    Color iconBg,
+    Color iconColor, {
+    required VoidCallback onTap,
+    bool isFirst = false,
+    bool isLast = false,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.vertical(
+        top: isFirst ? const Radius.circular(20) : Radius.zero,
+        bottom: isLast ? const Radius.circular(20) : Radius.zero,
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.vertical(
+            top: isFirst ? const Radius.circular(20) : Radius.zero,
+            bottom: isLast ? const Radius.circular(20) : Radius.zero,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: iconBg,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: iconColor, size: 18),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF1A2E1A),
+                ),
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: Color(0xFF8EBA8E),
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(UserModel user, AuthController auth) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
@@ -425,9 +860,9 @@ class _ProfileViewState extends State<ProfileView> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Profil',
-                style: TextStyle(
+              Text(
+                auth.isMonitoring ? 'Profil Anak' : 'Profil',
+                style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
                   color: Colors.white,
@@ -435,70 +870,72 @@ class _ProfileViewState extends State<ProfileView> {
               ),
               Row(
                 children: [
-                  GestureDetector(
-                    onTap: () => _editProfil(user),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 7,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.edit_outlined, color: Colors.white, size: 14),
-                          SizedBox(width: 5),
-                          Text(
-                            'Edit',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                  if (!auth.isMonitoring) ...[
+                    GestureDetector(
+                      onTap: () => _editProfil(user),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.edit_outlined, color: Colors.white, size: 14),
+                            SizedBox(width: 5),
+                            Text(
+                              'Edit Profil',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () async {
-                      final auth = context.read<AuthController>();
-                      await auth.logout();
-                      if (!mounted) return;
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (_) => const LoginView()),
-                        (route) => false,
-                      );
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 7,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.8),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.logout, color: Colors.white, size: 14),
-                          SizedBox(width: 5),
-                          Text(
-                            'Keluar',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () async {
+                        final authCtrl = context.read<AuthController>();
+                        await authCtrl.logout();
+                        if (!mounted) return;
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (_) => const LoginView()),
+                          (route) => false,
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.8),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.logout, color: Colors.white, size: 14),
+                            SizedBox(width: 5),
+                            Text(
+                              'Keluar',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ],
@@ -690,7 +1127,7 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
-  Widget _buildPersonalisasi(UserModel user) {
+  Widget _buildPersonalisasi(UserModel user, AuthController auth) {
     final activity = user.activityLevel ?? '-';
     final actShort =
         activity.length > 20 ? '${activity.substring(0, 18)}...' : activity;
@@ -734,6 +1171,7 @@ class _ProfileViewState extends State<ProfileView> {
                   const Color(0xFFE8F5E9),
                   _greenLight,
                   user: user,
+                  auth: auth,
                   isFirst: true,
                 ),
                 _divider(),
@@ -746,6 +1184,7 @@ class _ProfileViewState extends State<ProfileView> {
                   const Color(0xFFE3F2FD),
                   const Color(0xFF42A5F5),
                   user: user,
+                  auth: auth,
                 ),
                 _divider(),
                 _chevron(
@@ -755,6 +1194,7 @@ class _ProfileViewState extends State<ProfileView> {
                   const Color(0xFFFFF3E0),
                   const Color(0xFFFFA726),
                   user: user,
+                  auth: auth,
                 ),
                 _divider(),
                 _chevron(
@@ -766,6 +1206,7 @@ class _ProfileViewState extends State<ProfileView> {
                   const Color(0xFFFFEBEE),
                   const Color(0xFFEF5350),
                   user: user,
+                  auth: auth,
                 ),
                 _divider(),
                 _chevron(
@@ -777,6 +1218,7 @@ class _ProfileViewState extends State<ProfileView> {
                   const Color(0xFFE8F5E9),
                   const Color(0xFF2E7D32),
                   user: user,
+                  auth: auth,
                 ),
                 _divider(),
                 _chevron(
@@ -786,6 +1228,7 @@ class _ProfileViewState extends State<ProfileView> {
                   const Color(0xFFE8F5E9),
                   _green,
                   user: user,
+                  auth: auth,
                 ),
                 _divider(),
                 _chevron(
@@ -795,6 +1238,7 @@ class _ProfileViewState extends State<ProfileView> {
                   const Color(0xFFF3E5F5),
                   const Color(0xFFAB47BC),
                   user: user,
+                  auth: auth,
                   isLast: true,
                 ),
               ],
@@ -812,11 +1256,13 @@ class _ProfileViewState extends State<ProfileView> {
     Color iconBg,
     Color iconColor, {
     required UserModel user,
+    required AuthController auth,
     bool isFirst = false,
     bool isLast = false,
   }) {
+    final isMonitor = auth.isMonitoring;
     return GestureDetector(
-      onTap: () => _editProfil(user),
+      onTap: isMonitor ? null : () => _editProfil(user),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
         decoration: BoxDecoration(
@@ -850,18 +1296,20 @@ class _ProfileViewState extends State<ProfileView> {
             ),
             Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF2E7D32),
+                color: isMonitor ? const Color(0xFF1976D2) : const Color(0xFF2E7D32),
               ),
             ),
-            const SizedBox(width: 6),
-            const Icon(
-              Icons.chevron_right_rounded,
-              color: Color(0xFF8EBA8E),
-              size: 20,
-            ),
+            if (!isMonitor) ...[
+              const SizedBox(width: 6),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: Color(0xFF8EBA8E),
+                size: 20,
+              ),
+            ],
           ],
         ),
       ),

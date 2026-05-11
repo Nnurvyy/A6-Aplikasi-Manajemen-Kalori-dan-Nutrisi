@@ -87,8 +87,11 @@ class ProgressController extends ChangeNotifier {
   DateTime? _pendingWeightMonth; // bulan yang harus diisi
   DateTime? get pendingWeightMonth => _pendingWeightMonth;
 
-  void init(UserModel user) {
+  bool _isMonitoring = false;
+
+  void init(UserModel user, {bool isMonitoring = false}) {
     _user = user;
+    _isMonitoring = isMonitoring;
     _checkWeightModalNeeded();
     _buildNutritionData();
     _buildWeightData();
@@ -613,9 +616,10 @@ class ProgressController extends ChangeNotifier {
     final ideal = idealWeight;
     final diff = (current - ideal).abs();
     
-    // Anggap ideal jika selisih < 0.5kg
+    final subjek = _isMonitoring ? "Anak Anda" : "kamu";
+
     if (diff < 0.5) {
-      return "Berat badan kamu sudah ideal! ✨";
+      return "Berat badan $subjek sudah ideal! ✨";
     } else if (current < ideal) {
       return "Kurang ${diff.toStringAsFixed(1)} kg untuk berat ideal";
     } else {
@@ -627,12 +631,13 @@ class ProgressController extends ChangeNotifier {
   String get bmiStatusMessage {
     final bmi = currentBMI;
     if (bmi == null) return "-";
+    final subjek = _isMonitoring ? "Anak Anda" : "kamu";
     if (bmi >= 18.5 && bmi < 25) {
-      return "BMI kamu normal! ✨";
+      return "BMI $subjek normal! ✨";
     } else if (bmi < 18.5) {
-      return "BMI kamu di bawah normal";
+      return "BMI $subjek di bawah normal";
     } else {
-      return "BMI kamu di atas normal";
+      return "BMI $subjek di atas normal";
     }
   }
 

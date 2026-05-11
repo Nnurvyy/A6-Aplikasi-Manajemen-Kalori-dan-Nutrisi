@@ -30,11 +30,17 @@ dependencies:
   image_picker: ^1.1.2
   flutter_vision: ^1.1.2
   get: ^4.7.3
+  connectivity_plus: ^6.1.4
   firebase_core: ^4.7.0
   firebase_auth: ^6.4.0
   cloud_firestore: ^6.3.0
   firebase_storage: 13.3.0
   
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^7.2.0
+  google_mlkit_barcode_scanning: ^0.13.0
+  gal: ^2.3.2
+  crypto: ^3.0.6
 
 dev_dependencies:
   flutter_test:

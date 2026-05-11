@@ -5,19 +5,72 @@ import './models/user_model.dart';
 import '../../../services/hive_service.dart';
 import '../../../helpers/calorie_helper.dart';
 import 'package:intl/intl.dart';
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 
 class AuthController extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   UserModel? _currentUser;
+  UserModel? _monitoredUser; // User yang sedang dipantau (Anak)
+  bool _isMonitoringActive = false; // Flag apakah mode pantau sedang aktif
   bool _isLoading = false;
   String? _errorMessage;
 
-  UserModel? get currentUser => _currentUser;
+  UserModel? get currentUser => _isMonitoringActive ? _monitoredUser : _currentUser;
+  UserModel? get mainUser => _currentUser;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get isLoggedIn => _currentUser != null;
+  bool get isMonitoring => _isMonitoringActive;
+  bool get hasMonitoredUser {
+    final key = 'monitored_user_id_${_currentUser?.id}';
+    return HiveService.settings.get(key) != null;
+  }
+
+  Future<bool> startMonitoring(String uid) async {
+    _setLoading(true);
+    _errorMessage = null;
+
+    if (uid == _currentUser?.id) {
+      _errorMessage = 'Anda tidak bisa memantau diri sendiri';
+      _setLoading(false);
+      return false;
+    }
+
+    try {
+      final doc = await _firestore.collection('users').doc(uid).get();
+      if (doc.exists) {
+        _monitoredUser = UserModel.fromMap(doc.data()!);
+        _isMonitoringActive = true;
+        await HiveService.users.put(uid, _monitoredUser!);
+        // Per-akun: simpan monitored_user_id dengan key yang mengandung id akun utama
+        final key = 'monitored_user_id_${_currentUser!.id}';
+        await HiveService.settings.put(key, uid);
+        _setLoading(false);
+        return true;
+      } else {
+        _errorMessage = 'Pengguna tidak ditemukan';
+      }
+    } catch (e) {
+      _errorMessage = 'Terjadi kesalahan: $e';
+    }
+    _setLoading(false);
+    return false;
+  }
+
+  void stopMonitoring() {
+    _isMonitoringActive = false;
+    notifyListeners();
+  }
+
+  void resumeMonitoring() {
+    if (_monitoredUser != null) {
+      _isMonitoringActive = true;
+      notifyListeners();
+    }
+  }
 
   AuthController() {
     _init();
@@ -32,11 +85,26 @@ class AuthController extends ChangeNotifier {
       if (user != null) {
         // Coba ambil data terbaru dari cloud untuk sinkronisasi
         await _fetchUserProfile(user.uid);
+        
+        // Coba perbarui data monitored user juga jika ada
+        final key = 'monitored_user_id_${user.uid}';
+        final monitoredId = HiveService.settings.get(key) as String?;
+        if (monitoredId != null) {
+          final mDoc = await _firestore.collection('users').doc(monitoredId).get();
+          if (mDoc.exists) {
+            _monitoredUser = UserModel.fromMap(mDoc.data()!);
+            await HiveService.users.put(monitoredId, _monitoredUser!);
+            notifyListeners();
+          }
+        }
       } else {
         // Jika user logout di Firebase, bersihkan sesi lokal
         if (_currentUser != null) {
           _currentUser = null;
+          _monitoredUser = null;
+          _isMonitoringActive = false;
           await HiveService.settings.delete('current_user_id');
+          await HiveService.settings.delete('monitored_user_id');
           notifyListeners();
         }
       }
@@ -47,8 +115,18 @@ class AuthController extends ChangeNotifier {
     final savedId = HiveService.settings.get('current_user_id') as String?;
     if (savedId != null) {
       _currentUser = HiveService.users.get(savedId);
-      notifyListeners();
     }
+    
+    // Per-akun: load monitored user hanya untuk akun yang login sekarang
+    if (_currentUser != null) {
+      final key = 'monitored_user_id_${_currentUser!.id}';
+      final monitoredId = HiveService.settings.get(key) as String?;
+      if (monitoredId != null) {
+        _monitoredUser = HiveService.users.get(monitoredId);
+      }
+    }
+    
+    notifyListeners();
   }
 
   Future<void> _fetchUserProfile(String uid) async {
@@ -65,6 +143,17 @@ class AuthController extends ChangeNotifier {
         // Sinkronisasi ke Hive sebagai cache lokal
         await HiveService.users.put(uid, _currentUser!);
         await HiveService.settings.put('current_user_id', uid);
+        
+        // RELOAD monitored user untuk akun ini
+        final key = 'monitored_user_id_${_currentUser!.id}';
+        final monitoredId = HiveService.settings.get(key) as String?;
+        if (monitoredId != null) {
+          _monitoredUser = HiveService.users.get(monitoredId);
+        } else {
+          _monitoredUser = null;
+          _isMonitoringActive = false;
+        }
+        notifyListeners();
       }
     } catch (e) {
       debugPrint("Offline mode: Fetching from Hive because: $e");
@@ -148,12 +237,12 @@ class AuthController extends ChangeNotifier {
         targetWeightGainPerMonth: targetWeightGainPerMonth,
       );
 
-      // 3. Buat Object UserModel
+      // 3. Buat Object UserModel dengan password yang di-hash
       final newUser = UserModel(
         id: uid,
         name: name,
         email: email,
-        password: password,
+        password: _hashPassword(password),
         role: 'user',
         weight: weight,
         height: height,
@@ -206,6 +295,8 @@ class AuthController extends ChangeNotifier {
       await HiveService.users.put(updated.id, updated);
       if (_currentUser?.id == updated.id) {
         _currentUser = updated;
+      } else if (_monitoredUser?.id == updated.id) {
+        _monitoredUser = updated;
       }
       notifyListeners();
     } catch (e) {
@@ -221,5 +312,11 @@ class AuthController extends ChangeNotifier {
   void _setLoading(bool val) {
     _isLoading = val;
     notifyListeners();
+  }
+
+  String _hashPassword(String password) {
+    final bytes = utf8.encode(password);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
   }
 }
