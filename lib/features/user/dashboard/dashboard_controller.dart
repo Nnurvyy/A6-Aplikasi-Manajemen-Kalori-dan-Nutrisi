@@ -76,6 +76,10 @@ class DashboardController {
   int selectedDayIndex = 0;
   int selectedNavIndex = 0;
 
+  // ── Selected month/year ──
+  late int viewYear;
+  late int viewMonth;
+
   // ── Kalori data (nanti dihitung dari recentFoodHistory) ──
   double kaloriConsumed = 760;
   double kaloriTarget = 2000.0; // akan di-update dari profil user
@@ -88,17 +92,36 @@ class DashboardController {
 
   void initDays() {
     final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    days = List.generate(7, (i) {
-      final d = today.subtract(Duration(days: 6 - i));
-      const labels = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+    viewYear = now.year;
+    viewMonth = now.month;
+    _buildDaysForMonth(now.year, now.month, initialDay: now.day);
+  }
+
+  void setViewMonthYear(int year, int month) {
+    viewYear = year;
+    viewMonth = month;
+    final now = DateTime.now();
+    // Default to last day if current month has fewer days, or day 1 otherwise
+    int defaultDay = 1;
+    if (year == now.year && month == now.month) {
+      defaultDay = now.day; // today
+    }
+    _buildDaysForMonth(year, month, initialDay: defaultDay);
+  }
+
+  void _buildDaysForMonth(int year, int month, {required int initialDay}) {
+    final daysInMonth = DateTime(year, month + 1, 0).day;
+    const labels = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+    days = List.generate(daysInMonth, (i) {
+      final d = DateTime(year, month, i + 1);
       return DayItem(
         date: d,
         label: labels[d.weekday - 1],
         number: d.day,
       );
     });
-    selectedDayIndex = 6; // Default to today
+    // Set selected index to defaultDay - 1 (clamped)
+    selectedDayIndex = (initialDay - 1).clamp(0, daysInMonth - 1);
   }
 
   // ── Nutrisi items ──

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import '../../general/auth/auth_controller.dart';
 import './dashboard_controller.dart';
 import '../../general/food/food_controller.dart';
@@ -23,6 +25,7 @@ class _DashboardBodyState extends State<DashboardBody> {
   final DashboardController _controller = DashboardController();
   int _riwayatPage = 0;
   static const int _riwayatItemsPerPage = 7;
+  final ScrollController _daySelectorController = ScrollController();
 
   @override
   void initState() {
@@ -33,8 +36,153 @@ class _DashboardBodyState extends State<DashboardBody> {
       if (mounted) {
         final initialDate = _controller.days[_controller.selectedDayIndex].date;
         context.read<DateController>().setDate(initialDate);
+        _scrollToSelectedDay();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _daySelectorController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToSelectedDay() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_daySelectorController.hasClients) return;
+      const itemWidth = 38.0 + 6.0; // width + separator
+      final offset = _controller.selectedDayIndex * itemWidth;
+      _daySelectorController.animateTo(
+        offset.clamp(0.0, _daySelectorController.position.maxScrollExtent),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  Future<void> _showMonthYearPicker() async {
+    final now = DateTime.now();
+    int selectedYear = _controller.viewYear;
+    int selectedMonth = _controller.viewMonth;
+    final months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    final years = List.generate(10, (i) => now.year - i);
+
+    final result = await showDialog<DateTime>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Text('Pilih Bulan', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 18), textAlign: TextAlign.center),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                height: 200,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  color: const Color(0xFFF4F6F0),
+                  border: Border.all(color: const Color(0xFF2E7D32).withOpacity(0.2)),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: _wheelPicker(
+                        items: months,
+                        selected: selectedMonth - 1,
+                        onChanged: (i) => setS(() => selectedMonth = i + 1),
+                        label: 'Bulan',
+                      ),
+                    ),
+                    Container(width: 1, color: const Color(0xFF2E7D32).withOpacity(0.1)),
+                    Expanded(
+                      flex: 1,
+                      child: _wheelPicker(
+                        items: years.map((y) => y.toString()).toList(),
+                        selected: years.indexOf(selectedYear).clamp(0, years.length - 1),
+                        onChanged: (i) => setS(() => selectedYear = years[i]),
+                        label: 'Tahun',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '${months[selectedMonth - 1]} $selectedYear',
+                style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: const Color(0xFF2E7D32)),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Batal', style: GoogleFonts.poppins(color: Colors.grey, fontWeight: FontWeight.w600)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2E7D32),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () {
+                final picked = DateTime(selectedYear, selectedMonth);
+                if (picked.isAfter(DateTime(now.year, now.month + 1))) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Tidak bisa memilih bulan di masa depan')),
+                  );
+                } else {
+                  Navigator.pop(ctx, picked);
+                }
+              },
+              child: const Text('Pilih'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result != null && mounted) {
+      setState(() {
+        _controller.setViewMonthYear(result.year, result.month);
+        _riwayatPage = 0;
+      });
+      final newDate = _controller.days[_controller.selectedDayIndex].date;
+      context.read<DateController>().setDate(newDate);
+      _scrollToSelectedDay();
+    }
+  }
+
+  Widget _wheelPicker({required List<String> items, required int selected, required void Function(int) onChanged, required String label}) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Text(label, style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF2E7D32).withOpacity(0.6))),
+        ),
+        Expanded(
+          child: ListWheelScrollView(
+            itemExtent: 40,
+            physics: const FixedExtentScrollPhysics(),
+            controller: FixedExtentScrollController(initialItem: selected.clamp(0, items.length - 1)),
+            onSelectedItemChanged: onChanged,
+            children: items.asMap().entries.map((e) {
+              final isSelected = e.key == selected;
+              return Center(
+                child: Text(
+                  e.value,
+                  style: GoogleFonts.poppins(
+                    fontSize: isSelected ? 16 : 14,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
+                    color: isSelected ? const Color(0xFF2E7D32) : Colors.grey.shade500,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -77,6 +225,8 @@ class _DashboardBodyState extends State<DashboardBody> {
     _controller.kaloriTarget = kaloriTarget;
     _controller.kaloriConsumed = kaloriConsumed;
 
+    final isMonitor = context.watch<AuthController>().isMonitoring;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F0),
       body: SafeArea(
@@ -84,7 +234,7 @@ class _DashboardBodyState extends State<DashboardBody> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(selectedDate),
+              _buildHeader(selectedDate, context.watch<AuthController>()),
               _buildDaySelector(),
               _buildKaloriCard(),
               const SizedBox(height: 8),
@@ -97,7 +247,7 @@ class _DashboardBodyState extends State<DashboardBody> {
               ),
               const SizedBox(height: 8),
               _buildRiwayatHeader(),
-              _buildRiwayatList(filteredHistory),
+              _buildRiwayatList(filteredHistory, context.watch<AuthController>().isMonitoring),
               const SizedBox(height: 100), // ruang agar tidak ketutup navbar
             ],
           ),
@@ -107,72 +257,106 @@ class _DashboardBodyState extends State<DashboardBody> {
   }
 
   // ─── HEADER ───────────────────────────────────────────────────────────────
-  Widget _buildHeader(DateTime selectedDate) {
-    final List<String> hari = [
-      'Senin',
-      'Selasa',
-      'Rabu',
-      'Kamis',
-      'Jumat',
-      'Sabtu',
-      'Minggu',
-    ];
-    final List<String> bulan = [
-      'Januari',
-      'Februari',
-      'Maret',
-      'April',
-      'Mei',
-      'Juni',
-      'Juli',
-      'Agustus',
-      'September',
-      'Oktober',
-      'November',
-      'Desember',
-    ];
-    final dateStr =
-        '${hari[selectedDate.weekday - 1]}, ${selectedDate.day} ${bulan[selectedDate.month - 1]}';
+  Widget _buildHeader(DateTime selectedDate, AuthController auth) {
+    final List<String> hari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+    final List<String> bulan = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    final dateStr = '${hari[selectedDate.weekday - 1]}, ${selectedDate.day} ${bulan[selectedDate.month - 1]}';
+    final user = auth.currentUser;
+    final isMonitor = auth.isMonitoring;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'NutriTrack',
-            style: TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF2E7D32),
-              letterSpacing: -0.5,
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFF2E7D32).withOpacity(0.12),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.calendar_today_rounded,
-                  color: Color(0xFF2E7D32),
-                  size: 14,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                isMonitor ? 'Mode Pantau' : 'NutriTrack',
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w800,
+                  color: isMonitor ? const Color(0xFF1976D2) : const Color(0xFF2E7D32),
+                  letterSpacing: -0.5,
                 ),
-                const SizedBox(width: 6),
-                Text(
-                  dateStr,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF2E7D32),
+              ),
+              GestureDetector(
+                onTap: _showMonthYearPicker,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: (isMonitor ? const Color(0xFF1976D2) : const Color(0xFF2E7D32)).withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.calendar_month_rounded, color: isMonitor ? const Color(0xFF1976D2) : const Color(0xFF2E7D32), size: 14),
+                      const SizedBox(width: 6),
+                      Text(
+                        dateStr,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: isMonitor ? const Color(0xFF1976D2) : const Color(0xFF2E7D32),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(Icons.arrow_drop_down_rounded, color: isMonitor ? const Color(0xFF1976D2) : const Color(0xFF2E7D32), size: 18),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+          if (isMonitor && user != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE3F2FD),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF90CAF9)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1976D2).withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.child_care_rounded, color: Color(0xFF1976D2)),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Memantau: ${user.name}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1565C0),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${user.age ?? '-'} tahun • ${user.gender ?? '-'} • ${user.weight?.toStringAsFixed(1) ?? '-'} kg',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF1976D2),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ]
         ],
       ),
     );
@@ -183,6 +367,7 @@ class _DashboardBodyState extends State<DashboardBody> {
     return SizedBox(
       height: 58,
       child: ListView.separated(
+        controller: _daySelectorController,
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: _controller.days.length,
@@ -190,6 +375,9 @@ class _DashboardBodyState extends State<DashboardBody> {
         itemBuilder: (context, index) {
           final day = _controller.days[index];
           final isActive = index == _controller.selectedDayIndex;
+          // Is it today?
+          final now = DateTime.now();
+          final isToday = day.date.year == now.year && day.date.month == now.month && day.date.day == now.day;
           return GestureDetector(
             onTap: () {
               setState(() {
@@ -204,6 +392,9 @@ class _DashboardBodyState extends State<DashboardBody> {
               decoration: BoxDecoration(
                 color: isActive ? const Color(0xFF2E7D32) : Colors.transparent,
                 borderRadius: BorderRadius.circular(10),
+                border: isToday && !isActive
+                    ? Border.all(color: const Color(0xFF2E7D32), width: 1.5)
+                    : null,
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -222,7 +413,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: isActive ? Colors.white : const Color(0xFF2E7D32),
+                      color: isActive ? Colors.white : (isToday ? const Color(0xFF2E7D32) : const Color(0xFF2E7D32)),
                     ),
                   ),
                 ],
@@ -605,7 +796,7 @@ class _DashboardBodyState extends State<DashboardBody> {
 
   // ─── RIWAYAT LIST ─────────────────────────────────────────────────────────
 
-  Widget _buildRiwayatList(List<LogModel> history) {
+  Widget _buildRiwayatList(List<LogModel> history, bool isMonitor) {
     final sortedHistory = List<LogModel>.from(history)
       ..sort((a, b) => b.consumedAt.compareTo(a.consumedAt));
 
@@ -662,17 +853,14 @@ class _DashboardBodyState extends State<DashboardBody> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: _buildRiwayatPaginated(sortedHistory),
+      child: _buildRiwayatPaginated(sortedHistory, isMonitor),
     );
   }
 
   // ─── RIWAYAT PAGINATED ───────────────────────────────────────────────────
 
-  Widget _buildRiwayatPaginated(List<LogModel> sortedHistory) {
-    final totalPages =
-        sortedHistory.isEmpty
-            ? 1
-            : (sortedHistory.length / _riwayatItemsPerPage).ceil();
+  Widget _buildRiwayatPaginated(List<LogModel> sortedHistory, bool isMonitor) {
+    final totalPages = sortedHistory.isEmpty ? 1 : (sortedHistory.length / _riwayatItemsPerPage).ceil();
     final safeCurrentPage = _riwayatPage.clamp(0, totalPages - 1);
     final startIndex = safeCurrentPage * _riwayatItemsPerPage;
     final endIndex = (startIndex + _riwayatItemsPerPage).clamp(
@@ -709,9 +897,8 @@ class _DashboardBodyState extends State<DashboardBody> {
               ],
             ),
           ),
-        ...pageItems.map((item) => _buildFoodHistoryCard(item)).toList(),
-        if (totalPages > 1)
-          _buildRiwayatPagination(safeCurrentPage, totalPages),
+        ...pageItems.map((item) => _buildFoodHistoryCard(item, isMonitor)).toList(),
+        if (totalPages > 1) _buildRiwayatPagination(safeCurrentPage, totalPages),
       ],
     );
   }
@@ -805,11 +992,11 @@ class _DashboardBodyState extends State<DashboardBody> {
 
   // ─── FOOD HISTORY CARD ────────────────────────────────────────────────────
 
-  Widget _buildFoodHistoryCard(LogModel item) {
+  Widget _buildFoodHistoryCard(LogModel item, bool isMonitor) {
     final Color accentColor = _categoryColor(item.category);
 
     return GestureDetector(
-      onTap: () => _showFoodDetailModal(item),
+      onTap: isMonitor ? null : () => _showFoodDetailModal(item),
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
@@ -924,13 +1111,24 @@ class _DashboardBodyState extends State<DashboardBody> {
                 const SizedBox(height: 4),
                 Text(
                   "${item.consumedAt.hour.toString().padLeft(2, '0')}:${item.consumedAt.minute.toString().padLeft(2, '0')}",
-                  //_controller.formatMealTime(item.consumedAt),
                   style: const TextStyle(
                     fontSize: 11,
                     color: Color(0xFF9E9E9E),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
+
+                // ─── TAMBAHKAN INI ───────────────────────────────
+                const SizedBox(height: 4),
+                Icon(
+                  item.syncStatus == 'synced' ? Icons.cloud_done_rounded : Icons.cloud_upload_rounded,
+                  size: 14,
+                  color: item.syncStatus == 'synced'
+                      ? const Color(0xFF4CAF50)  // hijau = sudah di cloud
+                      : const Color(0xFFF59E0B), // oranye = masih pending
+                ),
+                // ────────────────────────────────────────────────
+
               ],
             ),
           ],

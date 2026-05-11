@@ -27,10 +27,11 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
       }
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final user = context.read<AuthController>().currentUser;
+      final auth = context.read<AuthController>();
+      final user = auth.currentUser;
       if (user != null) {
-        _ctrl.init(user);
-        if (_ctrl.shouldShowWeightModal && _ctrl.pendingWeightMonth != null) {
+        _ctrl.init(user, isMonitoring: auth.isMonitoring);
+        if (!auth.isMonitoring && _ctrl.shouldShowWeightModal && _ctrl.pendingWeightMonth != null) {
           _showWeightModal(_ctrl.pendingWeightMonth!);
         }
       }
@@ -41,6 +42,24 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
   void dispose() {
     _tabCtrl.dispose();
     super.dispose();
+  }
+
+  String? _lastInitUserId;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final auth = context.read<AuthController>();
+    final user = auth.currentUser;
+    if (user != null && user.id != _lastInitUserId) {
+      _lastInitUserId = user.id;
+      _ctrl.init(user, isMonitoring: auth.isMonitoring);
+      if (!auth.isMonitoring && _ctrl.shouldShowWeightModal && _ctrl.pendingWeightMonth != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _showWeightModal(_ctrl.pendingWeightMonth!);
+        });
+      }
+    }
   }
 
   void _showWeightModal(DateTime month) {
@@ -344,7 +363,9 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
     return ChangeNotifierProvider.value(
       value: _ctrl,
       child: Consumer<ProgressController>(
-        builder: (context, ctrl, _) => Scaffold(
+        builder: (context, ctrl, _) {
+          final isMonitor = context.watch<AuthController>().isMonitoring;
+          return Scaffold(
           backgroundColor: const Color(0xFFF4F6F0),
           body: CustomScrollView(
             slivers: [
@@ -356,7 +377,8 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
               const SliverToBoxAdapter(child: SizedBox(height: 32)),
             ],
           ),
-        ),
+        );
+        },
       ),
     );
   }
@@ -1081,8 +1103,10 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
             decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
             child: _buildWeightChart(ctrl),
           ),
-          const SizedBox(height: 16),
-          _buildWeightInputButton(ctrl),
+          if (!context.read<AuthController>().isMonitoring) ...[
+            const SizedBox(height: 16),
+            _buildWeightInputButton(ctrl),
+          ],
         ],
       ),
     );
