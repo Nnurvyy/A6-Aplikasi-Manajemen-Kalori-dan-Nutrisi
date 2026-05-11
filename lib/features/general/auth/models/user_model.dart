@@ -67,7 +67,6 @@ class UserModel extends HiveObject {
       'targetWeightGainPerMonth': targetWeightGainPerMonth,
       'initialWeight': initialWeight,
       'targetHistory': targetHistory,
-      'isSynced': isSynced,
     };
   }
 
