@@ -78,6 +78,50 @@ class LogModel extends HiveObject {
       quantity: quantity ?? this.quantity,
     );
   }
+
+  /// Konversi ke Map untuk dikirim ke Firestore
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'userId': userId,
+      'foodName': foodName,
+      'calories': calories,
+      'protein': protein,
+      'carbs': carbs,
+      'fat': fat,
+      'mealType': mealType,
+      'consumedAt': consumedAt.toIso8601String(),
+      'syncStatus': 'synced', // selalu 'synced' saat dikirim ke Firestore
+      'servingSize': servingSize,
+      'category': category,
+      'isManual': isManual,
+      'imageUrl': imageUrl,
+      'ingredientsJson': ingredientsJson,
+      'quantity': quantity,
+    };
+  }
+
+  /// Konversi dari dokumen Firestore ke LogModel
+  factory LogModel.fromJson(Map<String, dynamic> json) {
+    return LogModel(
+      id: json['id'] as String,
+      userId: json['userId'] as String,
+      foodName: json['foodName'] as String,
+      calories: (json['calories'] as num).toDouble(),
+      protein: (json['protein'] as num).toDouble(),
+      carbs: (json['carbs'] as num).toDouble(),
+      fat: (json['fat'] as num).toDouble(),
+      mealType: json['mealType'] as String,
+      consumedAt: DateTime.parse(json['consumedAt'] as String),
+      syncStatus: json['syncStatus'] as String? ?? 'synced',
+      servingSize: (json['servingSize'] as num).toDouble(),
+      category: json['category'] as String? ?? '',
+      isManual: json['isManual'] as bool? ?? false,
+      imageUrl: json['imageUrl'] as String?,
+      ingredientsJson: json['ingredientsJson'] as String?,
+      quantity: json['quantity'] as int? ?? 1,
+    );
+  }
 }
 
 class LogModelAdapter extends TypeAdapter<LogModel> {

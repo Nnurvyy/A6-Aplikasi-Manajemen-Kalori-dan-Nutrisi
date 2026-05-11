@@ -35,8 +35,8 @@ class _AdminUserManagementViewState extends State<AdminUserManagementView> {
 
   @override
   void dispose() {
-    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
@@ -338,7 +338,7 @@ class _UserCard extends StatelessWidget {
     return GestureDetector(
       onTap: onDetail,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
+        margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -355,7 +355,7 @@ class _UserCard extends StatelessWidget {
           children: [
 
             Container(
-              width: 50, height: 50,
+              width: 46, height: 46,
               decoration: BoxDecoration(
                 color: user.isBlocked ? const Color(0xFFFFEBEE) : const Color(0xFFE8F5E9),
                 borderRadius: BorderRadius.circular(12),
