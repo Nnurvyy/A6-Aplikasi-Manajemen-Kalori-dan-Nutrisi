@@ -75,6 +75,9 @@ class FoodController extends ChangeNotifier {
       }
       
       loadFromLocal(userId: userId); 
+
+      // Juga sinkronkan pending logs (upload)
+      await FoodLogSyncService.syncPendingLogs();
     } catch (e) {
       debugPrint("Sync Error: $e");
     } finally {
@@ -357,5 +360,26 @@ class FoodController extends ChangeNotifier {
 
     // 3. Hapus dari Firebase di background — TANPA await
     FoodLogSyncService.deleteLog(logId);
+  }
+
+  Future<void> syncLogsFromFirebase({required String userId}) async {
+    try {
+      final now = DateTime.now();
+      debugPrint("Syncing logs from Firebase for user $userId...");
+      int totalSynced = 0;
+      // Sync last 2 months to be safe
+      for (int i = 0; i < 2; i++) {
+        final monthDate = DateTime(now.year, now.month - i, 1);
+        final remoteLogs = await FoodLogFirestoreService.getLogsByMonth(userId, monthDate);
+        totalSynced += remoteLogs.length;
+        for (final log in remoteLogs) {
+          await HiveService.logs.put(log.id, log);
+        }
+      }
+      debugPrint("Log Sync Finished. Total fetched: $totalSynced");
+      notifyListeners();
+    } catch (e) {
+      debugPrint("Log Sync Error: $e");
+    }
   }
 }

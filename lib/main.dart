@@ -24,6 +24,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
 import 'services/food_log_sync_service.dart';   
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -61,7 +62,16 @@ void main() async {
   await HiveService.initBoxes();
   await SeedHelper.seedIfEmpty();
   
+  // Initial sync
   FoodLogSyncService.syncPendingLogs();
+
+  // Connectivity listener for auto-sync when back online
+  Connectivity().onConnectivityChanged.listen((results) {
+    if (results.any((r) => r != ConnectivityResult.none)) {
+      debugPrint('[Main] Connection restored, triggering sync...');
+      FoodLogSyncService.syncPendingLogs();
+    }
+  });
 
   runApp(const NutriTrackApp());
 }
