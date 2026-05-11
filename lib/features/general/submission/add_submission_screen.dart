@@ -1,10 +1,10 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../auth/auth_controller.dart';
-import './submission_model.dart';
+import './submission_controller.dart';
 
 class AddSubmissionScreen extends StatefulWidget {
   const AddSubmissionScreen({super.key});
@@ -23,23 +23,19 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
 
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
-  final _calCtrl = TextEditingController();
-  final _proteinCtrl = TextEditingController();
-  final _carbsCtrl = TextEditingController();
-  final _fatCtrl = TextEditingController();
 
   File? _imageFile;
   bool _isSaving = false;
+  double _uploadProgress = 0; // 0.0 – 1.0
+  String _uploadStatus = ''; // teks keterangan progress
 
   @override
   void dispose() {
     _nameCtrl.dispose();
-    _calCtrl.dispose();
-    _proteinCtrl.dispose();
-    _carbsCtrl.dispose();
-    _fatCtrl.dispose();
     super.dispose();
   }
+
+  // ── Pick image dengan kualitas & ukuran dibatasi langsung dari image_picker ──
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
@@ -63,7 +59,9 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
                     Navigator.pop(context);
                     final picked = await picker.pickImage(
                       source: ImageSource.camera,
-                      imageQuality: 80,
+                      imageQuality: 60, // turun dari 80 → 60
+                      maxWidth: 1024, // resize lebar max 1024px
+                      maxHeight: 1024, // resize tinggi max 1024px
                     );
                     if (picked != null) {
                       setState(() => _imageFile = File(picked.path));
@@ -80,7 +78,9 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
                     Navigator.pop(context);
                     final picked = await picker.pickImage(
                       source: ImageSource.gallery,
-                      imageQuality: 80,
+                      imageQuality: 60, // turun dari 80 → 60
+                      maxWidth: 1024,
+                      maxHeight: 1024,
                     );
                     if (picked != null) {
                       setState(() => _imageFile = File(picked.path));
@@ -108,7 +108,9 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
     );
   }
 
-  void _submit() async {
+  // ── Submit: optimistic UI — langsung kembali ke list, upload jalan di background ──
+
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_imageFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -120,28 +122,86 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
       return;
     }
 
-    final auth = context.read<AuthController>();
-    final user = auth.currentUser;
+    final user = context.read<AuthController>().currentUser;
+    if (user == null) return;
 
-    setState(() => _isSaving = true);
-    await Future.delayed(const Duration(milliseconds: 400));
+    setState(() {
+      _isSaving = true;
+      _uploadProgress = 0;
+      _uploadStatus = 'Menyiapkan pengajuan...';
+    });
 
-    final result = SubmissionModel(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      userId: user?.id ?? 'unknown',
-      userName: user?.name ?? 'User',
-      foodName: _nameCtrl.text.trim(),
-      imagePath: _imageFile!.path,
-      calories: double.tryParse(_calCtrl.text),
-      protein: double.tryParse(_proteinCtrl.text),
-      carbs: double.tryParse(_carbsCtrl.text),
-      fat: double.tryParse(_fatCtrl.text),
-      createdAt: DateTime.now(),
-    );
+    try {
+      // Tahap 1 — persiapan (cepat)
+      setState(() {
+        _uploadProgress = 0.1;
+        _uploadStatus = 'Memproses foto...';
+      });
 
-    if (mounted) {
-      setState(() => _isSaving = false);
-      Navigator.pop(context, result);
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      // Tahap 2 — panggil controller (upload berjalan di background)
+      setState(() {
+        _uploadProgress = 0.3;
+        _uploadStatus = 'Mengirim ke server...';
+      });
+
+      // addSubmission sekarang pakai optimistic UI:
+      // item langsung muncul di list dengan isSynced=false,
+      // lalu upload Storage + Firestore jalan di background.
+      // Kita tidak perlu await sampai selesai — cukup kick off lalu pop.
+      final ctrl = context.read<SubmissionController>();
+
+      // Jalankan tanpa await — upload jalan di background
+      ctrl.addSubmission(
+        userId: user.id,
+        userName: user.name,
+        foodName: _nameCtrl.text.trim(),
+        localImagePath: _imageFile!.path,
+      );
+
+      // Langsung update progress ke "selesai" dan keluar
+      setState(() {
+        _uploadProgress = 1.0;
+        _uploadStatus = 'Pengajuan dikirim!';
+      });
+
+      await Future.delayed(const Duration(milliseconds: 400));
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.cloud_upload_rounded, color: Colors.white, size: 18),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Pengajuan dikirim! Foto sedang diupload di background.',
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Color(0xFF2E7D32),
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+        setState(() {
+          _isSaving = false;
+          _uploadProgress = 0;
+          _uploadStatus = '';
+        });
+      }
     }
   }
 
@@ -154,7 +214,7 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _textDark),
-          onPressed: () => Navigator.pop(context),
+          onPressed: _isSaving ? null : () => Navigator.pop(context),
         ),
         title: const Text(
           'Ajukan Makanan',
@@ -165,44 +225,140 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
           ),
         ),
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            _buildImagePicker(),
-            const SizedBox(height: 20),
-            _label('Nama Makanan'),
-            const SizedBox(height: 8),
-            _field(
-              ctrl: _nameCtrl,
-              hint: 'Contoh: Gado-Gado Bandung',
-              icon: Icons.fastfood_rounded,
-              validator:
-                  (v) =>
-                      (v == null || v.trim().isEmpty)
-                          ? 'Nama wajib diisi'
-                          : null,
+      body: Stack(
+        children: [
+          Form(
+            key: _formKey,
+            child: ListView(
+              padding: const EdgeInsets.all(20),
+              children: [
+                _buildImagePicker(),
+                const SizedBox(height: 20),
+                _label('Nama Makanan'),
+                const SizedBox(height: 8),
+                _field(
+                  ctrl: _nameCtrl,
+                  hint: 'Contoh: Gado-Gado Bandung',
+                  icon: Icons.fastfood_rounded,
+                  validator:
+                      (v) =>
+                          (v == null || v.trim().isEmpty)
+                              ? 'Nama wajib diisi'
+                              : null,
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F5E9),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFA5D6A7)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline_rounded,
+                        color: Color(0xFF2E7D32),
+                        size: 18,
+                      ),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Data nutrisi akan diisi oleh ahli gizi setelah '
+                          'pengajuanmu disetujui admin.',
+                          style: TextStyle(
+                            color: Color(0xFF2E7D32),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 28),
+                _buildSubmitButton(),
+                const SizedBox(height: 16),
+              ],
             ),
-            const SizedBox(height: 20),
-            _sectionHeader(
-              'Perkiraan Nutrisi',
-              '(opsional — isi jika kamu tahu)',
+          ),
+
+          // ── Overlay progress saat saving ──
+          if (_isSaving)
+            Container(
+              color: Colors.black.withOpacity(0.45),
+              child: Center(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 40),
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Ikon animasi
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: _primary.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.cloud_upload_rounded,
+                          color: _primary,
+                          size: 34,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        _uploadStatus,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: _textDark,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 14),
+                      // Progress bar
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: LinearProgressIndicator(
+                          value: _uploadProgress,
+                          minHeight: 8,
+                          backgroundColor: _primary.withOpacity(0.15),
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            _primary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '${(_uploadProgress * 100).toInt()}%',
+                        style: TextStyle(color: _textMuted, fontSize: 12),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Foto diupload di background,\nkamu bisa lanjut aktivitas.',
+                        style: TextStyle(color: _textMuted, fontSize: 11),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
-            const SizedBox(height: 12),
-            _nutriGrid(),
-            const SizedBox(height: 28),
-            _buildSubmitButton(),
-            const SizedBox(height: 16),
-          ],
-        ),
+        ],
       ),
     );
   }
 
   Widget _buildImagePicker() {
     return GestureDetector(
-      onTap: _pickImage,
+      onTap: _isSaving ? null : _pickImage,
       child: Container(
         height: 200,
         decoration: BoxDecoration(
@@ -226,7 +382,39 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
                         fit: BoxFit.cover,
                       ),
                     ),
-                    // Overlay edit button
+                    // Info ukuran file
+                    Positioned(
+                      left: 10,
+                      bottom: 10,
+                      child: FutureBuilder<int>(
+                        future: _imageFile!.length(),
+                        builder: (_, snap) {
+                          if (!snap.hasData) return const SizedBox();
+                          final kb = snap.data! / 1024;
+                          final label =
+                              kb > 1024
+                                  ? '${(kb / 1024).toStringAsFixed(1)} MB'
+                                  : '${kb.toStringAsFixed(0)} KB';
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black54,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              label,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
                     Positioned(
                       right: 10,
                       bottom: 10,
@@ -280,8 +468,9 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
+                    const SizedBox(height: 4),
                     Text(
-                      'Format: JPG, PNG  •  Maks. 5MB',
+                      'Otomatis dikompres sebelum dikirim',
                       style: TextStyle(color: _textMuted, fontSize: 12),
                     ),
                   ],
@@ -290,146 +479,14 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
     );
   }
 
-  Widget _label(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontWeight: FontWeight.w700,
-        fontSize: 13,
-        color: _textDark,
-      ),
-    );
-  }
-
-  Widget _sectionHeader(String title, String subtitle) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        const Icon(Icons.bar_chart_rounded, color: _primary, size: 18),
-        const SizedBox(width: 6),
-        Text(
-          title,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 15,
-            color: _textDark,
-          ),
-        ),
-        const SizedBox(width: 6),
-        Text(subtitle, style: TextStyle(color: _textMuted, fontSize: 11)),
-      ],
-    );
-  }
-
-  Widget _nutriGrid() {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: _nutriField(
-                ctrl: _calCtrl,
-                label: 'Kalori',
-                unit: 'kal',
-                color: const Color(0xFFFF6B35),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _nutriField(
-                ctrl: _proteinCtrl,
-                label: 'Protein',
-                unit: 'g',
-                color: _primary,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _nutriField(
-                ctrl: _carbsCtrl,
-                label: 'Karbohidrat',
-                unit: 'g',
-                color: const Color(0xFFFFB800),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _nutriField(
-                ctrl: _fatCtrl,
-                label: 'Lemak',
-                unit: 'g',
-                color: const Color(0xFF3498DB),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _nutriField({
-    required TextEditingController ctrl,
-    required String label,
-    required String unit,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3), width: 1.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: ctrl,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
-                  ],
-                  style: const TextStyle(
-                    color: _textDark,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'opsional',
-                    hintStyle: TextStyle(
-                      color: _textMuted.withOpacity(0.5),
-                      fontSize: 13,
-                    ),
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
-              ),
-              Text(unit, style: TextStyle(color: _textMuted, fontSize: 12)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _label(String text) => Text(
+    text,
+    style: const TextStyle(
+      fontWeight: FontWeight.w700,
+      fontSize: 13,
+      color: _textDark,
+    ),
+  );
 
   Widget _field({
     required TextEditingController ctrl,

@@ -1,6 +1,6 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import '../submission_model.dart';
+import './submission_image_widget.dart';
 
 class SubmissionCard extends StatelessWidget {
   final SubmissionModel item;
@@ -46,30 +46,25 @@ class SubmissionCard extends StatelessWidget {
   }
 
   Widget _buildImage() {
-    // File lokal (dari image_picker)
-    if (item.imagePath.isNotEmpty &&
-        !item.imagePath.startsWith('assets') &&
-        File(item.imagePath).existsSync()) {
-      return Image.file(
-        File(item.imagePath),
+    return SubmissionImage(
+      imagePath: item.imagePath,
+      width: 90,
+      height: 90,
+      fit: BoxFit.cover,
+      placeholder: _placeholder(),
+      loadingWidget: Container(
         width: 90,
         height: 90,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _placeholder(),
-      );
-    }
-    // Asset
-    if (item.imagePath.startsWith('assets')) {
-      return Image.asset(
-        item.imagePath,
-        width: 90,
-        height: 90,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _placeholder(),
-      );
-    }
-    // Placeholder
-    return _placeholder();
+        color: _primary.withOpacity(0.08),
+        child: const Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _placeholder() {
@@ -79,6 +74,62 @@ class SubmissionCard extends StatelessWidget {
       color: _primary.withOpacity(0.1),
       child: const Icon(Icons.fastfood_rounded, color: _primary, size: 36),
     );
+  }
+
+  /// Badge indikator sync cloud di pojok kanan atas gambar
+  Widget _buildSyncBadge() {
+    if (item.isSynced) {
+      return Positioned(
+        top: 6,
+        left: 6,
+        child: Container(
+          padding: const EdgeInsets.all(3),
+          decoration: BoxDecoration(
+            color: Colors.black38,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: const Icon(
+            Icons.cloud_done_rounded,
+            color: Colors.white,
+            size: 13,
+          ),
+        ),
+      );
+    } else {
+      return Positioned(
+        top: 6,
+        left: 6,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+          decoration: BoxDecoration(
+            color: Colors.orange.shade700,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 10,
+                height: 10,
+                child: CircularProgressIndicator(
+                  strokeWidth: 1.5,
+                  color: Colors.white,
+                ),
+              ),
+              SizedBox(width: 4),
+              Text(
+                'Mengirim...',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -96,15 +147,21 @@ class SubmissionCard extends StatelessWidget {
               offset: const Offset(0, 2),
             ),
           ],
+          // Border orange tipis kalau belum sync
+          border:
+              item.isSynced
+                  ? null
+                  : Border.all(color: Colors.orange.shade300, width: 1.5),
         ),
         child: Row(
           children: [
+            // Gambar + badge sync
             ClipRRect(
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(16),
                 bottomLeft: Radius.circular(16),
               ),
-              child: _buildImage(),
+              child: Stack(children: [_buildImage(), _buildSyncBadge()]),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -120,6 +177,8 @@ class SubmissionCard extends StatelessWidget {
                         fontSize: 14,
                         color: _textDark,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
                     if (item.calories != null)
@@ -142,6 +201,16 @@ class SubmissionCard extends StatelessWidget {
                         ),
                       ],
                     ),
+                    if (!item.isSynced) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Menunggu koneksi internet...',
+                        style: TextStyle(
+                          color: Colors.orange.shade700,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

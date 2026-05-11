@@ -1,137 +1,227 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'submission_model.dart';
-import 'submission_hive_model.dart';
+import 'model/pending_submission_model.dart';
+import '../../../services/submission_firebase_service.dart';
+import '../../../services/hive_service.dart';
 
-/// Controller global yang di-share antara Admin dan Nutritionist.
-/// Di-provide di main.dart → perubahan dari admin langsung terlihat di nutri.
+/// Controller global yang di-share antara User, Admin, dan Nutritionist.
+///
+/// Offline-first flow:
+/// 1. User submit → langsung simpan ke Hive (antrian lokal) + tampil di list
+/// 2. Upload gambar ke Cloudinary + simpan data ke Firestore di background
+/// 3. Berhasil → hapus dari Hive, item sekarang hidup dari stream Firestore
+/// 4. App ditutup sebelum upload selesai → Hive tetap ada
+/// 5. Buka app lagi → init() baca Hive, retry upload yang tertunda otomatis
 class SubmissionController extends ChangeNotifier {
-  static const _boxName = 'submissions';
+  List<SubmissionModel> _cloudItems = [];
+  List<SubmissionModel> _localItems = [];
+  bool _isLoading = false;
+  String? _error;
 
-  late Box<SubmissionHiveModel> _box;
-  List<SubmissionModel> _items = [];
+  // ── Public getters ────────────────────────────────────────────────────────
 
-  // ── Public lists ─────────────────────────────────────────────────────────
+  /// Gabungan: item lokal (belum sync) di depan + item cloud
+  List<SubmissionModel> get all {
+    final cloudIds = _cloudItems.map((e) => e.id).toSet();
+    final onlyLocal = _localItems.where((e) => !cloudIds.contains(e.id));
+    return [...onlyLocal, ..._cloudItems];
+  }
 
-  List<SubmissionModel> get all => List.unmodifiable(_items);
+  bool get isLoading => _isLoading;
+  String? get error => _error;
 
-  /// Semua submission milik user tertentu (untuk tampilan user)
   List<SubmissionModel> byUser(String userId) =>
-      _items.where((s) => s.userId == userId).toList();
+      all.where((s) => s.userId == userId).toList();
 
-  /// Pending — menunggu review admin
   List<SubmissionModel> get pending =>
-      _items.where((s) => s.status == SubmissionStatus.pending).toList();
+      all.where((s) => s.status == SubmissionStatus.pending).toList();
 
-  /// Approved — untuk nutritionist isi data nutrisi
   List<SubmissionModel> get approved =>
-      _items.where((s) => s.status == SubmissionStatus.approved).toList();
+      all.where((s) => s.status == SubmissionStatus.approved).toList();
 
-  /// Approved belum diisi nutrisi (tugas nutritionist)
   List<SubmissionModel> get approvedNeedsFill =>
       approved.where((s) => !s.isNutriFilled).toList();
 
-  /// Approved sudah diisi nutrisi
   List<SubmissionModel> get approvedFilled =>
       approved.where((s) => s.isNutriFilled).toList();
 
   List<SubmissionModel> get canceled =>
-      _items.where((s) => s.status == SubmissionStatus.canceled).toList();
+      all.where((s) => s.status == SubmissionStatus.canceled).toList();
 
   // ── Init ─────────────────────────────────────────────────────────────────
 
-  Future<void> init() async {
-    _box = Hive.box<SubmissionHiveModel>(_boxName);
-    _loadFromBox();
-    // Seed dummy jika box masih kosong (untuk development)
-    if (_items.isEmpty) await _seedDummy();
+  Future<void> init({required String role, required String userId}) async {
+    debugPrint('[Controller] init() dipanggil — role: $role, userId: $userId');
+    _setLoading(true);
+    _loadLocalQueue(userId);
+
+    final stream =
+        (role == 'admin' || role == 'nutritionist')
+            ? SubmissionFirebaseService.streamAll()
+            : SubmissionFirebaseService.streamByUser(userId);
+
+    stream.listen(
+      (cloudItems) {
+        debugPrint('[Controller] Stream dapat ${cloudItems.length} item');
+        _cloudItems = cloudItems;
+        _error = null;
+        _setLoading(false);
+        _cleanSyncedLocalItems();
+      },
+      onError: (e) {
+        debugPrint('[Controller] Stream ERROR: $e');
+        _error = 'Gagal memuat data: $e';
+        _setLoading(false);
+      },
+    );
+
+    if (role == 'user') {
+      // Retry sequential — satu per satu agar tidak race condition
+      _retryPendingUploads(userId);
+    }
   }
 
-  void _loadFromBox() {
-    _items =
-        _box.values.map((h) => h.toModel()).toList()
+  void _setLoading(bool v) {
+    _isLoading = v;
+    notifyListeners();
+  }
+
+  // ── Hive queue helpers ────────────────────────────────────────────────────
+
+  void _loadLocalQueue(String userId) {
+    _localItems =
+        HiveService.pendingSubs.values
+            .where((p) => p.userId == userId)
+            .map(_pendingToModel)
+            .toList()
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     notifyListeners();
   }
 
-  Future<void> _seedDummy() async {
-    final seeds = [
-      SubmissionModel(
-        id: 'seed_1',
-        userId: 'u1',
-        userName: 'Budi Santoso',
-        foodName: 'Gado-Gado Bandung',
-        imagePath: '',
-        status: SubmissionStatus.pending,
-        createdAt: DateTime.now().subtract(const Duration(hours: 2)),
-      ),
-      SubmissionModel(
-        id: 'seed_2',
-        userId: 'u2',
-        userName: 'Siti Rahayu',
-        foodName: 'Es Cendol Dawet',
-        imagePath: '',
-        status: SubmissionStatus.pending,
-        createdAt: DateTime.now().subtract(const Duration(hours: 5)),
-      ),
-      SubmissionModel(
-        id: 'seed_3',
-        userId: 'u3',
-        userName: 'Andi Pratama',
-        foodName: 'Nasi Liwet Solo',
-        imagePath: '',
-        status: SubmissionStatus.approved,
-        createdAt: DateTime.now().subtract(const Duration(days: 1)),
-      ),
-      SubmissionModel(
-        id: 'seed_4',
-        userId: 'u4',
-        userName: 'Dewi Lestari',
-        foodName: 'Rendang Padang',
-        imagePath: '',
-        calories: 468,
-        protein: 34,
-        carbs: 6,
-        fat: 35,
-        status: SubmissionStatus.approved,
-        createdAt: DateTime.now().subtract(const Duration(days: 2)),
-      ),
-      SubmissionModel(
-        id: 'seed_5',
-        userId: 'u1',
-        userName: 'Budi Santoso',
-        foodName: 'Soto Ayam Lamongan',
-        imagePath: '',
-        status: SubmissionStatus.pending,
-        createdAt: DateTime.now().subtract(const Duration(days: 3)),
-      ),
-    ];
-    for (final s in seeds) {
-      await _box.put(s.id, SubmissionHiveModel.fromModel(s));
+  void _cleanSyncedLocalItems() {
+    final cloudIds = _cloudItems.map((e) => e.id).toSet();
+    final toDelete =
+        HiveService.pendingSubs.values
+            .where((p) => cloudIds.contains(p.id))
+            .map((p) => p.key)
+            .toList();
+    for (final key in toDelete) {
+      HiveService.pendingSubs.delete(key);
     }
-    _loadFromBox();
+    _localItems.removeWhere((e) => cloudIds.contains(e.id));
+    notifyListeners();
+  }
+
+  SubmissionModel _pendingToModel(PendingSubmissionModel p) {
+    return SubmissionModel(
+      id: p.id,
+      userId: p.userId,
+      userName: p.userName,
+      foodName: p.foodName,
+      imagePath: p.localImagePath, // path lokal sementara sebelum sync
+      status: SubmissionStatus.pending,
+      createdAt: p.createdAt,
+      isSynced: false,
+    );
+  }
+
+  // Retry sequential — await satu per satu agar tidak paralel
+  Future<void> _retryPendingUploads(String userId) async {
+    final pending =
+        HiveService.pendingSubs.values
+            .where((p) => p.userId == userId)
+            .toList();
+    for (final p in pending) {
+      await _uploadToCloud(p);
+    }
   }
 
   // ── User: ajukan makanan ──────────────────────────────────────────────────
 
-  Future<SubmissionModel> addSubmission({
+  Future<void> addSubmission({
     required String userId,
     required String userName,
     required String foodName,
-    required String imagePath,
+    required String localImagePath,
   }) async {
-    final model = SubmissionModel(
-      id: 'sub_${DateTime.now().millisecondsSinceEpoch}',
+    debugPrint('[addSubmission] Dipanggil: $foodName');
+    final id = 'sub_${DateTime.now().millisecondsSinceEpoch}';
+
+    final pending = PendingSubmissionModel(
+      id: id,
       userId: userId,
       userName: userName,
       foodName: foodName,
-      imagePath: imagePath,
-      status: SubmissionStatus.pending,
+      localImagePath: localImagePath,
       createdAt: DateTime.now(),
     );
-    await _box.put(model.id, SubmissionHiveModel.fromModel(model));
-    _loadFromBox();
-    return model;
+
+    await HiveService.pendingSubs.put(id, pending);
+    debugPrint('[addSubmission] Tersimpan di Hive: $id');
+
+    _localItems.insert(0, _pendingToModel(pending));
+    notifyListeners();
+
+    // Upload berjalan di background, error ditangkap agar tidak Unhandled Exception
+    debugPrint('[addSubmission] Memanggil _uploadToCloud...');
+    unawaited(
+      _uploadToCloud(pending).catchError((e) {
+        debugPrint('[Upload] Background error tertangkap: $e');
+      }),
+    );
+  }
+
+  Future<void> _uploadToCloud(PendingSubmissionModel p) async {
+    debugPrint('[Upload] Mulai upload ke Cloudinary: ${p.id} – ${p.foodName}');
+    try {
+      // Jika file lokal tidak ada, jangan hapus dari Hive
+      if (!File(p.localImagePath).existsSync()) {
+        debugPrint('[Upload] File tidak ditemukan: ${p.localImagePath}');
+        _error =
+            'File gambar tidak ditemukan untuk "${p.foodName}". '
+            'Silakan coba submit ulang.';
+        notifyListeners();
+        return;
+      }
+
+      // Upload gambar ke Cloudinary — dapat URL permanen
+      final imageUrl = await SubmissionFirebaseService.uploadImage(
+        p.localImagePath,
+        p.id,
+        onProgress: (progress) {
+          debugPrint('[Upload] Progress: ${(progress * 100).toInt()}%');
+        },
+      );
+      debugPrint('[Upload] Cloudinary berhasil: $imageUrl');
+
+      // Simpan data submission + URL gambar ke Firestore
+      final model = SubmissionModel(
+        id: p.id,
+        userId: p.userId,
+        userName: p.userName,
+        foodName: p.foodName,
+        imagePath: imageUrl, // URL Cloudinary permanen
+        status: SubmissionStatus.pending,
+        createdAt: p.createdAt,
+        isSynced: true,
+      );
+
+      await SubmissionFirebaseService.add(model);
+      debugPrint('[Upload] Berhasil simpan ke Firestore: ${p.id}');
+
+      // Hapus dari Hive setelah berhasil
+      await HiveService.pendingSubs.delete(p.id);
+      _localItems.removeWhere((e) => e.id == p.id);
+      _error = null;
+      notifyListeners();
+    } catch (e) {
+      // Error ditangkap — item tetap di Hive untuk retry berikutnya
+      debugPrint('[Upload] GAGAL: $e');
+      _error = 'Upload gagal untuk "${p.foodName}". Akan dicoba ulang.';
+      notifyListeners();
+    }
   }
 
   // ── Admin: terima / tolak ─────────────────────────────────────────────────
@@ -141,17 +231,18 @@ class SubmissionController extends ChangeNotifier {
     required SubmissionStatus newStatus,
     String? reviewNote,
   }) async {
-    final existing = _box.get(id);
-    if (existing == null) return;
-    final updated = existing.toModel().copyWith(
-      status: newStatus,
-      reviewNote: reviewNote,
-    );
-    await _box.put(id, SubmissionHiveModel.fromModel(updated));
-    _loadFromBox();
+    try {
+      await SubmissionFirebaseService.update(id, {
+        'status': newStatus.name,
+        if (reviewNote != null) 'reviewNote': reviewNote,
+      });
+    } catch (e) {
+      _error = 'Gagal memperbarui status: $e';
+      notifyListeners();
+    }
   }
 
-  // ── Nutritionist: isi / update data nutrisi ───────────────────────────────
+  // ── Nutritionist: isi data nutrisi ───────────────────────────────────────
 
   Future<void> saveNutriData({
     required String id,
@@ -162,18 +253,18 @@ class SubmissionController extends ChangeNotifier {
     required double fat,
     String? nutriNote,
   }) async {
-    final existing = _box.get(id);
-    if (existing == null) return;
-
-    final updated = existing.toModel().copyWith(
-      foodName: foodName ?? existing.foodName,
-      calories: calories,
-      protein: protein,
-      carbs: carbs,
-      fat: fat,
-      nutriNote: nutriNote,
-    );
-    await _box.put(id, SubmissionHiveModel.fromModel(updated));
-    _loadFromBox();
+    try {
+      await SubmissionFirebaseService.update(id, {
+        if (foodName != null) 'foodName': foodName,
+        'calories': calories,
+        'protein': protein,
+        'carbs': carbs,
+        'fat': fat,
+        if (nutriNote != null) 'nutriNote': nutriNote,
+      });
+    } catch (e) {
+      _error = 'Gagal menyimpan data nutrisi: $e';
+      notifyListeners();
+    }
   }
 }
