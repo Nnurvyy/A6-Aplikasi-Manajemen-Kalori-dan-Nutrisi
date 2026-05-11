@@ -237,7 +237,7 @@ class _DashboardBodyState extends State<DashboardBody> {
             final fatConsumed = filteredHistory.fold(0.0, (s, i) => s + i.fat);
             final waterConsumed = filteredHistory.fold(0.0, (s, i) {
               if (i.foodName.toLowerCase() == 'air putih') {
-                return s + i.servingSize;
+                return s + (i.servingSize * i.quantity);
               }
               return s;
             });
