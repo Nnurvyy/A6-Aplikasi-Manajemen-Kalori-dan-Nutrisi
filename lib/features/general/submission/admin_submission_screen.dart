@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
-<<<<<<< HEAD:lib/features/screen/submission/admin_submission_screen.dart
-import 'submission_model.dart';
-import '../../widgets/submission/submission_card.dart';
-=======
 import './submission_model.dart';
 import './widgets/submission_card.dart';
->>>>>>> 39cad47cb319498d4508136c007c0b5a0b7427a0:lib/features/general/submission/admin_submission_screen.dart
 
 class AdminSubmissionScreen extends StatefulWidget {
   final UserRole role;
