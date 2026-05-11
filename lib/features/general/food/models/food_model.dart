@@ -16,6 +16,7 @@ class FoodModel extends HiveObject {
   String? description;
   String? ingredientsJson;
   bool isManualIngredient;
+  String? userId; // ← TAMBAHKAN INI
 
   FoodModel({
     required this.id,
@@ -32,6 +33,7 @@ class FoodModel extends HiveObject {
     this.description,
     this.ingredientsJson,
     this.isManualIngredient = false,
+    this.userId, // ← TAMBAHKAN INI
   });
 
   factory FoodModel.fromFirestore(Map<String, dynamic> map, String docId) {
@@ -54,6 +56,7 @@ class FoodModel extends HiveObject {
       description: map['description'],
       ingredientsJson: map['ingredientsJson'],
       isManualIngredient: map['isManualIngredient'] ?? false,
+      userId: map['userId'], // ← TAMBAHKAN INI
     );
   }
 
@@ -73,6 +76,7 @@ class FoodModel extends HiveObject {
       'description': description,
       'ingredientsJson': ingredientsJson,
       'isManualIngredient': isManualIngredient,
+      'userId': userId, // ← TAMBAHKAN INI
     };
   }
 
@@ -103,6 +107,7 @@ class FoodModel extends HiveObject {
     String? description,
     String? ingredientsJson,
     bool? isManualIngredient,
+    String? userId, // ← TAMBAHKAN INI
   }) {
     return FoodModel(
       id: id ?? this.id,
@@ -119,6 +124,7 @@ class FoodModel extends HiveObject {
       description: description ?? this.description,
       ingredientsJson: ingredientsJson ?? this.ingredientsJson,
       isManualIngredient: isManualIngredient ?? this.isManualIngredient,
+      userId: userId ?? this.userId, // ← TAMBAHKAN INI
     );
   }
 
@@ -138,6 +144,7 @@ class FoodModel extends HiveObject {
       'description': description,
       'ingredientsJson': ingredientsJson,
       'isManualIngredient': isManualIngredient,
+      'userId': userId, // ← TAMBAHKAN INI
     };
   }
 
@@ -157,6 +164,7 @@ class FoodModel extends HiveObject {
       description: map['description'],
       ingredientsJson: map['ingredientsJson'],
       isManualIngredient: map['isManualIngredient'] ?? false,
+      userId: map['userId'], // ← TAMBAHKAN INI
     );
   }
 }
@@ -186,13 +194,14 @@ class FoodModelAdapter extends TypeAdapter<FoodModel> {
       defaultServingSize: f[11] as double? ?? 100,
       ingredientsJson: f[12] as String?,
       isManualIngredient: f[13] as bool? ?? false,
+      userId: f[14] as String?, // ← TAMBAHKAN INI
     );
   }
 
   @override
   void write(BinaryWriter writer, FoodModel obj) {
     writer
-      ..writeByte(14)
+      ..writeByte(15) // ← UBAH DARI 14 KE 15
       ..writeByte(0)..write(obj.id)
       ..writeByte(1)..write(obj.name)
       ..writeByte(2)..write(obj.category)
@@ -206,6 +215,7 @@ class FoodModelAdapter extends TypeAdapter<FoodModel> {
       ..writeByte(10)..write(obj.description)
       ..writeByte(11)..write(obj.defaultServingSize)
       ..writeByte(12)..write(obj.ingredientsJson)
-      ..writeByte(13)..write(obj.isManualIngredient);
+      ..writeByte(13)..write(obj.isManualIngredient)
+      ..writeByte(14)..write(obj.userId); // ← TAMBAHKAN INI
   }
 }

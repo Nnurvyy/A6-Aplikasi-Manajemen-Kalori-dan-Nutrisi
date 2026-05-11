@@ -1,5 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../../../services/hive_service.dart';
+import '../../../services/watchlist_firestore_service.dart';
+import '../../../services/watchlist_sync_service.dart';
 import './models/food_model.dart';
 import './models/watchlist_model.dart';
 
@@ -11,8 +13,19 @@ class WatchlistController extends ChangeNotifier {
     _items = HiveService.watchlists.values
         .whereType<WatchlistModel>()
         .where((item) => item.userId == userId)
-        .toList();
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     notifyListeners();
+    
+    // Trigger sync
+    WatchlistSyncService.syncWatchlist(userId).then((_) {
+      _items = HiveService.watchlists.values
+          .whereType<WatchlistModel>()
+          .where((item) => item.userId == userId)
+          .toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      notifyListeners();
+    });
   }
 
   bool isInWatchlist(String userId, String foodId) {
@@ -29,6 +42,13 @@ class WatchlistController extends ChangeNotifier {
       final item = _items[existingIndex];
       await HiveService.watchlists.delete(item.id);
       _items.removeAt(existingIndex);
+      
+      // Try delete from remote
+      try {
+        await WatchlistFirestoreService.deleteWatchlist(item.id);
+      } catch (e) {
+        debugPrint("Failed to delete remote watchlist: $e");
+      }
     } else {
       // Add
       final newItem = WatchlistModel(
@@ -36,9 +56,19 @@ class WatchlistController extends ChangeNotifier {
         userId: userId,
         food: food,
         createdAt: DateTime.now(),
+        isSynced: false,
       );
       await HiveService.watchlists.put(newItem.id, newItem);
-      _items.add(newItem);
+      _items.insert(0, newItem);
+      
+      // Try sync immediately
+      try {
+        await WatchlistFirestoreService.saveWatchlist(newItem);
+        newItem.isSynced = true;
+        await newItem.save();
+      } catch (e) {
+        debugPrint("Failed to sync new watchlist item: $e");
+      }
     }
     notifyListeners();
   }

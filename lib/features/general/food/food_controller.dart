@@ -24,7 +24,7 @@ class FoodController extends ChangeNotifier {
   }
   List<FoodModel> get foods => _filtered;
   List<FoodModel> get allApproved =>
-      _allFoods.where((f) => f.isApproved && !f.id.startsWith('manual_')).toList();
+      _allFoods.where((f) => f.isApproved && (f.userId == null)).toList();
   
   List<FoodModel> get manualFoods =>
       _allFoods.where((f) => f.id.startsWith('manual_')).toList();
@@ -38,27 +38,43 @@ class FoodController extends ChangeNotifier {
 
   FoodController() {
     loadFoods();
-    loadFromLocal();
-    syncWithFirebase();
   }
 
-  void loadFromLocal() {
-    _allFoods = HiveService.foods.values.cast<FoodModel>().toList();
+  void loadFromLocal({String? userId}) {
+    _allFoods = HiveService.foods.values.cast<FoodModel>()
+        .where((f) => f.userId == null || f.userId == userId)
+        .toList();
     _applyFilter();
   }
 
-  Future<void> syncWithFirebase() async {
+  Future<void> syncWithFirebase({String? userId}) async {
     _isLoading = true;
     notifyListeners();
     try {
-      final snapshot = await _db.collection('foods').get();
+      // 1. Fetch Approved/Global foods
+      final approvedSnapshot = await _db.collection('foods')
+          .where('isApproved', isEqualTo: true)
+          .where('userId', isNull: true)
+          .get();
       
-      for (var doc in snapshot.docs) {
+      for (var doc in approvedSnapshot.docs) {
         final food = FoodModel.fromFirestore(doc.data(), doc.id);
         await HiveService.foods.put(food.id, food);
       }
+
+      // 2. Fetch User-specific foods if userId provided
+      if (userId != null) {
+        final userSnapshot = await _db.collection('foods')
+            .where('userId', isEqualTo: userId)
+            .get();
+            
+        for (var doc in userSnapshot.docs) {
+          final food = FoodModel.fromFirestore(doc.data(), doc.id);
+          await HiveService.foods.put(food.id, food);
+        }
+      }
       
-      loadFromLocal(); 
+      loadFromLocal(userId: userId); 
     } catch (e) {
       debugPrint("Sync Error: $e");
     } finally {
@@ -72,7 +88,7 @@ class FoodController extends ChangeNotifier {
     return getUserLogs(userId).fold(0, (total, item) => total + item.calories);
   }
 
-  void loadFoods({bool approvedOnly = true}) {
+  void loadFoods({bool approvedOnly = true, String? userId}) {
     var all = HiveService.foods.values.cast<FoodModel>().toList();
     
     // Ensure Air Putih exists and remove duplicates
@@ -107,7 +123,7 @@ class FoodController extends ChangeNotifier {
     }
 
     _allFoods = all
-        .where((f) => !approvedOnly || f.isApproved)
+        .where((f) => (!approvedOnly || f.isApproved) && (f.userId == null || f.userId == userId))
         .toList()
       ..sort((a, b) => a.name.compareTo(b.name));
     _applyFilter();
