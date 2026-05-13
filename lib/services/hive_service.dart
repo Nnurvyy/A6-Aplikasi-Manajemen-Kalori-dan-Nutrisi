@@ -4,6 +4,8 @@ import '../features/general/food/models/food_model.dart';
 import '../features/general/food/models/log_model.dart';
 import '../features/user/progress/models/weight_log_model.dart';
 import '../features/general/submission/model/pending_submission_model.dart';
+import '../features/user/notification/models/notification_setting_model.dart'; 
+
 
 class HiveService {
   static const String userBox = 'users';
@@ -13,6 +15,8 @@ class HiveService {
   static const String watchlistBox = 'watchlists';
   static const String weightLogBox = 'weight_logs';
   static const String pendingSubBox = 'pending_submissions';
+  static const String notificationBox = 'notification_settings'; 
+
 
   static Future<void> initBoxes() async {
     // ── Daftarkan adapter SEBELUM openBox ──────────────────────────────
@@ -32,6 +36,7 @@ class HiveService {
     await Hive.openBox<dynamic>(watchlistBox);
     await Hive.openBox<WeightLogModel>(weightLogBox);
     await Hive.openBox<PendingSubmissionModel>(pendingSubBox);
+    await Hive.openBox<NotificationSettingModel>(notificationBox); 
   }
 
   static Box<UserModel> get users => Hive.box(userBox);
@@ -41,4 +46,6 @@ class HiveService {
   static Box get watchlists => Hive.box(watchlistBox);
   static Box<WeightLogModel> get weightLogs => Hive.box(weightLogBox);
   static Box<PendingSubmissionModel> get pendingSubs => Hive.box(pendingSubBox);
+  static Box<NotificationSettingModel> get notificationSettings =>
+    Hive.box(notificationBox); 
 }
