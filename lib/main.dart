@@ -14,6 +14,7 @@ import './features/general/food/watchlist_controller.dart';
 import './features/user/progress/models/weight_log_model.dart';
 import './features/general/submission/submission_controller.dart';
 import './features/general/submission/model/pending_submission_model.dart';
+import './features/user/notification/models/notification_setting_model.dart'; 
 import './helpers/date_controller.dart';
 import './services/hive_service.dart';
 import './helpers/seed_helper.dart';
@@ -57,7 +58,8 @@ void main() async {
   Hive.registerAdapter(LogModelAdapter());
   Hive.registerAdapter(WatchlistModelAdapter());
   Hive.registerAdapter(WeightLogModelAdapter());
-  Hive.registerAdapter(PendingSubmissionModelAdapter()); // ← TAMBAH
+  Hive.registerAdapter(PendingSubmissionModelAdapter()); 
+  Hive.registerAdapter(NotificationSettingModelAdapter()); 
 
   await HiveService.initBoxes();
   await SeedHelper.seedIfEmpty();
