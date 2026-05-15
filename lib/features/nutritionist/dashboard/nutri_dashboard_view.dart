@@ -10,7 +10,7 @@ class NutriDashboardView extends StatelessWidget {
 
   // ── Tema hijau selaras dengan user & admin ──────────────────────────────
   static const _green = Color(0xFF2E7D32);
-  static const _greenMid = Color(0xFF388E3C);
+
   static const _greenLight = Color(0xFF4CAF50);
   static const _bg = Color(0xFFF4FAF6);
   static const _dark = Color(0xFF1A2E22);
@@ -56,7 +56,7 @@ class NutriDashboardView extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Halo, ${user?.name?.split(' ').first ?? 'Nutri'} 👋',
+                              'Halo, ${user?.name.split(' ').first ?? 'Nutri'} 👋',
                               style: const TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.w800,
@@ -77,7 +77,7 @@ class NutriDashboardView extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.18),
+                          color: Colors.white.withValues(alpha: 0.18),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
@@ -178,7 +178,7 @@ class NutriDashboardView extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: _green.withOpacity(0.08),
+                        color: _green.withValues(alpha: 0.08),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -218,10 +218,10 @@ class NutriDashboardView extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.15),
+            color: Colors.white.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               width: 1,
             ),
           ),
@@ -256,9 +256,9 @@ class NutriDashboardView extends StatelessWidget {
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
+          color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withOpacity(0.2)),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
         ),
         child: Row(
           children: [
@@ -315,10 +315,10 @@ class _NutriCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: accent.withOpacity(0.35), width: 1.5),
+          border: Border.all(color: accent.withValues(alpha: 0.35), width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 3),
             ),
@@ -331,7 +331,7 @@ class _NutriCard extends StatelessWidget {
               width: 50,
               height: 50,
               decoration: BoxDecoration(
-                color: accent.withOpacity(0.12),
+                color: accent.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Center(
@@ -391,7 +391,7 @@ class _NutriCard extends StatelessWidget {
                         vertical: 3,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFFB300).withOpacity(0.12),
+                        color: const Color(0xFFFFB300).withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Text(
@@ -410,7 +410,7 @@ class _NutriCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: accent.withOpacity(0.1),
+                color: accent.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -428,7 +428,7 @@ class _NutriCard extends StatelessWidget {
   Widget _chip(String text, Color color) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
     decoration: BoxDecoration(
-      color: color.withOpacity(0.1),
+      color: color.withValues(alpha: 0.1),
       borderRadius: BorderRadius.circular(6),
     ),
     child: Text(
@@ -437,3 +437,4 @@ class _NutriCard extends StatelessWidget {
     ),
   );
 }
+

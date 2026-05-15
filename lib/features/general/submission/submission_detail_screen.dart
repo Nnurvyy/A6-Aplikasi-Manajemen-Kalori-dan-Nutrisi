@@ -60,7 +60,7 @@ class SubmissionDetailScreen extends StatelessWidget {
     return Container(
       height: 220,
       decoration: BoxDecoration(
-        color: _primary.withOpacity(0.1),
+        color: _primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
       ),
       child: const Center(
@@ -220,9 +220,9 @@ class SubmissionDetailScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: _statusColor.withOpacity(0.1),
+              color: _statusColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: _statusColor.withOpacity(0.3)),
+              border: Border.all(color: _statusColor.withValues(alpha: 0.3)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -268,7 +268,7 @@ class SubmissionDetailScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -328,3 +328,4 @@ class SubmissionDetailScreen extends StatelessWidget {
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year} '
       '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
 }
+
