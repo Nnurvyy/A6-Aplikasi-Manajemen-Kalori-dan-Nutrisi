@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:provider/provider.dart';
-import '../../general/submission/submission_controller.dart';
 import '../../general/submission/submission_model.dart';
 
 class AdminDashboardController extends GetxController {
@@ -55,7 +53,6 @@ class AdminDashboardController extends GetxController {
               bgColor = Colors.red.shade50;
               break;
             case SubmissionStatus.pending:
-            default:
               statusStr = 'Menunggu';
               statusColor = Colors.orange;
               bgColor = Colors.orange.shade50;

@@ -86,7 +86,7 @@ class _FoodListViewState extends State<FoodListView> {
               style: GoogleFonts.poppins(color: Colors.white, fontSize: 14),
               decoration: InputDecoration(
                 hintText: 'Cari makanan...',
-                hintStyle: GoogleFonts.poppins(color: Colors.white.withOpacity(0.6), fontSize: 14),
+                hintStyle: GoogleFonts.poppins(color: Colors.white.withValues(alpha: 0.6), fontSize: 14),
                 prefixIcon: const Icon(Icons.search_rounded, color: Colors.white70),
                 suffixIcon: _searchCtrl.text.isNotEmpty
                     ? IconButton(
@@ -99,7 +99,7 @@ class _FoodListViewState extends State<FoodListView> {
                       )
                     : null,
                 filled: true,
-                fillColor: Colors.white.withOpacity(0.15),
+                fillColor: Colors.white.withValues(alpha: 0.15),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -287,7 +287,7 @@ class _FoodListViewState extends State<FoodListView> {
                 ),
               ),
             );
-          }).take(7).toList(),
+          }).take(7),
           const SizedBox(width: 8),
           _pageBtn(Icons.chevron_right_rounded, current < total - 1, () => setState(() => _currentPage++), isDark),
         ],
@@ -342,7 +342,7 @@ class _FoodListViewState extends State<FoodListView> {
               ? []
               : [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
+                    color: Colors.black.withValues(alpha: 0.04),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   )
@@ -442,7 +442,7 @@ class _FoodListViewState extends State<FoodListView> {
     return Container(
       width: 50, height: 50,
       decoration: BoxDecoration(
-        color: AppColors.primaryLight.withOpacity(0.12),
+        color: AppColors.primaryLight.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Center(
@@ -458,7 +458,7 @@ class _FoodListViewState extends State<FoodListView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(text,
@@ -466,3 +466,4 @@ class _FoodListViewState extends State<FoodListView> {
     );
   }
 }
+

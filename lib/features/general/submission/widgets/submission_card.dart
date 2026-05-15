@@ -55,7 +55,7 @@ class SubmissionCard extends StatelessWidget {
       loadingWidget: Container(
         width: 90,
         height: 90,
-        color: _primary.withOpacity(0.08),
+        color: _primary.withValues(alpha: 0.08),
         child: const Center(
           child: SizedBox(
             width: 20,
@@ -71,7 +71,7 @@ class SubmissionCard extends StatelessWidget {
     return Container(
       width: 90,
       height: 90,
-      color: _primary.withOpacity(0.1),
+      color: _primary.withValues(alpha: 0.1),
       child: const Icon(Icons.fastfood_rounded, color: _primary, size: 36),
     );
   }
@@ -142,7 +142,7 @@ class SubmissionCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
+              color: Colors.black.withValues(alpha: 0.06),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -225,3 +225,4 @@ class SubmissionCard extends StatelessWidget {
     );
   }
 }
+

@@ -39,7 +39,7 @@ class ChildLogView extends StatelessWidget {
             margin: const EdgeInsets.only(right: 16, top: 12, bottom: 12),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
@@ -67,7 +67,7 @@ class ChildLogView extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: _primary.withOpacity(0.1),
+              color: _primary.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.create_outlined, size: 40, color: _primary),
@@ -94,7 +94,7 @@ class ChildLogView extends StatelessWidget {
         border: Border.all(color: const Color(0xFFBBDEFB), width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.blue.withOpacity(0.05),
+            color: Colors.blue.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 3),
           ),
@@ -138,7 +138,7 @@ class ChildLogView extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: _primary.withOpacity(0.08),
+              color: _primary.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(Icons.visibility_outlined, color: _primary, size: 16),
@@ -152,7 +152,7 @@ class ChildLogView extends StatelessWidget {
     return Container(
       width: 52, height: 52,
       decoration: BoxDecoration(
-        color: _primary.withOpacity(0.1),
+        color: _primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Center(
@@ -172,3 +172,4 @@ class ChildLogView extends StatelessWidget {
     );
   }
 }
+

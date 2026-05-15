@@ -440,7 +440,7 @@ class _ProfileViewState extends State<ProfileView> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -879,7 +879,7 @@ class _ProfileViewState extends State<ProfileView> {
                           vertical: 7,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: const Row(
@@ -916,7 +916,7 @@ class _ProfileViewState extends State<ProfileView> {
                           vertical: 7,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.8),
+                          color: Colors.red.withValues(alpha: 0.8),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: const Row(
@@ -947,7 +947,7 @@ class _ProfileViewState extends State<ProfileView> {
                 width: 64,
                 height: 64,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white38, width: 2),
                 ),
@@ -969,7 +969,7 @@ class _ProfileViewState extends State<ProfileView> {
                   Text(
                     '${user.gender ?? '-'} • ${user.age != null ? '${user.age} tahun' : '-'}',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.white.withValues(alpha: 0.8),
                       fontSize: 13,
                     ),
                   ),
@@ -977,7 +977,7 @@ class _ProfileViewState extends State<ProfileView> {
                   Text(
                     '${user.weight != null ? '${user.weight!.toStringAsFixed(1)} kg' : '-'} • ${user.height != null ? '${user.height!.toStringAsFixed(0)} cm' : '-'}',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.white.withValues(alpha: 0.8),
                       fontSize: 13,
                     ),
                   ),
@@ -1012,7 +1012,7 @@ class _ProfileViewState extends State<ProfileView> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -1156,7 +1156,7 @@ class _ProfileViewState extends State<ProfileView> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -1321,3 +1321,4 @@ class _ProfileViewState extends State<ProfileView> {
     child: Divider(height: 1, color: Color(0xFFE8F5E9)),
   );
 }
+
