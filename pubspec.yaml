@@ -17,6 +17,10 @@ dependencies:
   hive: ^2.2.3
   hive_flutter: ^1.1.0
 
+  #notification
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.9.4
+
   # State Management
   provider: ^6.1.2
 

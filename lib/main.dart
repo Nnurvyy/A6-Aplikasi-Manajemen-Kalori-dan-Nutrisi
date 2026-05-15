@@ -24,6 +24,8 @@ import './features/general/auth/splash_view.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
+import './services/notification_service.dart'; 
+
 import 'services/food_log_sync_service.dart';   
 import 'package:connectivity_plus/connectivity_plus.dart';
 
@@ -62,6 +64,8 @@ void main() async {
   Hive.registerAdapter(NotificationSettingModelAdapter()); 
 
   await HiveService.initBoxes();
+  await NotificationService.init();         
+  await NotificationService.requestPermission();
   await SeedHelper.seedIfEmpty();
   
   // Initial sync
