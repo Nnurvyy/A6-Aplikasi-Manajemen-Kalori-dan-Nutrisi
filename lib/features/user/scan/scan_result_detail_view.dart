@@ -92,7 +92,7 @@ class _ScanResultDetailViewState extends State<ScanResultDetailView> {
               background: widget.imageFile != null
                   ? Image.file(widget.imageFile!, fit: BoxFit.cover)
                   : Container(
-                      color: AppColors.primary.withOpacity(0.1),
+                      color: AppColors.primary.withValues(alpha: 0.1),
                       child: const Icon(Icons.fastfood_rounded, size: 80, color: AppColors.primary),
                     ),
             ),
@@ -131,7 +131,7 @@ class _ScanResultDetailViewState extends State<ScanResultDetailView> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: AppColors.error.withOpacity(0.1),
+                          color: AppColors.error.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
@@ -231,9 +231,9 @@ class _ScanResultDetailViewState extends State<ScanResultDetailView> {
                   SliderTheme(
                     data: SliderTheme.of(context).copyWith(
                       activeTrackColor: AppColors.primary,
-                      inactiveTrackColor: AppColors.primary.withOpacity(0.1),
+                      inactiveTrackColor: AppColors.primary.withValues(alpha: 0.1),
                       thumbColor: AppColors.primary,
-                      overlayColor: AppColors.primary.withOpacity(0.2),
+                      overlayColor: AppColors.primary.withValues(alpha: 0.2),
                     ),
                     child: Slider(
                       value: _currentGrams,
@@ -262,7 +262,7 @@ class _ScanResultDetailViewState extends State<ScanResultDetailView> {
                       ),
                       Container(
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.1),
+                          color: AppColors.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
@@ -301,7 +301,7 @@ class _ScanResultDetailViewState extends State<ScanResultDetailView> {
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkSurface : Colors.white,
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, -5))
+            BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, -5))
           ],
         ),
         child: Row(
@@ -377,7 +377,7 @@ class _ScanResultDetailViewState extends State<ScanResultDetailView> {
           color: isDark ? AppColors.darkCard : Colors.white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)
           ],
         ),
         child: Column(
@@ -405,3 +405,4 @@ class _ScanResultDetailViewState extends State<ScanResultDetailView> {
     );
   }
 }
+

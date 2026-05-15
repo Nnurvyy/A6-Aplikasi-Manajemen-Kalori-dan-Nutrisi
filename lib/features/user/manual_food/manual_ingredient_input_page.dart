@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../general/food/models/food_model.dart';
-import '../../general/food/food_controller.dart';
-import 'package:provider/provider.dart';
 
 class ManualIngredientInputPage extends StatefulWidget {
   final FoodModel? initialFood;

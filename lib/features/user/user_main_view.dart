@@ -8,7 +8,6 @@ import './profile/profile_view.dart';
 import './scan/scan_view.dart';
 import './scan/scan_controller.dart';
 import '../general/submission/submission_screen.dart';
-import '../general/submission/submission_controller.dart';
 import '../general/food/food_list_view.dart';
 import './manual_food/manual_food_selection_view.dart';
 import '../general/auth/auth_controller.dart';
@@ -17,9 +16,8 @@ import '../general/food/models/watchlist_model.dart';
 import '../general/food/watchlist_view.dart';
 import '../general/food/food_detail_view.dart';
 import './progress/progress_view.dart';
-import './manual_food/saved_compositions_page.dart';
-import './manual_food/child_log_view.dart';
 import '../general/food/food_controller.dart';
+import './scan/nutrition_scanner_view.dart'; // IMPORT NUTRITION SCANNER
 
 // ═══════════════════════════════════════════════════════════════════════════
 // USER MAIN VIEW
@@ -74,6 +72,7 @@ class _UserMainViewState extends State<UserMainView>
   late final AnimationController _item1Ctrl; // Tersimpan
   late final AnimationController _item2Ctrl; // Database
   late final AnimationController _item3Ctrl; // Manual
+  late final AnimationController _item4Ctrl; // Scan Gizi
 
   late final Animation<double> _rotateAnim;
   late final Animation<double> _backdropAnim;
@@ -112,6 +111,14 @@ class _UserMainViewState extends State<UserMainView>
       endColor: Color(0xFFF57C00),
       tag: 'manual',
     ),
+    _DialItemData(
+      icon: Icons.document_scanner_outlined,
+      label: 'Scan Nilai Gizi',
+      sublabel: 'Ekstrak tabel nilai gizi otomatis',
+      startColor: Color(0xFF2196F3),
+      endColor: Color(0xFF1976D2),
+      tag: 'scan_nutrition',
+    ),
   ];
 
   @override
@@ -149,6 +156,10 @@ class _UserMainViewState extends State<UserMainView>
       vsync: this,
       duration: const Duration(milliseconds: 350),
     );
+    _item4Ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    );
 
     _rotateAnim = Tween<double>(
       begin: 0.0,
@@ -167,6 +178,7 @@ class _UserMainViewState extends State<UserMainView>
     _item1Ctrl.dispose();
     _item2Ctrl.dispose();
     _item3Ctrl.dispose();
+    _item4Ctrl.dispose();
     super.dispose();
   }
 
@@ -175,6 +187,7 @@ class _UserMainViewState extends State<UserMainView>
     _item1Ctrl,
     _item2Ctrl,
     _item3Ctrl,
+    _item4Ctrl,
   ];
 
   void _openDial() {
@@ -231,6 +244,9 @@ class _UserMainViewState extends State<UserMainView>
         break;
       case 'manual':
         Navigator.of(context).push(_upRoute(const PilihMakananManual()));
+        break;
+      case 'scan_nutrition':
+        Navigator.of(context).push(_upRoute(const NutritionScannerView()));
         break;
     }
   }
@@ -323,6 +339,12 @@ class _UserMainViewState extends State<UserMainView>
                     ctrl: _item3Ctrl,
                     onTap: () => _onDialItemTap(_dialItems[3].tag),
                   ),
+                  const SizedBox(height: 10),
+                  _DialCard(
+                    data: _dialItems[4],
+                    ctrl: _item4Ctrl,
+                    onTap: () => _onDialItemTap(_dialItems[4].tag),
+                  ),
                 ],
               ),
             ),
@@ -351,7 +373,7 @@ class _UserMainViewState extends State<UserMainView>
                 boxShadow: [
                   BoxShadow(
                     color: (_dialOpen ? Colors.black : const Color(0xFF2E7D32))
-                        .withOpacity(0.45),
+                        .withValues(alpha: 0.45),
                     blurRadius: 16,
                     offset: const Offset(0, 6),
                   ),
@@ -530,12 +552,12 @@ class _DialCardState extends State<_DialCard> {
                     borderRadius: BorderRadius.circular(22),
                     boxShadow: [
                       BoxShadow(
-                        color: data.startColor.withOpacity(0.22),
+                        color: data.startColor.withValues(alpha: 0.22),
                         blurRadius: 20,
                         offset: const Offset(0, 8),
                       ),
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.07),
+                        color: Colors.black.withValues(alpha: 0.07),
                         blurRadius: 6,
                         offset: const Offset(0, 2),
                       ),
@@ -558,7 +580,7 @@ class _DialCardState extends State<_DialCard> {
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: data.startColor.withOpacity(0.45),
+                                color: data.startColor.withValues(alpha: 0.45),
                                 blurRadius: 12,
                                 offset: const Offset(0, 5),
                               ),
@@ -600,7 +622,7 @@ class _DialCardState extends State<_DialCard> {
                           width: 34,
                           height: 34,
                           decoration: BoxDecoration(
-                            color: data.startColor.withOpacity(0.12),
+                            color: data.startColor.withValues(alpha: 0.12),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
@@ -645,7 +667,7 @@ class _SavedFoodSheet extends StatelessWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey.withOpacity(0.3),
+              color: Colors.grey.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -693,7 +715,7 @@ class _SavedFoodSheet extends StatelessWidget {
         leading: Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: const Color(0xFF7C4DFF).withOpacity(0.1),
+            color: const Color(0xFF7C4DFF).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: const Icon(
@@ -730,7 +752,7 @@ class _SavedFoodSheet extends StatelessWidget {
           Icon(
             Icons.bookmark_border_rounded,
             size: 48,
-            color: Colors.grey.withOpacity(0.4),
+            color: Colors.grey.withValues(alpha: 0.4),
           ),
           const SizedBox(height: 16),
           const Text(
@@ -786,7 +808,7 @@ class ParentProfilePlaceholder extends StatelessWidget {
                       width: 80,
                       height: 80,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white38, width: 2),
                       ),
@@ -805,7 +827,7 @@ class ParentProfilePlaceholder extends StatelessWidget {
                     Text(
                       mainUser.email,
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                         fontSize: 14,
                       ),
                     ),
@@ -833,7 +855,7 @@ class ParentProfilePlaceholder extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),

@@ -188,12 +188,12 @@ class AuthController extends ChangeNotifier {
         return true;
       }
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found') {
-        _errorMessage = 'Email tidak terdaftar';
-      } else if (e.code == 'wrong-password') {
-        _errorMessage = 'Password salah';
+      if (e.code == 'user-disabled') {
+        _errorMessage = 'Akun Anda telah dinonaktifkan';
+      } else if (e.code == 'too-many-requests') {
+        _errorMessage = 'Terlalu banyak percobaan. Coba lagi nanti.';
       } else {
-        _errorMessage = 'Login gagal: ${e.message}';
+        _errorMessage = 'Login gagal: email atau password salah';
       }
     } catch (e) {
       _errorMessage = 'Terjadi kesalahan: $e';

@@ -83,7 +83,7 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: _green.withOpacity(0.1),
+                      color: _green.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
@@ -129,7 +129,7 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
                   color: const Color(0xFFFFF8E1),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: const Color(0xFFFFB300).withOpacity(0.4),
+                    color: const Color(0xFFFFB300).withValues(alpha: 0.4),
                   ),
                 ),
                 child: const Row(
@@ -301,7 +301,7 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withOpacity(0.25)),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -417,3 +417,4 @@ class _NutriFillSheetState extends State<NutriFillSheet> {
     );
   }
 }
+
