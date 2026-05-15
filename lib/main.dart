@@ -25,6 +25,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
 import './services/notification_service.dart'; 
+import './features/user/notification/notification_controller.dart';
+
 
 import 'services/food_log_sync_service.dart';   
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -96,6 +98,7 @@ class NutriTrackApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AdminUserController()),
         // SubmissionController global — shared antara Admin & Nutritionist
         ChangeNotifierProvider.value(value: submissionCtrl),
+        ChangeNotifierProvider(create: (_) => NotificationController()),
       ],
       child: MaterialApp(
         title: 'NutriTrack',
