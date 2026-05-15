@@ -231,57 +231,6 @@ class _LoginViewState extends State<LoginView> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 24),
-                      Row(
-                        children: [
-                          const Expanded(child: Divider()),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: Text(
-                              'atau',
-                              style: GoogleFonts.poppins(
-                                fontSize: 12,
-                                color: AppColors.lightTextSecondary,
-                              ),
-                            ),
-                          ),
-                          const Expanded(child: Divider()),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      // Demo accounts hint
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppColors.lightDivider,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Demo Akun:',
-                              style: GoogleFonts.poppins(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            _demoHint(
-                              'Admin',
-                              'admin@nutritrack.com',
-                              'admin123',
-                            ),
-                            _demoHint(
-                              'Ahli Gizi',
-                              'nutri@nutritrack.com',
-                              'nutri123',
-                            ),
-                            _demoHint('User', 'budi@email.com', 'budi123'),
-                          ],
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -289,25 +238,6 @@ class _LoginViewState extends State<LoginView> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _demoHint(String role, String email, String pass) {
-    return GestureDetector(
-      onTap: () {
-        _emailCtrl.text = email;
-        _passCtrl.text = pass;
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Text(
-          '$role: $email / $pass',
-          style: GoogleFonts.poppins(
-            fontSize: 10,
-            color: AppColors.lightTextSecondary,
-          ),
-        ),
       ),
     );
   }
