@@ -500,9 +500,11 @@ class _DashboardBodyState extends State<DashboardBody> {
     final displayPercentage = percentage > 1.0 ? 1.0 : percentage;
 
     return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 25),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
           Expanded(
             child: Container(
               decoration: BoxDecoration(
@@ -545,7 +547,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                     ),
                     Center(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 24),
+                        padding: const EdgeInsets.symmetric(vertical: 34),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -579,7 +581,7 @@ class _DashboardBodyState extends State<DashboardBody> {
           const SizedBox(width: 6),
           Container(
             width: 8,
-            height: 36,
+            height: 48,
             decoration: BoxDecoration(
               color: const Color(0xFF2E7D32),
               borderRadius: BorderRadius.circular(4),
@@ -596,6 +598,7 @@ class _DashboardBodyState extends State<DashboardBody> {
           ),
         ],
       ),
+    ),
     );
   }
 
