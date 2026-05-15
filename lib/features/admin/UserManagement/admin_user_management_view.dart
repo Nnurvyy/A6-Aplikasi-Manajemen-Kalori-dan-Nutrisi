@@ -431,50 +431,24 @@ class _UserCard extends StatelessWidget {
 
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      user.isSynced ? Icons.cloud_done_rounded : Icons.cloud_upload_rounded,
-                      size: 16,
-                      color: user.isSynced ? Colors.green : Colors.orange,
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE8F5E9),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFC8E6C9), width: 0.8),
-                      ),
-                      child: const Text('Detail',
-                          style: TextStyle(
-                              color: _primary,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700)),
-                    ),
-                  ],
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [      
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F5E9),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFC8E6C9), width: 0.8),
+                  ),
+                  child: const Text('Detail', style: TextStyle( color: _primary, fontSize: 11, fontWeight: FontWeight.w700)),
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _iconBtn(icon: Icons.edit_rounded, color: Colors.blue, onTap: onEdit),
-                    const SizedBox(width: 4),
-                    _iconBtn(
-                      icon: user.isBlocked
-                          ? Icons.lock_open_rounded
-                          : Icons.block_rounded,
-                      color: user.isBlocked ? _primary : const Color(0xFFFF9800),
-                      onTap: onBlock,
-                    ),
-                    const SizedBox(width: 4),
-                    _iconBtn(
-                        icon: Icons.delete_outline_rounded,
-                        color: _danger,
-                        onTap: onDelete),
-                  ],
+
+                const SizedBox(height: 12),
+
+                Icon(
+                  user.isSynced ? Icons.cloud_done_rounded : Icons.cloud_upload_rounded,
+                  size: 16,
+                  color: user.isSynced ? Colors.green : Colors.orange,
                 ),
               ],
             ),
