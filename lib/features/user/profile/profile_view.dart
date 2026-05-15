@@ -12,6 +12,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import './qr_scanner_page.dart';
 import 'dart:ui' as ui;
 import 'package:gal/gal.dart';
+import '../notification/notification_view.dart';
 
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
@@ -378,6 +379,55 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
+  Widget _buildNotificationSetting() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Pengingat Makan',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1A2E1A),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: _chevronAction(
+              Icons.notifications_active_rounded,
+              'Pengaturan Notifikasi',
+              const Color(0xFFE8F5E9),
+              _green,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const NotificationView(),
+                  ),
+                );
+              },
+              isFirst: true,
+              isLast: true,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<AuthController>(
@@ -403,6 +453,8 @@ class _ProfileViewState extends State<ProfileView> {
                   _buildNutrisiTarget(kaloriTarget, macros),
                   const SizedBox(height: 20),
                   _buildPersonalisasi(user, auth),
+                  const SizedBox(height: 20),
+                  _buildNotificationSetting(),
                   const SizedBox(height: 20),
                   _buildParentalControl(auth),
                   const SizedBox(height: 32),
