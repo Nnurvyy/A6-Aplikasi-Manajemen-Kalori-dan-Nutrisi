@@ -114,14 +114,18 @@ class NotificationService {
       iOS: iosDetails,
     );
 
-    // v18+ mengubah semua argumen menjadi named parameters.
-    // Tidak ada lagi positional: id, title, body, scheduledDate semuanya named.
+    // Signature exact flutter_local_notifications 18.0.1:
+    // - Positional: id, title, body, scheduledDate, notificationDetails
+    // - uiLocalNotificationDateInterpretation masih required (belum dihapus di versi pub)
+    // - androidAllowWhileIdle sudah diganti jadi androidScheduleMode
     await _plugin.zonedSchedule(
-      id: setting.notificationId,
-      title: setting.title,
-      body: setting.body,
-      scheduledDate: scheduledTime,
-      notificationDetails: details,
+      setting.notificationId,
+      setting.title,
+      setting.body,
+      scheduledTime,
+      details,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       matchDateTimeComponents: DateTimeComponents.time,
     );
