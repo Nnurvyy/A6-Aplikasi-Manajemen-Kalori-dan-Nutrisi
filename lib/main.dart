@@ -66,8 +66,11 @@ void main() async {
   Hive.registerAdapter(NotificationSettingModelAdapter()); 
 
   await HiveService.initBoxes();
-  await NotificationService.init();         
+  await NotificationService.init();
   await NotificationService.requestPermission();
+
+  final notifCtrl = NotificationController();
+  await notifCtrl.loadSettings();
   await SeedHelper.seedIfEmpty();
   
   // Initial sync
