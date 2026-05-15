@@ -291,14 +291,20 @@ class AuthController extends ChangeNotifier {
 
   Future<void> updateProfile(UserModel updated) async {
     try {
-      await _firestore.collection('users').doc(updated.id).update(updated.toMap());
-      await HiveService.users.put(updated.id, updated);
       if (_currentUser?.id == updated.id) {
         _currentUser = updated;
       } else if (_monitoredUser?.id == updated.id) {
         _monitoredUser = updated;
       }
+      
+      await HiveService.users.put(updated.id, updated);
+      
       notifyListeners();
+
+      _firestore.collection('users').doc(updated.id).update(updated.toMap())
+          .then((_) => debugPrint("Profile synced to Firestore"))
+          .catchError((e) => debugPrint("Error syncing profile (offline?): $e"));
+
     } catch (e) {
       debugPrint("Error updating profile: $e");
     }

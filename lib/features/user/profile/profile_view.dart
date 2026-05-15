@@ -290,7 +290,7 @@ class _ProfileViewState extends State<ProfileView> {
                                 targetHistory: history,
                                 isBlocked: user.isBlocked,
                               );
-                              await context
+                              context
                                   .read<AuthController>()
                                   .updateProfile(updated);
                               
