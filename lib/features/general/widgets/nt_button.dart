@@ -80,7 +80,7 @@ class NtButton extends StatelessWidget {
           boxShadow: onPressed != null
               ? [
                   BoxShadow(
-                    color: bg.withOpacity(0.35),
+                    color: bg.withValues(alpha: 0.35),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   )
@@ -102,3 +102,4 @@ class NtButton extends StatelessWidget {
     );
   }
 }
+

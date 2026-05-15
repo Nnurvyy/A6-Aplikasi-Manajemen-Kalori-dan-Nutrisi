@@ -33,7 +33,7 @@ class _WatchlistViewState extends State<WatchlistView> {
     final endIndex = (startIndex + _itemsPerPage).clamp(0, items.length);
     final pageItems = items.isEmpty ? <WatchlistModel>[] : items.sublist(startIndex, endIndex);
 
-    final isMonitor = context.watch<AuthController>().isMonitoring;
+
 
     return Scaffold(
       backgroundColor: _bg,
@@ -57,7 +57,7 @@ class _WatchlistViewState extends State<WatchlistView> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2E7D32).withOpacity(0.1),
+                    color: const Color(0xFF2E7D32).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -176,7 +176,7 @@ class _WatchlistViewState extends State<WatchlistView> {
                 ),
               ),
             );
-          }).take(7).toList(),
+          }).take(7),
           const SizedBox(width: 8),
           _pageBtn(Icons.chevron_right_rounded, current < total - 1, () => setState(() => _currentPage++)),
         ],
@@ -196,7 +196,7 @@ class _WatchlistViewState extends State<WatchlistView> {
             color: enabled ? const Color(0xFFC8E6C9) : Colors.transparent,
           ),
         ),
-        child: Icon(icon, size: 18, color: enabled ? const Color(0xFF2E7D32) : _textMuted.withOpacity(0.3)),
+        child: Icon(icon, size: 18, color: enabled ? const Color(0xFF2E7D32) : _textMuted.withValues(alpha: 0.3)),
       ),
     );
   }
@@ -225,7 +225,7 @@ class _WatchlistViewState extends State<WatchlistView> {
           border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: Colors.black.withValues(alpha: 0.03),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -269,7 +269,7 @@ class _WatchlistViewState extends State<WatchlistView> {
                       Icon(
                         item.isSynced ? Icons.cloud_done_rounded : Icons.cloud_upload_rounded,
                         size: 14,
-                        color: item.isSynced ? Colors.blue.withOpacity(0.5) : Colors.orange.withOpacity(0.5),
+                        color: item.isSynced ? Colors.blue.withValues(alpha: 0.5) : Colors.orange.withValues(alpha: 0.5),
                       ),
                     ],
                   ),
@@ -320,7 +320,7 @@ class _WatchlistViewState extends State<WatchlistView> {
                   child: Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2E7D32).withOpacity(0.1),
+                      color: const Color(0xFF2E7D32).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(Icons.bookmark_rounded, color: Color(0xFF2E7D32), size: 16),
@@ -338,7 +338,7 @@ class _WatchlistViewState extends State<WatchlistView> {
     return Container(
       width: 50, height: 50,
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Center(
@@ -404,3 +404,4 @@ class _WatchlistViewState extends State<WatchlistView> {
     );
   }
 }
+

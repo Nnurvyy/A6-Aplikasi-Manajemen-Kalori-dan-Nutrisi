@@ -96,7 +96,7 @@ class _LoginViewState extends State<LoginView> {
                       width: 72,
                       height: 72,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
+                        color: Colors.white.withValues(alpha: 0.15),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -118,7 +118,7 @@ class _LoginViewState extends State<LoginView> {
                       'Track your Nutrition, Stay Healthy',
                       style: GoogleFonts.poppins(
                         fontSize: 13,
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                       ),
                     ),
                   ],
@@ -242,3 +242,4 @@ class _LoginViewState extends State<LoginView> {
     );
   }
 }
+

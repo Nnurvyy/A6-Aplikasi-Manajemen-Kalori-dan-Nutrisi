@@ -190,7 +190,7 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
         border: Border.all(color: Colors.grey.shade100),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -413,7 +413,7 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
           border: Border.all(color: Colors.grey.shade100),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.02),
+              color: Colors.black.withValues(alpha: 0.02),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -425,7 +425,7 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: color, size: 24),
@@ -792,3 +792,4 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
     );
   }
 }
+

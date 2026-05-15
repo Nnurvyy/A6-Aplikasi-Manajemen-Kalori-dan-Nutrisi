@@ -431,7 +431,7 @@ class _NutritionScannerViewState extends State<NutritionScannerView> {
                             right: 8,
                             child: Container(
                               padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(color: Colors.black.withOpacity(0.5), shape: BoxShape.circle),
+                              decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.5), shape: BoxShape.circle),
                               child: const Icon(Icons.fullscreen_rounded, color: Colors.white, size: 20),
                             ),
                           ),
@@ -480,7 +480,7 @@ class _NutritionScannerViewState extends State<NutritionScannerView> {
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: const Color(0xFFD5EDE0)),
                         boxShadow: [
-                          BoxShadow(color: Colors.green.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+                          BoxShadow(color: Colors.green.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
                         ],
                       ),
                       child: Form(
@@ -597,7 +597,7 @@ class _NutritionScannerViewState extends State<NutritionScannerView> {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -628,7 +628,7 @@ class _NutritionScannerViewState extends State<NutritionScannerView> {
             Positioned.fill(
               child: GestureDetector(
                 onTap: () => Navigator.pop(context),
-                child: Container(color: Colors.black.withOpacity(0.9)),
+                child: Container(color: Colors.black.withValues(alpha: 0.9)),
               ),
             ),
             Center(
@@ -712,7 +712,7 @@ class HighlightPainter extends CustomPainter {
     final double activeScale = renderWidth / imageSize.width;
 
     final paint = Paint()
-      ..color = Colors.greenAccent.withOpacity(0.3)
+      ..color = Colors.greenAccent.withValues(alpha: 0.3)
       ..style = PaintingStyle.fill;
 
     for (var rect in rects) {
