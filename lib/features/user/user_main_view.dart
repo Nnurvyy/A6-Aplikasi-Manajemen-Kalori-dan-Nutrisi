@@ -20,6 +20,7 @@ import './progress/progress_view.dart';
 import './manual_food/saved_compositions_page.dart';
 import './manual_food/child_log_view.dart';
 import '../general/food/food_controller.dart';
+import './scan/nutrition_scanner_view.dart'; // IMPORT NUTRITION SCANNER
 
 // ═══════════════════════════════════════════════════════════════════════════
 // USER MAIN VIEW
@@ -74,6 +75,7 @@ class _UserMainViewState extends State<UserMainView>
   late final AnimationController _item1Ctrl; // Tersimpan
   late final AnimationController _item2Ctrl; // Database
   late final AnimationController _item3Ctrl; // Manual
+  late final AnimationController _item4Ctrl; // Scan Gizi
 
   late final Animation<double> _rotateAnim;
   late final Animation<double> _backdropAnim;
@@ -112,6 +114,14 @@ class _UserMainViewState extends State<UserMainView>
       endColor: Color(0xFFF57C00),
       tag: 'manual',
     ),
+    _DialItemData(
+      icon: Icons.document_scanner_outlined,
+      label: 'Scan Nilai Gizi',
+      sublabel: 'Ekstrak tabel nilai gizi otomatis',
+      startColor: Color(0xFF2196F3),
+      endColor: Color(0xFF1976D2),
+      tag: 'scan_nutrition',
+    ),
   ];
 
   @override
@@ -149,6 +159,10 @@ class _UserMainViewState extends State<UserMainView>
       vsync: this,
       duration: const Duration(milliseconds: 350),
     );
+    _item4Ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    );
 
     _rotateAnim = Tween<double>(
       begin: 0.0,
@@ -167,6 +181,7 @@ class _UserMainViewState extends State<UserMainView>
     _item1Ctrl.dispose();
     _item2Ctrl.dispose();
     _item3Ctrl.dispose();
+    _item4Ctrl.dispose();
     super.dispose();
   }
 
@@ -175,6 +190,7 @@ class _UserMainViewState extends State<UserMainView>
     _item1Ctrl,
     _item2Ctrl,
     _item3Ctrl,
+    _item4Ctrl,
   ];
 
   void _openDial() {
@@ -231,6 +247,9 @@ class _UserMainViewState extends State<UserMainView>
         break;
       case 'manual':
         Navigator.of(context).push(_upRoute(const PilihMakananManual()));
+        break;
+      case 'scan_nutrition':
+        Navigator.of(context).push(_upRoute(const NutritionScannerView()));
         break;
     }
   }
@@ -322,6 +341,12 @@ class _UserMainViewState extends State<UserMainView>
                     data: _dialItems[3],
                     ctrl: _item3Ctrl,
                     onTap: () => _onDialItemTap(_dialItems[3].tag),
+                  ),
+                  const SizedBox(height: 10),
+                  _DialCard(
+                    data: _dialItems[4],
+                    ctrl: _item4Ctrl,
+                    onTap: () => _onDialItemTap(_dialItems[4].tag),
                   ),
                 ],
               ),
