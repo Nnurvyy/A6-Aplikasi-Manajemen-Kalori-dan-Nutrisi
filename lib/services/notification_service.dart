@@ -190,4 +190,20 @@ class NotificationService {
 
     return scheduled;
   }
+
+  static Future<void> instantTest() async {
+  await _plugin.show(
+    999,
+    'TEST NOTIFICATION',
+    'Jika notif ini muncul berarti plugin bekerja',
+    const NotificationDetails(
+      android: AndroidNotificationDetails(
+        'test_channel',
+        'Test Notification',
+        importance: Importance.max,
+        priority: Priority.high,
+      ),
+    ),
+  );
+}
 }

@@ -3,76 +3,114 @@ import 'package:provider/provider.dart';
 
 import './notification_controller.dart';
 import './models/notification_setting_model.dart';
+import '../../../services/notification_service.dart';
 
-class NotificationView extends StatelessWidget {
+class NotificationView extends StatefulWidget {
   const NotificationView({super.key});
 
+  @override
+  State<NotificationView> createState() => _NotificationViewState();
+}
+
+class _NotificationViewState extends State<NotificationView> {
   static const _green = Color(0xFF2E7D32);
   static const _bg = Color(0xFFF4FAF4);
 
   @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final ctrl = context.read<NotificationController>();
+
+      if (ctrl.settings.isEmpty) {
+        await ctrl.loadSettings();
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => NotificationController()..loadSettings(),
-      child: Scaffold(
-        backgroundColor: _bg,
-        appBar: AppBar(
-          elevation: 0,
-          backgroundColor: Colors.white,
-          surfaceTintColor: Colors.transparent,
-          title: const Text(
-            'Pengaturan Notifikasi',
-            style: TextStyle(
-              color: Color(0xFF1A2E1A),
-              fontWeight: FontWeight.w700,
-            ),
+    return Scaffold(
+      backgroundColor: _bg,
+
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+
+        title: const Text(
+          'Pengaturan Notifikasi',
+          style: TextStyle(
+            color: Color(0xFF1A2E1A),
+            fontWeight: FontWeight.w700,
           ),
-          iconTheme: const IconThemeData(color: Color(0xFF1A2E1A)),
-          actions: [
-            Consumer<NotificationController>(
-              builder: (_, controller, __) {
-                return IconButton(
-                  onPressed: () async {
-                    await controller.resetToDefault();
-
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Berhasil reset ke default'),
-                        ),
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.restart_alt_rounded),
-                );
-              },
-            ),
-          ],
         ),
-        body: Consumer<NotificationController>(
-          builder: (context, controller, _) {
-            if (controller.isLoading) {
-              return const Center(
-                child: CircularProgressIndicator(),
+
+        iconTheme: const IconThemeData(
+          color: Color(0xFF1A2E1A),
+        ),
+
+        actions: [
+          IconButton(
+            onPressed: () async {
+              await NotificationService.instantTest();
+            },
+            icon: const Icon(Icons.bug_report_rounded),
+          ),
+
+          Consumer<NotificationController>(
+            builder: (_, ctrl, __) {
+              return IconButton(
+                onPressed: () async {
+                  await ctrl.resetToDefault();
+
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Reset berhasil'),
+                      ),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.restart_alt_rounded),
               );
-            }
+            },
+          ),
+        ],
+      ),
 
-            return ListView.separated(
-              padding: const EdgeInsets.all(20),
-              itemCount: controller.settings.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 16),
-              itemBuilder: (_, index) {
-                final setting = controller.settings[index];
+      body: Consumer<NotificationController>(
+        builder: (_, controller, __) {
+          if (controller.isLoading) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
 
-                return _NotificationCard(
+          if (controller.settings.isEmpty) {
+            return const Center(
+              child: Text('Tidak ada data notifikasi'),
+            );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(20),
+            itemCount: controller.settings.length,
+            itemBuilder: (_, index) {
+              final setting = controller.settings[index];
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 18),
+                child: _NotificationCard(
                   setting: setting,
                   controller: controller,
                   index: index,
-                );
-              },
-            );
-          },
-        ),
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }
@@ -95,9 +133,11 @@ class _NotificationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(18),
+
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
+
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -106,23 +146,29 @@ class _NotificationCard extends StatelessWidget {
           ),
         ],
       ),
+
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                width: 46,
-                height: 46,
+                width: 50,
+                height: 50,
+
                 decoration: BoxDecoration(
                   color: const Color(0xFFE8F5E9),
                   borderRadius: BorderRadius.circular(14),
                 ),
+
                 child: const Icon(
                   Icons.notifications_active_rounded,
                   color: _green,
                 ),
               ),
+
               const SizedBox(width: 14),
+
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -130,12 +176,14 @@ class _NotificationCard extends StatelessWidget {
                     Text(
                       setting.label,
                       style: const TextStyle(
-                        fontSize: 15,
+                        fontSize: 16,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF1A2E1A),
                       ),
                     ),
+
                     const SizedBox(height: 4),
+
                     Text(
                       controller.formatTime(setting),
                       style: const TextStyle(
@@ -146,19 +194,24 @@ class _NotificationCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Switch(
-                value: setting.isEnabled,
-                activeColor: _green,
-                onChanged: (_) async {
-                  await controller.toggleEnabled(index);
-                },
+
+              Transform.scale(
+                scale: 0.95,
+                child: Switch(
+                  value: setting.isEnabled,
+                  activeColor: _green,
+
+                  onChanged: (value) {
+                    controller.toggleEnabled(index);
+                  },
+                ),
               ),
             ],
           ),
 
           const SizedBox(height: 18),
 
-          _TextEditor(
+          _InputField(
             label: 'Judul Notifikasi',
             initialValue: setting.title,
             onSave: (v) async {
@@ -168,7 +221,7 @@ class _NotificationCard extends StatelessWidget {
 
           const SizedBox(height: 14),
 
-          _TextEditor(
+          _InputField(
             label: 'Isi Notifikasi',
             initialValue: setting.body,
             maxLines: 3,
@@ -177,10 +230,11 @@ class _NotificationCard extends StatelessWidget {
             },
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
 
           SizedBox(
             width: double.infinity,
+
             child: ElevatedButton.icon(
               onPressed: () async {
                 final picked = await showTimePicker(
@@ -204,16 +258,21 @@ class _NotificationCard extends StatelessWidget {
                   }
                 }
               },
+
               style: ElevatedButton.styleFrom(
                 backgroundColor: _green,
                 foregroundColor: Colors.white,
                 elevation: 0,
+
                 padding: const EdgeInsets.symmetric(vertical: 14),
+
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
               ),
+
               icon: const Icon(Icons.schedule_rounded),
+
               label: const Text(
                 'Atur Waktu',
                 style: TextStyle(
@@ -228,13 +287,13 @@ class _NotificationCard extends StatelessWidget {
   }
 }
 
-class _TextEditor extends StatefulWidget {
+class _InputField extends StatefulWidget {
   final String label;
   final String initialValue;
   final int maxLines;
   final Future<void> Function(String value) onSave;
 
-  const _TextEditor({
+  const _InputField({
     required this.label,
     required this.initialValue,
     required this.onSave,
@@ -242,16 +301,17 @@ class _TextEditor extends StatefulWidget {
   });
 
   @override
-  State<_TextEditor> createState() => _TextEditorState();
+  State<_InputField> createState() => _InputFieldState();
 }
 
-class _TextEditorState extends State<_TextEditor> {
-  late TextEditingController _controller;
+class _InputFieldState extends State<_InputField> {
+  late TextEditingController _ctrl;
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(
+
+    _ctrl = TextEditingController(
       text: widget.initialValue,
     );
   }
@@ -269,18 +329,23 @@ class _TextEditorState extends State<_TextEditor> {
             color: Color(0xFF5A7A5A),
           ),
         ),
+
         const SizedBox(height: 8),
+
         TextField(
-          controller: _controller,
+          controller: _ctrl,
           maxLines: widget.maxLines,
+
           decoration: InputDecoration(
             filled: true,
             fillColor: const Color(0xFFF4FAF4),
+
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: BorderSide.none,
             ),
           ),
+
           onSubmitted: (v) async {
             await widget.onSave(v);
 
