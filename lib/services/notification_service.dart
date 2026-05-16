@@ -5,19 +5,12 @@ import 'package:timezone/data/latest.dart' as tz_data;
 
 import '../features/user/notification/models/notification_setting_model.dart';
 
-/// Service untuk mengelola semua operasi flutter_local_notifications.
-///
-/// Cara pakai:
-///   await NotificationService.init();           // di main.dart
-///   await NotificationService.scheduleAll();    // setelah load settings dari Hive
-///   await NotificationService.cancel(id);       // saat user toggle off
 class NotificationService {
-  NotificationService._(); // private constructor — semua method static
+  NotificationService._();
 
   static final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
 
-  /// Nama channel Android — harus konsisten di seluruh app
   static const String _channelId = 'meal_reminder_channel';
   static const String _channelName = 'Pengingat Makan';
   static const String _channelDesc =
@@ -27,9 +20,7 @@ class NotificationService {
   // INIT
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// Inisialisasi plugin dan timezone. Panggil sekali di main() sebelum runApp.
   static Future<void> init() async {
-    // Muat database timezone (wajib untuk notifikasi berulang harian)
     tz_data.initializeTimeZones();
     tz.setLocalLocation(tz.getLocation('Asia/Jakarta'));
 
@@ -37,7 +28,7 @@ class NotificationService {
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
     const iosSettings = DarwinInitializationSettings(
-      requestAlertPermission: false, // kita minta manual via requestPermission()
+      requestAlertPermission: false,
       requestBadgePermission: false,
       requestSoundPermission: false,
     );
@@ -54,14 +45,27 @@ class NotificationService {
   // PERMISSION
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// Minta izin notifikasi ke user (Android 13+ dan iOS wajib).
-  /// Kembalikan true jika izin diberikan.
   static Future<bool> requestPermission() async {
-    // Android
     final android = _plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
+
     if (android != null) {
+      // 1. Izin notifikasi biasa (Android 13+)
       final granted = await android.requestNotificationsPermission();
+
+      // 2. Izin exact alarm (Android 12+)
+      //    Jika belum granted, buka halaman Settings device secara otomatis
+      try {
+        final canExact = await android.canScheduleExactNotifications();
+        if (canExact == false) {
+          debugPrint('[NotificationService] Requesting exact alarm permission...');
+          await android.requestExactAlarmsPermission();
+        }
+      } catch (e) {
+        // Device lama (< API 31) tidak punya method ini, abaikan
+        debugPrint('[NotificationService] canScheduleExactNotifications: $e');
+      }
+
       return granted ?? false;
     }
 
@@ -84,8 +88,6 @@ class NotificationService {
   // SCHEDULE
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// Jadwalkan satu notifikasi berulang harian berdasarkan [setting].
-  /// Jika [setting.isEnabled] false, notifikasi dibatalkan saja.
   static Future<void> schedule(NotificationSettingModel setting) async {
     if (!setting.isEnabled) {
       await cancel(setting.notificationId);
@@ -114,31 +116,49 @@ class NotificationService {
       iOS: iosDetails,
     );
 
-    // Signature exact flutter_local_notifications 18.0.1:
-    // - Positional: id, title, body, scheduledDate, notificationDetails
-    // - uiLocalNotificationDateInterpretation masih required (belum dihapus di versi pub)
-    // - androidAllowWhileIdle sudah diganti jadi androidScheduleMode
-    await _plugin.zonedSchedule(
-      setting.notificationId,
-      setting.title,
-      setting.body,
-      scheduledTime,
-      details,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      matchDateTimeComponents: DateTimeComponents.time,
-    );
-
-    debugPrint(
-      '[NotificationService] Scheduled "${setting.label}" '
-      'at ${setting.hour.toString().padLeft(2, '0')}:'
-      '${setting.minute.toString().padLeft(2, '0')} '
-      '(id=${setting.notificationId})',
-    );
+    // Coba exact dulu. Jika gagal (izin belum diberikan user),
+    // fallback ke inexact — notifikasi tetap muncul, mungkin meleset
+    // beberapa menit tapi TIDAK crash dan toggle tetap berfungsi.
+    try {
+      await _plugin.zonedSchedule(
+        setting.notificationId,
+        setting.title,
+        setting.body,
+        scheduledTime,
+        details,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        matchDateTimeComponents: DateTimeComponents.time,
+      );
+      debugPrint(
+        '[NotificationService] Scheduled (exact) "${setting.label}" '
+        'at ${setting.hour.toString().padLeft(2, '0')}:'
+        '${setting.minute.toString().padLeft(2, '0')} '
+        '(id=${setting.notificationId})',
+      );
+    } catch (e) {
+      debugPrint('[NotificationService] Exact failed, using inexact: $e');
+      await _plugin.zonedSchedule(
+        setting.notificationId,
+        setting.title,
+        setting.body,
+        scheduledTime,
+        details,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        matchDateTimeComponents: DateTimeComponents.time,
+      );
+      debugPrint(
+        '[NotificationService] Scheduled (inexact) "${setting.label}" '
+        'at ${setting.hour.toString().padLeft(2, '0')}:'
+        '${setting.minute.toString().padLeft(2, '0')} '
+        '(id=${setting.notificationId})',
+      );
+    }
   }
 
-  /// Jadwalkan semua notifikasi dari list [settings] sekaligus.
   static Future<void> scheduleAll(
       List<NotificationSettingModel> settings) async {
     for (final s in settings) {
@@ -150,13 +170,11 @@ class NotificationService {
   // CANCEL
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// Batalkan satu notifikasi berdasarkan [id].
   static Future<void> cancel(int id) async {
     await _plugin.cancel(id);
     debugPrint('[NotificationService] Cancelled notification id=$id');
   }
 
-  /// Batalkan semua notifikasi yang pernah dijadwalkan.
   static Future<void> cancelAll() async {
     await _plugin.cancelAll();
     debugPrint('[NotificationService] All notifications cancelled');
@@ -166,13 +184,6 @@ class NotificationService {
   // HELPER
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// Hitung TZDateTime berikutnya untuk jam [hour]:[minute].
-  ///
-  /// Logika:
-  ///   - Ambil waktu sekarang di timezone lokal (Asia/Jakarta)
-  ///   - Set jam & menit ke yang diinginkan
-  ///   - Kalau waktu tersebut sudah lewat hari ini → tambah 1 hari
-  ///     (supaya notifikasi pertama tidak langsung tembak di masa lalu)
   static tz.TZDateTime _nextInstanceOfTime(int hour, int minute) {
     final now = tz.TZDateTime.now(tz.local);
     var scheduled = tz.TZDateTime(
@@ -191,19 +202,20 @@ class NotificationService {
     return scheduled;
   }
 
+  // Untuk testing — kirim notifikasi instan tanpa schedule
   static Future<void> instantTest() async {
-  await _plugin.show(
-    999,
-    'TEST NOTIFICATION',
-    'Jika notif ini muncul berarti plugin bekerja',
-    const NotificationDetails(
-      android: AndroidNotificationDetails(
-        'test_channel',
-        'Test Notification',
-        importance: Importance.max,
-        priority: Priority.high,
+    await _plugin.show(
+      999,
+      'TEST NOTIFICATION',
+      'Jika notif ini muncul berarti plugin bekerja',
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'test_channel',
+          'Test Notification',
+          importance: Importance.max,
+          priority: Priority.high,
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
