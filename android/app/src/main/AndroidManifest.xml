@@ -1,18 +1,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- ── Permissions untuk Notifikasi ──────────────────────────────── BARU -->
-
-    <!-- Wajib Android 13+ (API 33): izin tampilkan notifikasi -->
+    <!-- Izin notifikasi biasa (wajib Android 13+ / API 33) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
-    <!-- Wajib untuk zonedSchedule + exactAllowWhileIdle:
-         menjadwalkan alarm tepat waktu meski device dalam mode Doze/idle.
-         Tanpa ini, notifikasi bisa telat atau tidak muncul sama sekali. -->
+    <!-- SCHEDULE_EXACT_ALARM: untuk Android 12 (API 31-32), butuh approval user -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
 
-    <!-- Izin menerima broadcast saat device boot selesai,
-         digunakan flutter_local_notifications untuk reschedule notif
-         yang hilang setelah device restart. -->
+    <!-- USE_EXACT_ALARM: untuk Android 13+ (API 33+), TIDAK butuh approval user -->
+    <!-- Ini yang menyelesaikan error exact_alarms_not_permitted -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
+
+    <!-- Wajib agar notifikasi bisa dijadwal ulang setelah device restart -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
 
     <application
@@ -39,7 +37,7 @@
             </intent-filter>
         </activity>
 
-        <!-- ── Receiver untuk reschedule notifikasi setelah device restart ── BARU -->
+        <!-- Receiver untuk reschedule notifikasi setelah device restart -->
         <receiver
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"
             android:exported="false">
@@ -51,7 +49,7 @@
             </intent-filter>
         </receiver>
 
-        <!-- ── Receiver untuk memicu notifikasi terjadwal ──────────────── BARU -->
+        <!-- Receiver untuk memicu notifikasi terjadwal -->
         <receiver
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"
             android:exported="false"/>
@@ -62,11 +60,6 @@
         <meta-data
             android:name="com.google.mlkit.vision.DEPENDENCIES"
             android:value="barcode" />
-        
-        <activity
-            android:name="com.yalantis.ucrop.UCropActivity"
-            android:screenOrientation="portrait"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar"/>
     </application>
 
     <queries>
