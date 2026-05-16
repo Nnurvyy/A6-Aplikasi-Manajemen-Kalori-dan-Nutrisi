@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -429,6 +430,12 @@ class _UserMainViewState extends State<UserMainView>
   Widget _buildNavBtn(int index, List<_NavItem> items) {
     final item = items[index];
     final isActive = _currentIndex == index;
+    final user = context.watch<AuthController>().currentUser;
+    final isProfileIcon = item.label == 'Profile' || item.label == 'Anda';
+    final hasLocal = user?.localProfileImagePath != null && user!.localProfileImagePath!.isNotEmpty && File(user.localProfileImagePath!).existsSync();
+    final hasNetwork = user?.profileImageUrl != null && user!.profileImageUrl!.isNotEmpty;
+    final hasProfileImg = isProfileIcon && (hasLocal || hasNetwork);
+
     return Expanded(
       child: InkWell(
         onTap: () {
@@ -445,12 +452,46 @@ class _UserMainViewState extends State<UserMainView>
             children: [
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 200),
-                child: Icon(
-                  item.icon,
-                  key: ValueKey(isActive),
-                  color: isActive ? Colors.white : Colors.white54,
-                  size: isActive ? 24 : 22,
-                ),
+                child: hasProfileImg
+                    ? Container(
+                        key: ValueKey('profile_img_$isActive'),
+                        width: isActive ? 26 : 24,
+                        height: isActive ? 26 : 24,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isActive ? Colors.white : Colors.white54,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: ClipOval(
+                          child: hasLocal
+                              ? Image.file(
+                                  File(user!.localProfileImagePath!),
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Icon(
+                                    item.icon,
+                                    color: isActive ? Colors.white : Colors.white54,
+                                    size: isActive ? 24 : 22,
+                                  ),
+                                )
+                              : Image.network(
+                                  user!.profileImageUrl!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Icon(
+                                    item.icon,
+                                    color: isActive ? Colors.white : Colors.white54,
+                                    size: isActive ? 24 : 22,
+                                  ),
+                                ),
+                        ),
+                      )
+                    : Icon(
+                        item.icon,
+                        key: ValueKey('icon_$isActive'),
+                        color: isActive ? Colors.white : Colors.white54,
+                        size: isActive ? 24 : 22,
+                      ),
               ),
               const SizedBox(height: 3),
               Text(
@@ -812,7 +853,25 @@ class ParentProfilePlaceholder extends StatelessWidget {
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white38, width: 2),
                       ),
-                      child: const Icon(Icons.shield_rounded, color: Colors.white, size: 40),
+                      child: ClipOval(
+                        child: (mainUser.localProfileImagePath != null && mainUser.localProfileImagePath!.isNotEmpty && File(mainUser.localProfileImagePath!).existsSync())
+                            ? Image.file(
+                                File(mainUser.localProfileImagePath!),
+                                fit: BoxFit.cover,
+                                width: 80,
+                                height: 80,
+                                errorBuilder: (_, __, ___) => const Icon(Icons.shield_rounded, color: Colors.white, size: 40),
+                              )
+                            : (mainUser.profileImageUrl != null && mainUser.profileImageUrl!.isNotEmpty)
+                                ? Image.network(
+                                    mainUser.profileImageUrl!,
+                                    fit: BoxFit.cover,
+                                    width: 80,
+                                    height: 80,
+                                    errorBuilder: (_, __, ___) => const Icon(Icons.shield_rounded, color: Colors.white, size: 40),
+                                  )
+                                : const Icon(Icons.shield_rounded, color: Colors.white, size: 40),
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Text(
