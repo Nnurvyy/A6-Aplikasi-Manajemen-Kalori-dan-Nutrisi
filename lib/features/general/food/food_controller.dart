@@ -175,14 +175,9 @@ class FoodController extends ChangeNotifier {
     
     await HiveService.foods.put(food.id, food);
     
-    _allFoods.add(food);
-    
     _searchQuery = ''; 
-    _applyFilter(); 
-    
-    await HiveService.foods.put(food.id, food);
 
-    _applyFilter();
+    loadFromLocal(userId: food.userId);
 
     _db.collection('foods').doc(food.id).set(food.toMap()).then((_) {
       
@@ -195,28 +190,27 @@ class FoodController extends ChangeNotifier {
 
   Future<void> updateFood(FoodModel food) async {
     await HiveService.foods.put(food.id, food);
-    loadFoods(approvedOnly: false);
 
-    loadFromLocal();
+    loadFromLocal(userId: food.userId);
 
-    try {
-      await _db.collection('foods').doc(food.id).set(food.toFirestore(), SetOptions(merge: true));
-    } catch (e) {
+    
+      _db.collection('foods').doc(food.id).set(food.toFirestore(), SetOptions(merge: true)).catchError((e) {
       debugPrint("Cloud Update Error: $e");
-    }
+    });
   }
 
   Future<void> deleteFood(String id) async {
+  
+    final foodToDelete = findById(id);
+    final currentUserId = foodToDelete?.userId;
+
     await HiveService.foods.delete(id);
-    loadFoods(approvedOnly: false);
 
-    loadFromLocal();
+    loadFromLocal(userId: currentUserId);
 
-    try {
-      await _db.collection('foods').doc(id).delete();
-    } catch (e) {
+    _db.collection('foods').doc(id).delete().catchError((e) {
       debugPrint("Cloud Delete Error: $e");
-    }
+    });
   }
 
 
