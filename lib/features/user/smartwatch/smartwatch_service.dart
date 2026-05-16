@@ -21,9 +21,14 @@ class SmartwatchService {
   ];
 
   // ── Minta izin ke Health Connect ─────────────────────────────────────────
+  // ── Minta izin ke Health Connect ─────────────────────────────────────────
   Future<bool> requestPermissions() async {
-    // Cek apakah Health Connect tersedia di device
-    final isAvailable = await _health.isHealthConnectAvailable();
+    // SEBELUM (versi lama — error):
+    // final isAvailable = await _health.isHealthConnectAvailable();
+
+    // SESUDAH (versi baru health ^10.x):
+    final status = await Health().getHealthConnectSdkStatus();
+    final isAvailable = status == HealthConnectSdkStatus.sdkAvailable;
     if (!isAvailable) return false;
 
     return await _health.requestAuthorization(
