@@ -42,19 +42,18 @@
         <meta-data
             android:name="com.google.mlkit.vision.DEPENDENCIES"
             android:value="barcode" />
-
-        <!-- ── Health Connect: deklarasi package yang digunakan ───────── -->
-        <queries>
-            <package android:name="com.google.android.apps.healthdata"/>
-        </queries>
-        <!-- ─────────────────────────────────────────────────────────────── -->
-
     </application>
 
+    <!-- ── Queries: WAJIB di luar <application>, sejajar dengannya ──────── -->
     <queries>
+        <!-- Health Connect -->
+        <package android:name="com.google.android.apps.healthdata"/>
+        <!-- Process Text (bawaan Flutter) -->
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
     </queries>
+    <!-- ─────────────────────────────────────────────────────────────────── -->
+
 </manifest>
