@@ -14,6 +14,7 @@ import './features/general/food/watchlist_controller.dart';
 import './features/user/progress/models/weight_log_model.dart';
 import './features/general/submission/submission_controller.dart';
 import './features/general/submission/model/pending_submission_model.dart';
+import './features/user/notification/models/notification_setting_model.dart';
 import './helpers/date_controller.dart';
 import './services/hive_service.dart';
 import './helpers/seed_helper.dart';
@@ -23,8 +24,13 @@ import './features/general/auth/splash_view.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
-import 'services/food_log_sync_service.dart';   
+import './services/notification_service.dart';
+import './features/user/notification/notification_controller.dart';
+import 'services/food_log_sync_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+
+// ── Satu instance global — dipakai di MultiProvider DAN dipanggil loadSettings()
+final notifCtrl = NotificationController();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -57,11 +63,19 @@ void main() async {
   Hive.registerAdapter(LogModelAdapter());
   Hive.registerAdapter(WatchlistModelAdapter());
   Hive.registerAdapter(WeightLogModelAdapter());
-  Hive.registerAdapter(PendingSubmissionModelAdapter()); // ← TAMBAH
+  Hive.registerAdapter(PendingSubmissionModelAdapter());
+  Hive.registerAdapter(NotificationSettingModelAdapter());
 
   await HiveService.initBoxes();
   await SeedHelper.seedIfEmpty();
-  
+
+  await NotificationService.init();
+  await NotificationService.requestPermission();
+
+  // Load settings + jadwalkan notifikasi menggunakan instance yang sama
+  // dengan yang akan di-provide ke widget tree
+  await notifCtrl.loadSettings();
+
   // Initial sync
   FoodLogSyncService.syncPendingLogs();
 
@@ -88,8 +102,9 @@ class NutriTrackApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => WatchlistController()),
         ChangeNotifierProvider(create: (_) => DateController()),
         ChangeNotifierProvider(create: (_) => AdminUserController()),
-        // SubmissionController global — shared antara Admin & Nutritionist
         ChangeNotifierProvider.value(value: submissionCtrl),
+        // Pakai .value agar instance-nya sama dengan yang sudah loadSettings() di atas
+        ChangeNotifierProvider.value(value: notifCtrl),
       ],
       child: MaterialApp(
         title: 'NutriTrack',
