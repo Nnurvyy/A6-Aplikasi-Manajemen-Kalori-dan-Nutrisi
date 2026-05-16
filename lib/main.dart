@@ -26,6 +26,8 @@ import 'firebase_options.dart';
 import 'services/food_log_sync_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
+import './features/user/smartwatch/smartwatch_controller.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -88,8 +90,8 @@ class NutriTrackApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => WatchlistController()),
         ChangeNotifierProvider(create: (_) => DateController()),
         ChangeNotifierProvider(create: (_) => AdminUserController()),
-        // SubmissionController global — shared antara Admin & Nutritionist
         ChangeNotifierProvider(create: (_) => SubmissionController()),
+        ChangeNotifierProvider(create: (_) => SmartwatchController()),
       ],
       child: MaterialApp(
         title: 'NutriTrack',

@@ -12,6 +12,8 @@ import 'package:qr_flutter/qr_flutter.dart';
 import './qr_scanner_page.dart';
 import 'dart:ui' as ui;
 import 'package:gal/gal.dart';
+import '../smartwatch/smartwatch_controller.dart';
+import '../smartwatch/smartwatch_settings_view.dart';
 
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
@@ -249,7 +251,9 @@ class _ProfileViewState extends State<ProfileView> {
                               final h = double.tryParse(tinggiCtrl.text.trim());
                               final a = int.tryParse(umurCtrl.text.trim());
                               final w = double.tryParse(beratCtrl.text.trim());
-                              final initW = double.tryParse(initialBeratCtrl.text.trim());
+                              final initW = double.tryParse(
+                                initialBeratCtrl.text.trim(),
+                              );
                               final target =
                                   double.tryParse(targetCtrl.text.trim()) ?? 0;
                               final newCal =
@@ -264,9 +268,14 @@ class _ProfileViewState extends State<ProfileView> {
                                       )
                                       : user.dailyCalorieNeed;
 
-                              final history = Map<String, double>.from(user.targetHistory ?? {});
+                              final history = Map<String, double>.from(
+                                user.targetHistory ?? {},
+                              );
                               if (target != user.targetWeightGainPerMonth) {
-                                history[DateFormat('yyyy-MM').format(DateTime.now())] = target;
+                                history[DateFormat(
+                                      'yyyy-MM',
+                                    ).format(DateTime.now())] =
+                                    target;
                               }
 
                               final updated = UserModel(
@@ -293,11 +302,12 @@ class _ProfileViewState extends State<ProfileView> {
                               await context
                                   .read<AuthController>()
                                   .updateProfile(updated);
-                              
+
                               // SINKRONISASI: Update juga di log berat badan bulan ini jika berat diinput
                               if (w != null) {
                                 final now = DateTime.now();
-                                final key = '${user.id}_${now.year}_${now.month}';
+                                final key =
+                                    '${user.id}_${now.year}_${now.month}';
                                 final log = WeightLogModel(
                                   id: key,
                                   userId: user.id,
@@ -404,6 +414,10 @@ class _ProfileViewState extends State<ProfileView> {
                   const SizedBox(height: 20),
                   _buildPersonalisasi(user, auth),
                   const SizedBox(height: 20),
+                  if (!auth.isMonitoring) ...[
+                    _buildSmartwatchSection(context),
+                    const SizedBox(height: 20),
+                  ], // ← tambah
                   _buildParentalControl(auth),
                   const SizedBox(height: 32),
                 ],
@@ -487,24 +501,30 @@ class _ProfileViewState extends State<ProfileView> {
   void _confirmStopMonitoring(AuthController auth) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Kembali ke Utama?'),
-        content: const Text('Anda akan berhenti memantau aktivitas anak ini dan kembali ke profil Anda sendiri.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Kembali ke Utama?'),
+            content: const Text(
+              'Anda akan berhenti memantau aktivitas anak ini dan kembali ke profil Anda sendiri.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text(
+                  'Batal',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  auth.stopMonitoring();
+                  Navigator.pop(ctx);
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: _green),
+                child: const Text('Ya, Kembali'),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () {
-              auth.stopMonitoring();
-              Navigator.pop(ctx);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: _green),
-            child: const Text('Ya, Kembali'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -513,148 +533,191 @@ class _ProfileViewState extends State<ProfileView> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
+      builder:
+          (ctx) => Container(
+            padding: const EdgeInsets.all(24),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
-            const SizedBox(height: 20),
-            const Text(
-              'QR Code & ID Anda',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF1A2E1A),
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Tunjukkan QR ini atau bagikan ID di bawah kepada orang tua Anda agar mereka dapat memantau aktivitas Anda.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: Colors.grey),
-            ),
-            const SizedBox(height: 24),
-            QrImageView(
-              data: myId,
-              version: QrVersions.auto,
-              size: 200.0,
-              backgroundColor: Colors.white,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: () async {
-                try {
-                  final painter = QrPainter(
-                    data: myId,
-                    version: QrVersions.auto,
-                    errorCorrectionLevel: QrErrorCorrectLevel.M,
-                    color: const Color(0xFF000000),
-                    emptyColor: const Color(0xFFFFFFFF),
-                    gapless: true,
-                  );
-                  
-                  // Membuat margin putih (Quiet Zone) secara manual agar scanner mudah mendeteksi
-                  const double qrSize = 1024.0;
-                  const double margin = 100.0;
-                  const double totalSize = qrSize + (margin * 2);
-                  
-                  final recorder = ui.PictureRecorder();
-                  final canvas = Canvas(recorder, const Rect.fromLTWH(0, 0, totalSize, totalSize));
-                  
-                  // Gambar background putih
-                  canvas.drawRect(const Rect.fromLTWH(0, 0, totalSize, totalSize), Paint()..color = Colors.white);
-                  
-                  // Gambar QR di tengah
-                  canvas.save();
-                  canvas.translate(margin, margin);
-                  painter.paint(canvas, const Size(qrSize, qrSize));
-                  canvas.restore();
-                  
-                  final img = await recorder.endRecording().toImage(totalSize.toInt(), totalSize.toInt());
-                  final picData = await img.toByteData(format: ui.ImageByteFormat.png);
-                  if (picData != null) {
-                    await Gal.putImageBytes(picData.buffer.asUint8List());
-                    if (mounted) {
-                      Navigator.pop(context); // tutup modal
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Row(
-                            children: [
-                              Icon(Icons.check_circle_rounded, color: Colors.white),
-                              SizedBox(width: 10),
-                              Text('QR Code berhasil disimpan ke Galeri!', style: TextStyle(fontWeight: FontWeight.w600)),
-                            ],
-                          ),
-                          backgroundColor: const Color(0xFF2E7D32),
-                          duration: const Duration(seconds: 3),
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'QR Code & ID Anda',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1A2E1A),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Tunjukkan QR ini atau bagikan ID di bawah kepada orang tua Anda agar mereka dapat memantau aktivitas Anda.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+                const SizedBox(height: 24),
+                QrImageView(
+                  data: myId,
+                  version: QrVersions.auto,
+                  size: 200.0,
+                  backgroundColor: Colors.white,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    try {
+                      final painter = QrPainter(
+                        data: myId,
+                        version: QrVersions.auto,
+                        errorCorrectionLevel: QrErrorCorrectLevel.M,
+                        color: const Color(0xFF000000),
+                        emptyColor: const Color(0xFFFFFFFF),
+                        gapless: true,
                       );
+
+                      // Membuat margin putih (Quiet Zone) secara manual agar scanner mudah mendeteksi
+                      const double qrSize = 1024.0;
+                      const double margin = 100.0;
+                      const double totalSize = qrSize + (margin * 2);
+
+                      final recorder = ui.PictureRecorder();
+                      final canvas = Canvas(
+                        recorder,
+                        const Rect.fromLTWH(0, 0, totalSize, totalSize),
+                      );
+
+                      // Gambar background putih
+                      canvas.drawRect(
+                        const Rect.fromLTWH(0, 0, totalSize, totalSize),
+                        Paint()..color = Colors.white,
+                      );
+
+                      // Gambar QR di tengah
+                      canvas.save();
+                      canvas.translate(margin, margin);
+                      painter.paint(canvas, const Size(qrSize, qrSize));
+                      canvas.restore();
+
+                      final img = await recorder.endRecording().toImage(
+                        totalSize.toInt(),
+                        totalSize.toInt(),
+                      );
+                      final picData = await img.toByteData(
+                        format: ui.ImageByteFormat.png,
+                      );
+                      if (picData != null) {
+                        await Gal.putImageBytes(picData.buffer.asUint8List());
+                        if (mounted) {
+                          Navigator.pop(context); // tutup modal
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Row(
+                                children: [
+                                  Icon(
+                                    Icons.check_circle_rounded,
+                                    color: Colors.white,
+                                  ),
+                                  SizedBox(width: 10),
+                                  Text(
+                                    'QR Code berhasil disimpan ke Galeri!',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              backgroundColor: const Color(0xFF2E7D32),
+                              duration: const Duration(seconds: 3),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          );
+                        }
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Gagal menyimpan QR: $e')),
+                        );
+                      }
                     }
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Gagal menyimpan QR: $e')),
-                    );
-                  }
-                }
-              },
-              icon: const Icon(Icons.download_rounded, color: Colors.white, size: 18),
-              label: const Text('Download QR', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _green,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF4FAF4),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SelectableText(
-                    myId,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: _green,
+                  },
+                  icon: const Icon(
+                    Icons.download_rounded,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                  label: const Text(
+                    'Download QR',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () {
-                      Clipboard.setData(ClipboardData(text: myId));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('ID berhasil disalin!')),
-                      );
-                    },
-                    child: const Icon(Icons.copy_rounded, color: _green, size: 20),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _green,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF4FAF4),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SelectableText(
+                        myId,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: _green,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () {
+                          Clipboard.setData(ClipboardData(text: myId));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('ID berhasil disalin!'),
+                            ),
+                          );
+                        },
+                        child: const Icon(
+                          Icons.copy_rounded,
+                          color: _green,
+                          size: 20,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
             ),
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
@@ -665,79 +728,94 @@ class _ProfileViewState extends State<ProfileView> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
+      builder:
+          (ctx) => Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
+            ),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
-              const SizedBox(height: 20),
-              const Text(
-                'Pantau Anak',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1A2E1A),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Expanded(child: _inputField('Masukkan ID Anak', idCtrl)),
-                  const SizedBox(width: 12),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 24),
-                    child: IconButton(
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Pantau Anak',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1A2E1A),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(child: _inputField('Masukkan ID Anak', idCtrl)),
+                      const SizedBox(width: 12),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 24),
+                        child: IconButton(
+                          onPressed: () async {
+                            final scannedId = await Navigator.push(
+                              ctx,
+                              MaterialPageRoute(
+                                builder: (_) => const QRScannerPage(),
+                              ),
+                            );
+                            if (scannedId != null && scannedId is String) {
+                              idCtrl.text = scannedId;
+                            }
+                          },
+                          icon: const Icon(
+                            Icons.qr_code_scanner,
+                            color: _green,
+                            size: 32,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
                       onPressed: () async {
-                        final scannedId = await Navigator.push(
-                          ctx,
-                          MaterialPageRoute(builder: (_) => const QRScannerPage()),
-                        );
-                        if (scannedId != null && scannedId is String) {
-                          idCtrl.text = scannedId;
-                        }
+                        if (idCtrl.text.trim().isEmpty) return;
+                        Navigator.pop(ctx);
+                        _confirmStartMonitoring(auth, idCtrl.text.trim());
                       },
-                      icon: const Icon(Icons.qr_code_scanner, color: _green, size: 32),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _green,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: const Text(
+                        'Mulai Pantau',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    if (idCtrl.text.trim().isEmpty) return;
-                    Navigator.pop(ctx);
-                    _confirmStartMonitoring(auth, idCtrl.text.trim());
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _green,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  child: const Text('Mulai Pantau', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
     );
   }
 
@@ -750,38 +828,60 @@ class _ProfileViewState extends State<ProfileView> {
           builder: (context, setState) {
             return AlertDialog(
               title: const Text('Konfirmasi Pantau'),
-              content: isLoading 
-                ? const SizedBox(height: 50, child: Center(child: CircularProgressIndicator()))
-                : Text('Apakah Anda yakin ingin mulai memantau aktivitas akun dengan ID:\n$childId?'),
-              actions: isLoading ? [] : [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Batal', style: TextStyle(color: Colors.grey)),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    setState(() => isLoading = true);
-                    final success = await auth.startMonitoring(childId);
-                    if (mounted) {
-                      Navigator.pop(ctx);
-                      if (!success) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(auth.errorMessage ?? 'Gagal memantau')),
-                        );
-                      }
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _green,
-                    foregroundColor: Colors.white, // Agar teks putih dan kontras
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text('Ya, Pantau', style: TextStyle(fontWeight: FontWeight.bold)),
-                ),
-              ],
+              content:
+                  isLoading
+                      ? const SizedBox(
+                        height: 50,
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                      : Text(
+                        'Apakah Anda yakin ingin mulai memantau aktivitas akun dengan ID:\n$childId?',
+                      ),
+              actions:
+                  isLoading
+                      ? []
+                      : [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: const Text(
+                            'Batal',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ),
+                        ElevatedButton(
+                          onPressed: () async {
+                            setState(() => isLoading = true);
+                            final success = await auth.startMonitoring(childId);
+                            if (mounted) {
+                              Navigator.pop(ctx);
+                              if (!success) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      auth.errorMessage ?? 'Gagal memantau',
+                                    ),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _green,
+                            foregroundColor:
+                                Colors.white, // Agar teks putih dan kontras
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Ya, Pantau',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
             );
-          }
+          },
         );
       },
     );
@@ -884,7 +984,11 @@ class _ProfileViewState extends State<ProfileView> {
                         ),
                         child: const Row(
                           children: [
-                            Icon(Icons.edit_outlined, color: Colors.white, size: 14),
+                            Icon(
+                              Icons.edit_outlined,
+                              color: Colors.white,
+                              size: 14,
+                            ),
                             SizedBox(width: 5),
                             Text(
                               'Edit Profil',
@@ -1299,7 +1403,10 @@ class _ProfileViewState extends State<ProfileView> {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: isMonitor ? const Color(0xFF1976D2) : const Color(0xFF2E7D32),
+                color:
+                    isMonitor
+                        ? const Color(0xFF1976D2)
+                        : const Color(0xFF2E7D32),
               ),
             ),
             if (!isMonitor) ...[
@@ -1320,4 +1427,127 @@ class _ProfileViewState extends State<ProfileView> {
     padding: EdgeInsets.symmetric(horizontal: 18),
     child: Divider(height: 1, color: Color(0xFFE8F5E9)),
   );
+
+  Widget _buildSmartwatchSection(BuildContext context) {
+    final sw = context.watch<SmartwatchController>();
+    final isConnected = sw.isConnected;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Perangkat',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1A2E1A),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: InkWell(
+              onTap:
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const SmartwatchSettingsView(),
+                    ),
+                  ),
+              borderRadius: BorderRadius.circular(20),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 16,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE8F5E9),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.watch_rounded,
+                        color: _green,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    const Expanded(
+                      child: Text(
+                        'Smartwatch',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF1A2E1A),
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color:
+                            isConnected
+                                ? const Color(0xFFE8F5E9)
+                                : Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color:
+                                  isConnected ? _green : Colors.grey.shade400,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            isConnected ? 'Terhubung' : 'Tidak aktif',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color:
+                                  isConnected ? _green : Colors.grey.shade500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: Color(0xFF8EBA8E),
+                      size: 20,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
