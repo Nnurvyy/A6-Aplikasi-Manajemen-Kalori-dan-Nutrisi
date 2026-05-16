@@ -453,7 +453,7 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
                     ),
                     const SizedBox(height: 10),
                     const Text(
-                      'Ketuk untuk tambah foto (Opsional jika memang tidak memiliki foto)',
+                      'Ketuk untuk tambah foto (Opsional)',
                       style: TextStyle(
                         color: _textDark,
                         fontWeight: FontWeight.w600,
