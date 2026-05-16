@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:health/health.dart';
 import 'smartwatch_service.dart';
 import 'smartwatch_data_model.dart';
+
+// FIX 1: Hapus 'import health/health.dart' — tidak dipakai langsung di sini,
+// sudah dihandle oleh SmartwatchService
 
 enum SmartwatchStatus { disconnected, connecting, connected, error }
 
@@ -13,6 +15,11 @@ class SmartwatchController extends ChangeNotifier {
   String? _errorMessage;
   bool _isLoading = false;
   DateTime? _lastSynced;
+
+  // FIX 2: Tambah constructor — wajib panggil configure() sebelum apapun
+  SmartwatchController() {
+    _service.configure();
+  }
 
   // ── Getters ───────────────────────────────────────────────────────────────
   SmartwatchStatus get status => _status;
@@ -29,6 +36,17 @@ class SmartwatchController extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // FIX 3: Cek ketersediaan Health Connect dulu sebelum minta izin
+      final available = await _service.isAvailable();
+      if (!available) {
+        _status = SmartwatchStatus.error;
+        _errorMessage =
+            'Health Connect tidak tersedia di perangkat ini. '
+            'Pastikan app Health Connect sudah terinstall.';
+        _setLoading(false);
+        return false;
+      }
+
       final granted = await _service.requestPermissions();
       if (!granted) {
         _status = SmartwatchStatus.error;
@@ -37,7 +55,6 @@ class SmartwatchController extends ChangeNotifier {
         return false;
       }
 
-      // Langsung ambil data setelah izin diberikan
       await _fetchData();
       _status = SmartwatchStatus.connected;
       _errorMessage = null;
@@ -51,7 +68,7 @@ class SmartwatchController extends ChangeNotifier {
     }
   }
 
-  // ── Ambil data terbaru dari Health Connect ────────────────────────────────
+  // ── Sinkronisasi data ─────────────────────────────────────────────────────
   Future<void> syncData() async {
     if (_status != SmartwatchStatus.connected) return;
     _setLoading(true);
@@ -60,13 +77,14 @@ class SmartwatchController extends ChangeNotifier {
       _errorMessage = null;
     } catch (e) {
       _errorMessage = 'Gagal sinkronisasi: ${e.toString()}';
+      notifyListeners();
     }
     _setLoading(false);
   }
 
   Future<void> _fetchData() async {
     final now = DateTime.now();
-    final since = DateTime(now.year, now.month, now.day); // mulai tengah malam
+    final since = DateTime(now.year, now.month, now.day);
 
     final steps = await _service.getSteps(since, now);
     final heartRate = await _service.getHeartRate(since, now);

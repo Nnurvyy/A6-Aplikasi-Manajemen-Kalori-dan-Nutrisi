@@ -1,11 +1,11 @@
 import 'package:health/health.dart';
 
 /// Service layer yang berkomunikasi langsung dengan Health Connect.
-/// Semua method return null jika data tidak tersedia (bukan throw error).
+/// Kompatibel dengan package health ^11.x (Google Fit sudah dihapus di v11+)
 class SmartwatchService {
+  // ── PENTING: gunakan instance global, bukan dibuat tiap kali ────────────
   final Health _health = Health();
 
-  // Tipe data yang diminta dari Health Connect
   static const List<HealthDataType> _types = [
     HealthDataType.STEPS,
     HealthDataType.HEART_RATE,
@@ -20,24 +20,42 @@ class SmartwatchService {
     HealthDataAccess.READ,
   ];
 
-  // ── Minta izin ke Health Connect ─────────────────────────────────────────
-  // ── Minta izin ke Health Connect ─────────────────────────────────────────
-  Future<bool> requestPermissions() async {
-    // SEBELUM (versi lama — error):
-    // final isAvailable = await _health.isHealthConnectAvailable();
-
-    // SESUDAH (versi baru health ^10.x):
-    final status = await Health().getHealthConnectSdkStatus();
-    final isAvailable = status == HealthConnectSdkStatus.sdkAvailable;
-    if (!isAvailable) return false;
-
-    return await _health.requestAuthorization(
-      _types,
-      permissions: _permissions,
-    );
+  // ── WAJIB: configure dulu sebelum pakai apapun ────────────────────────────
+  // Panggil ini di initState atau sebelum requestPermissions
+  void configure() {
+    _health.configure();
   }
 
-  // ── Langkah kaki ─────────────────────────────────────────────────────────
+  // ── Cek status Health Connect ─────────────────────────────────────────────
+  // FIX: isHealthConnectAvailable() sudah dihapus di v10+
+  // Ganti dengan getHealthConnectSdkStatus()
+  Future<bool> isAvailable() async {
+    try {
+      final status = await _health.getHealthConnectSdkStatus();
+      return status == HealthConnectSdkStatus.sdkAvailable;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ── Minta izin ke Health Connect ──────────────────────────────────────────
+  Future<bool> requestPermissions() async {
+    // 1. Cek dulu apakah Health Connect SDK tersedia
+    final available = await isAvailable();
+    if (!available) return false;
+
+    // 2. Minta izin
+    try {
+      return await _health.requestAuthorization(
+        _types,
+        permissions: _permissions,
+      );
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ── Langkah kaki ──────────────────────────────────────────────────────────
   Future<int?> getSteps(DateTime from, DateTime to) async {
     try {
       return await _health.getTotalStepsInInterval(from, to);
@@ -46,7 +64,7 @@ class SmartwatchService {
     }
   }
 
-  // ── Detak jantung (ambil nilai terakhir) ──────────────────────────────────
+  // ── Detak jantung (nilai terakhir hari ini) ───────────────────────────────
   Future<double?> getHeartRate(DateTime from, DateTime to) async {
     try {
       final data = await _health.getHealthDataFromTypes(
@@ -55,7 +73,6 @@ class SmartwatchService {
         types: [HealthDataType.HEART_RATE],
       );
       if (data.isEmpty) return null;
-      // Ambil data paling terbaru
       data.sort((a, b) => b.dateFrom.compareTo(a.dateFrom));
       final latest = data.first.value;
       if (latest is NumericHealthValue) return latest.numericValue.toDouble();
@@ -65,7 +82,7 @@ class SmartwatchService {
     }
   }
 
-  // ── Kalori terbakar ───────────────────────────────────────────────────────
+  // ── Kalori terbakar (total hari ini) ─────────────────────────────────────
   Future<double?> getCaloriesBurned(DateTime from, DateTime to) async {
     try {
       final data = await _health.getHealthDataFromTypes(
@@ -74,7 +91,6 @@ class SmartwatchService {
         types: [HealthDataType.ACTIVE_ENERGY_BURNED],
       );
       if (data.isEmpty) return null;
-      // Jumlahkan semua kalori dalam rentang waktu
       double total = 0;
       for (final d in data) {
         if (d.value is NumericHealthValue) {
@@ -87,7 +103,7 @@ class SmartwatchService {
     }
   }
 
-  // ── Saturasi oksigen / SpO2 ───────────────────────────────────────────────
+  // ── Saturasi oksigen / SpO2 (nilai terakhir) ──────────────────────────────
   Future<double?> getSpO2(DateTime from, DateTime to) async {
     try {
       final data = await _health.getHealthDataFromTypes(
