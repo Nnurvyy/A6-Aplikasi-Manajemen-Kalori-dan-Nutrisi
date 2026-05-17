@@ -161,10 +161,10 @@ class NotificationSettingsView extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MEAL CARD
+// MEAL CARD  →  diubah ke StatefulWidget agar ScrollController bisa hidup
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _MealCard extends StatelessWidget {
+class _MealCard extends StatefulWidget {
   final int index;
   final NotificationSettingModel setting;
   final NotificationController ctrl;
@@ -182,6 +182,11 @@ class _MealCard extends StatelessWidget {
   });
 
   @override
+  State<_MealCard> createState() => _MealCardState();
+}
+
+class _MealCardState extends State<_MealCard> {
+  @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
@@ -198,7 +203,7 @@ class _MealCard extends StatelessWidget {
       child: Column(
         children: [
           _buildHeader(context),
-          if (setting.isEnabled) ...[
+          if (widget.setting.isEnabled) ...[
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 18),
               child: Divider(height: 1, color: Colors.grey.shade100),
@@ -209,13 +214,13 @@ class _MealCard extends StatelessWidget {
               child: Divider(height: 1, color: Colors.grey.shade100),
             ),
             _buildTextRow(context,
-                label: 'Judul', value: setting.title, isTitle: true),
+                label: 'Judul', value: widget.setting.title, isTitle: true),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 18),
               child: Divider(height: 1, color: Colors.grey.shade100),
             ),
             _buildTextRow(context,
-                label: 'Pesan', value: setting.body, isTitle: false),
+                label: 'Pesan', value: widget.setting.body, isTitle: false),
             const SizedBox(height: 4),
           ] else
             const SizedBox(height: 4),
@@ -223,6 +228,8 @@ class _MealCard extends StatelessWidget {
       ),
     );
   }
+
+  // ── Header (ikon + label + switch) ────────────────────────────────────────
 
   Widget _buildHeader(BuildContext context) {
     return Padding(
@@ -233,28 +240,30 @@ class _MealCard extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: bgColor,
+              color: widget.bgColor,
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(icon, color: color, size: 22),
+            child: Icon(widget.icon, color: widget.color, size: 22),
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(setting.label,
+                Text(widget.setting.label,
                     style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF1A2E1A))),
                 Text(
-                  setting.isEnabled
-                      ? 'Aktif · ${ctrl.formatTime(setting)}'
+                  widget.setting.isEnabled
+                      ? 'Aktif · ${widget.ctrl.formatTime(widget.setting)}'
                       : 'Nonaktif',
                   style: TextStyle(
                     fontSize: 12,
-                    color: setting.isEnabled ? color : Colors.grey,
+                    color: widget.setting.isEnabled
+                        ? widget.color
+                        : Colors.grey,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -262,21 +271,23 @@ class _MealCard extends StatelessWidget {
             ),
           ),
           Switch(
-            value: setting.isEnabled,
+            value: widget.setting.isEnabled,
             onChanged: (_) {
               HapticFeedback.selectionClick();
-              ctrl.toggleEnabled(index);
+              widget.ctrl.toggleEnabled(widget.index);
             },
-            activeColor: color,
+            activeColor: widget.color,
           ),
         ],
       ),
     );
   }
 
+  // ── Time row (tap → buka wheel picker) ────────────────────────────────────
+
   Widget _buildTimeRow(BuildContext context) {
     return InkWell(
-      onTap: () => _pickTime(context),
+      onTap: () => _showWheelTimePicker(context),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         child: Row(
@@ -285,10 +296,10 @@ class _MealCard extends StatelessWidget {
               width: 34,
               height: 34,
               decoration: BoxDecoration(
-                  color: bgColor,
+                  color: widget.bgColor,
                   borderRadius: BorderRadius.circular(10)),
-              child:
-                  Icon(Icons.access_time_rounded, color: color, size: 18),
+              child: Icon(Icons.access_time_rounded,
+                  color: widget.color, size: 18),
             ),
             const SizedBox(width: 14),
             const Expanded(
@@ -298,11 +309,11 @@ class _MealCard extends StatelessWidget {
                       fontWeight: FontWeight.w500,
                       color: Color(0xFF1A2E1A))),
             ),
-            Text(ctrl.formatTime(setting),
+            Text(widget.ctrl.formatTime(widget.setting),
                 style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: color)),
+                    color: widget.color)),
             const SizedBox(width: 6),
             Icon(Icons.chevron_right_rounded,
                 color: Colors.grey.shade400, size: 20),
@@ -311,6 +322,8 @@ class _MealCard extends StatelessWidget {
       ),
     );
   }
+
+  // ── Text row (edit judul / pesan) ─────────────────────────────────────────
 
   Widget _buildTextRow(BuildContext context,
       {required String label,
@@ -326,13 +339,11 @@ class _MealCard extends StatelessWidget {
               width: 34,
               height: 34,
               decoration: BoxDecoration(
-                  color: bgColor,
+                  color: widget.bgColor,
                   borderRadius: BorderRadius.circular(10)),
               child: Icon(
-                isTitle
-                    ? Icons.title_rounded
-                    : Icons.message_rounded,
-                color: color,
+                isTitle ? Icons.title_rounded : Icons.message_rounded,
+                color: widget.color,
                 size: 18,
               ),
             ),
@@ -355,40 +366,236 @@ class _MealCard extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(Icons.edit_rounded,
-                color: Colors.grey.shade400, size: 18),
+            Icon(Icons.edit_rounded, color: Colors.grey.shade400, size: 18),
           ],
         ),
       ),
     );
   }
 
-  Future<void> _pickTime(BuildContext context) async {
-    final picked = await showTimePicker(
+  // ── Wheel Time Picker (bottom sheet) ──────────────────────────────────────
+
+  Future<void> _showWheelTimePicker(BuildContext context) async {
+    // Nilai sementara selama user scroll — baru disimpan saat tekan Simpan
+    int tempHour = widget.setting.hour;
+    int tempMinute = widget.setting.minute;
+
+    final hourCtrl =
+        FixedExtentScrollController(initialItem: tempHour);
+    final minCtrl =
+        FixedExtentScrollController(initialItem: tempMinute);
+
+    await showModalBottomSheet(
       context: context,
-      initialTime: ctrl.toTimeOfDay(setting),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: ColorScheme.light(
-            primary: color,
-            onPrimary: Colors.white,
-            surface: Colors.white,
-            onSurface: const Color(0xFF1A2E1A),
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return Container(
+          height: 340,
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              // ── Handle bar ──
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // ── Judul sheet ──
+              Text(
+                'Atur Jam · ${widget.setting.label}',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1A2E1A),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // ── Wheel picker jam & menit ──
+              Expanded(
+                child: Row(
+                  children: [
+                    // Jam (00–23)
+                    Expanded(
+                      child: _buildWheelColumn(
+                        label: 'Jam',
+                        controller: hourCtrl,
+                        itemCount: 24,
+                        itemLabel: (i) => i.toString().padLeft(2, '0'),
+                        onChanged: (i) => tempHour = i,
+                      ),
+                    ),
+
+                    // Pemisah titik dua
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        ':',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: widget.color,
+                        ),
+                      ),
+                    ),
+
+                    // Menit (00–59)
+                    Expanded(
+                      child: _buildWheelColumn(
+                        label: 'Menit',
+                        controller: minCtrl,
+                        itemCount: 60,
+                        itemLabel: (i) => i.toString().padLeft(2, '0'),
+                        onChanged: (i) => tempMinute = i,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // ── Tombol Simpan ──
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    await widget.ctrl.updateTime(
+                      widget.index,
+                      TimeOfDay(hour: tempHour, minute: tempMinute),
+                    );
+                    HapticFeedback.lightImpact();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: widget.color,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: const Text(
+                    'Simpan',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    // Dispose controller setelah sheet ditutup
+    hourCtrl.dispose();
+    minCtrl.dispose();
+  }
+
+  /// Satu kolom scroll wheel (jam ATAU menit).
+  Widget _buildWheelColumn({
+    required String label,
+    required FixedExtentScrollController controller,
+    required int itemCount,
+    required String Function(int) itemLabel,
+    required void Function(int) onChanged,
+  }) {
+    return Column(
+      children: [
+        // Label kolom
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey.shade500,
           ),
         ),
-        child: child!,
-      ),
+        const SizedBox(height: 4),
+
+        // Highlight item terpilih
+        Expanded(
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Garis highlight atas & bawah item terpilih
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Divider(
+                      height: 1,
+                      color: widget.color.withOpacity(0.4)),
+                  const SizedBox(height: 42),
+                  Divider(
+                      height: 1,
+                      color: widget.color.withOpacity(0.4)),
+                ],
+              ),
+
+              // Wheel
+              ListWheelScrollView.useDelegate(
+                controller: controller,
+                itemExtent: 44,
+                physics: const FixedExtentScrollPhysics(),
+                onSelectedItemChanged: (i) {
+                  HapticFeedback.selectionClick();
+                  onChanged(i);
+                },
+                childDelegate: ListWheelChildBuilderDelegate(
+                  builder: (context, index) {
+                    // Gunakan ValueListenableBuilder agar item aktif
+                    // di-highlight secara real-time saat scroll
+                    return AnimatedBuilder(
+                      animation: controller,
+                      builder: (_, __) {
+                        final isSelected =
+                            controller.hasClients &&
+                                controller.selectedItem == index;
+                        return Center(
+                          child: Text(
+                            itemLabel(index),
+                            style: TextStyle(
+                              fontSize: isSelected ? 22 : 15,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                              color: isSelected
+                                  ? widget.color
+                                  : Colors.grey.shade400,
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                  childCount: itemCount,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
-    if (picked != null) {
-      await ctrl.updateTime(index, picked);
-      HapticFeedback.lightImpact();
-    }
   }
+
+  // ── Edit teks notifikasi (judul / pesan) ──────────────────────────────────
 
   void _editText(BuildContext context, {required bool isTitle}) {
     final ctrl = context.read<NotificationController>();
     final textCtrl = TextEditingController(
-        text: isTitle ? setting.title : setting.body);
+        text: isTitle ? widget.setting.title : widget.setting.body);
 
     showModalBottomSheet(
       context: context,
@@ -401,8 +608,7 @@ class _MealCard extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
           decoration: const BoxDecoration(
             color: Colors.white,
-            borderRadius:
-                BorderRadius.vertical(top: Radius.circular(24)),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -420,7 +626,7 @@ class _MealCard extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               Text(
-                'Edit ${isTitle ? 'Judul' : 'Pesan'} · ${setting.label}',
+                'Edit ${isTitle ? 'Judul' : 'Pesan'} · ${widget.setting.label}',
                 style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
@@ -445,7 +651,8 @@ class _MealCard extends StatelessWidget {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(color: color, width: 2),
+                    borderSide:
+                        BorderSide(color: widget.color, width: 2),
                   ),
                   hintText: isTitle
                       ? 'Contoh: 🌅 Waktunya Sarapan!'
@@ -462,15 +669,15 @@ class _MealCard extends StatelessWidget {
                     final text = textCtrl.text.trim();
                     if (text.isEmpty) return;
                     if (isTitle) {
-                      await ctrl.updateTitle(index, text);
+                      await ctrl.updateTitle(widget.index, text);
                     } else {
-                      await ctrl.updateBody(index, text);
+                      await ctrl.updateBody(widget.index, text);
                     }
                     if (ctx.mounted) Navigator.pop(ctx);
                     HapticFeedback.lightImpact();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: color,
+                    backgroundColor: widget.color,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14)),
