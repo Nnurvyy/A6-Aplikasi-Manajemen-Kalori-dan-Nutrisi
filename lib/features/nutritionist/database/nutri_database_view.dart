@@ -280,7 +280,7 @@ class _NutritionistFoodDatabaseViewState extends State<NutritionistFoodDatabaseV
           children: [
 
             Stack(
-              clipBehavior: Clip.none, // Biar ikonnya gak kepotong kotak
+              clipBehavior: Clip.none, 
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
@@ -442,28 +442,67 @@ class _NutritionistFoodDatabaseViewState extends State<NutritionistFoodDatabaseV
   }
 
   Widget _buildPagination(int current, int total) {
+    const int maxVisible = 3; 
+
+    int startPage = current - (maxVisible ~/ 2);
+    if (startPage < 0) startPage = 0;
+
+    int endPage = startPage + maxVisible - 1;
+    if (endPage >= total) {
+      endPage = total - 1;
+      startPage = endPage - maxVisible + 1;
+      if (startPage < 0) startPage = 0;
+    }
+
+    List<int> visiblePages = [];
+    for (int i = startPage; i <= endPage; i++) {
+      visiblePages.add(i);
+    }
+    
     return Container(
       color: _surface,
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+      
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16), 
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _pageBtn(Icons.chevron_left_rounded, current > 0, () {
-            setState(() => _currentPage--);
+          _pageBtn(Icons.first_page_rounded, current > 0, () => setState(() => _currentPage = 0)),
+          const SizedBox(width: 4),
+          _pageBtn(Icons.chevron_left_rounded, current > 0, () => setState(() => _currentPage--)),
+          const SizedBox(width: 8),
+          
+          ...visiblePages.map((i) {
+            final isActive = i == current;
+            return GestureDetector(
+              onTap: () => setState(() => _currentPage = i),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: isActive ? _primary : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: isActive ? _primary : const Color(0xFFD0E8D0)),
+                ),
+                child: Center(
+                  child: Text(
+                    '${i + 1}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: isActive ? Colors.white : _textMuted,
+                    ),
+                  ),
+                ),
+              ),
+            );
           }),
-          const SizedBox(width: 12),
-          Text(
-            'Halaman ${current + 1} dari $total',
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: _textDark,
-            ),
-          ),
-          const SizedBox(width: 12),
-          _pageBtn(Icons.chevron_right_rounded, current < total - 1, () {
-            setState(() => _currentPage++);
-          }),
+          
+          const SizedBox(width: 8),
+          _pageBtn(Icons.chevron_right_rounded, current < total - 1, () => setState(() => _currentPage++)),
+          const SizedBox(width: 4),
+          _pageBtn(Icons.last_page_rounded, current < total - 1, () => setState(() => _currentPage = total - 1)),
         ],
       ),
     );
