@@ -17,8 +17,6 @@ class AdminDashboardController extends GetxController {
   void onInit() {
     super.onInit();
     _initDates();
-    // Data di-load via listenToSubmissions() yang dipanggil dari View
-    // karena butuh BuildContext untuk akses Provider
   }
 
   void _initDates() {
@@ -32,8 +30,6 @@ class AdminDashboardController extends GetxController {
     );
   }
 
-  /// Dipanggil dari View dengan context agar bisa akses SubmissionController.
-  /// Setiap kali submissions berubah di Firestore, dashboard ikut update otomatis.
   void loadFromSubmissionController(List<SubmissionModel> submissions) {
     final data =
         submissions.map((item) {
@@ -66,7 +62,7 @@ class AdminDashboardController extends GetxController {
             'status': statusStr,
             'color': statusColor,
             'bgColor': bgColor,
-            'icon': '🍲',
+            'imageUrl': item.imagePath,
             'date': item.createdAt,
             'calories':
                 item.calories != null ? '${item.calories!.toInt()} kkal' : '-',
