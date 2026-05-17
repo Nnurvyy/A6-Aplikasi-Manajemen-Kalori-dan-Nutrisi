@@ -251,6 +251,23 @@ class _FoodListViewState extends State<FoodListView> {
   }
 
   Widget _buildPagination(int current, int total, bool isDark) {
+    const int maxVisible = 5;
+
+    int startPage = current - (maxVisible ~/ 2);
+    if (startPage < 0) startPage = 0;
+
+    int endPage = startPage + maxVisible - 1;
+    if (endPage >= total) {
+      endPage = total - 1;
+      startPage = endPage - maxVisible + 1;
+      if (startPage < 0) startPage = 0;
+    }
+
+    List<int> visiblePages = [];
+    for (int i = startPage; i <= endPage; i++) {
+      visiblePages.add(i);
+    }
+
     return Container(
       color: isDark ? AppColors.darkSurface : Colors.white,
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
@@ -259,7 +276,8 @@ class _FoodListViewState extends State<FoodListView> {
         children: [
           _pageBtn(Icons.chevron_left_rounded, current > 0, () => setState(() => _currentPage--), isDark),
           const SizedBox(width: 8),
-          ...List.generate(total, (i) {
+          
+          ...visiblePages.map((i) {
             final isActive = i == current;
             return GestureDetector(
               onTap: () => setState(() => _currentPage = i),
@@ -287,7 +305,7 @@ class _FoodListViewState extends State<FoodListView> {
                 ),
               ),
             );
-          }).take(7),
+          }),
           const SizedBox(width: 8),
           _pageBtn(Icons.chevron_right_rounded, current < total - 1, () => setState(() => _currentPage++), isDark),
         ],
