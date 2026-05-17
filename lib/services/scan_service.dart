@@ -1,7 +1,3 @@
-// SEMENTARA DINONAKTIFKAN — sedang migrasi ke tflite_flutter
-// Aktifkan kembali setelah migrasi selesai
-
-/*
 import 'dart:typed_data';
 import 'package:flutter_vision/flutter_vision.dart';
 
@@ -26,7 +22,11 @@ class ScanService {
     _isLoaded = true;
   }
 
-  Future<List<Map<String, dynamic>>> detect(Uint8List imageBytes, int height, int width) async {
+  Future<List<Map<String, dynamic>>> detect(
+    Uint8List imageBytes,
+    int height,
+    int width,
+  ) async {
     if (!_isLoaded) await init();
     return await _vision.yoloOnImage(
       bytesList: imageBytes,
@@ -44,22 +44,4 @@ class ScanService {
       _isLoaded = false;
     }
   }
-}
-*/
-
-// Stub sementara supaya file lain yang import ScanService tidak error
-import 'dart:typed_data';
-
-class ScanService {
-  static final ScanService _instance = ScanService._internal();
-  factory ScanService() => _instance;
-  ScanService._internal();
-
-  Future<void> init() async {}
-  Future<List<Map<String, dynamic>>> detect(
-    Uint8List imageBytes,
-    int height,
-    int width,
-  ) async => [];
-  Future<void> dispose() async {}
 }

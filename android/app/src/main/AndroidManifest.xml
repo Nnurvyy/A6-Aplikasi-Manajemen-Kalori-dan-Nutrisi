@@ -1,20 +1,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- ── Izin Health Connect (READ only) ───────────────────────────────── -->
-    <!-- WAJIB: deklarasikan semua tipe data yang akan dibaca dari Health Connect -->
     <uses-permission android:name="android.permission.health.READ_STEPS"/>
     <uses-permission android:name="android.permission.health.READ_HEART_RATE"/>
     <uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED"/>
     <uses-permission android:name="android.permission.health.READ_OXYGEN_SATURATION"/>
-    <!-- ─────────────────────────────────────────────────────────────────── -->
-    <!-- Izin notifikasi biasa (wajib Android 13+ / API 33) -->
+
+    <!-- Izin notifikasi (wajib Android 13+ / API 33) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
-    <!-- SCHEDULE_EXACT_ALARM: untuk Android 12 (API 31-32), butuh approval user -->
+    <!-- SCHEDULE_EXACT_ALARM: untuk Android 12 (API 31-32) -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
 
-    <!-- USE_EXACT_ALARM: untuk Android 13+ (API 33+), TIDAK butuh approval user -->
-    <!-- Ini yang menyelesaikan error exact_alarms_not_permitted -->
+    <!-- USE_EXACT_ALARM: untuk Android 13+ (API 33+) -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
 
     <!-- Wajib agar notifikasi bisa dijadwal ulang setelah device restart -->
@@ -45,9 +43,7 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
 
-            <!-- PERBAIKAN 1: Intent filter untuk menampilkan dialog penjelasan izin -->
-            <!-- Tanpa ini, Health Connect tidak tahu ke mana harus redirect       -->
-            <!-- saat user menekan "Pelajari lebih lanjut" di dialog permission     -->
+            <!-- Intent filter untuk dialog penjelasan izin Health Connect -->
             <intent-filter>
                 <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE"/>
                 <category android:name="android.intent.category.DEFAULT"/>
@@ -55,22 +51,16 @@
 
         </activity>
 
-        <!-- PERBAIKAN 2: Activity khusus untuk handle alur request permission      -->
-        <!-- Health Connect membutuhkan activity ini untuk membuka dialog izin       -->
-        <!-- Tanpa ini: requestAuthorization() langsung return false tanpa dialog    -->
+        <!-- Activity untuk handle alur request permission Health Connect -->
         <activity
             android:name="androidx.health.connect.client.PermissionController$HealthDataRequestPermissionsActivity"
             android:exported="true"/>
 
-        <!-- PERBAIKAN 3: URL Privacy Policy — WAJIB sejak Android 14 / Health Connect v2 -->
-        <!-- Tanpa ini app masuk kategori "Perlu diupdate" dan izin selalu ditolak          -->
-        <!-- Buat halaman di Google Sites (gratis) lalu isi URL-nya di sini                 -->
-        <!-- Contoh: https://sites.google.com/view/nutritrack-privacy/home                  -->
+        <!-- URL Privacy Policy — wajib untuk Health Connect -->
         <meta-data
             android:name="health_connect_privacy_policy_url"
             android:value="https://sites.google.com/view/nutritrack-privacy-policy/halaman-muka"/>
 
-        <!-- Meta Flutter embedding (bawaan, jangan diubah) -->
         <!-- Receiver untuk reschedule notifikasi setelah device restart -->
         <receiver
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"
@@ -92,29 +82,23 @@
             android:name="flutterEmbedding"
             android:value="2"/>
 
-        <!-- ML Kit untuk barcode scanning (bawaan, jangan diubah) -->
+        <!-- ML Kit untuk barcode scanning -->
         <meta-data
             android:name="com.google.mlkit.vision.DEPENDENCIES"
             android:value="barcode"/>
 
     </application>
 
-    <!-- ── Queries: WAJIB di luar <application> ──────────────────────────── -->
-            android:value="barcode" />
-    </application>
-
+    <!-- Queries: WAJIB di luar <application> -->
     <queries>
-        <!-- PERBAIKAN 4: Tambah package Health Connect secara eksplisit          -->
-        <!-- Android 11+ membutuhkan deklarasi ini agar app bisa "melihat"        -->
-        <!-- dan berkomunikasi dengan app Health Connect yang terinstall di HP     -->
+        <!-- Package Health Connect -->
         <package android:name="com.google.android.apps.healthdata"/>
 
-        <!-- Intent Process Text (bawaan Flutter, jangan diubah) -->
+        <!-- Intent Process Text (bawaan Flutter) -->
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
     </queries>
-    <!-- ─────────────────────────────────────────────────────────────────── -->
 
 </manifest>
