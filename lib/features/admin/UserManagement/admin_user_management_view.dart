@@ -359,9 +359,8 @@ class _AdminUserManagementViewState extends State<AdminUserManagementView> {
         child: Icon(
           icon,
           size: 18,
-          color: enabled ? _primary : _textMuted.withOpacity(0.3),
+          color: enabled ? _primary : _textMuted.withValues(alpha: 0.3),
         ),
-        child: Icon(icon, size: 18, color: enabled ? _primary : _textMuted.withValues(alpha: 0.3)),
       ),
     );
   }
@@ -565,21 +564,36 @@ class _UserCard extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [      
+              children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFE8F5E9),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFC8E6C9), width: 0.8),
+                    border: Border.all(
+                      color: const Color(0xFFC8E6C9),
+                      width: 0.8,
+                    ),
                   ),
-                  child: const Text('Detail', style: TextStyle( color: _primary, fontSize: 11, fontWeight: FontWeight.w700)),
+                  child: const Text(
+                    'Detail',
+                    style: TextStyle(
+                      color: _primary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
 
                 const SizedBox(height: 12),
 
                 Icon(
-                  user.isSynced ? Icons.cloud_done_rounded : Icons.cloud_upload_rounded,
+                  user.isSynced
+                      ? Icons.cloud_done_rounded
+                      : Icons.cloud_upload_rounded,
                   size: 16,
                   color: user.isSynced ? Colors.green : Colors.orange,
                 ),
@@ -590,7 +604,6 @@ class _UserCard extends StatelessWidget {
       ),
     );
   }
-
 }
 
 // ─── Bottom Sheet: Detail User ────────────────────────────────────────────────
@@ -1306,7 +1319,11 @@ class _EditUserViewState extends State<_EditUserView> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: Column(
@@ -1328,26 +1345,27 @@ class _EditUserViewState extends State<_EditUserView> {
     );
   }
 
-  Widget _buildField(String label, TextEditingController ctrl, 
-    {required IconData icon, TextInputType type = TextInputType.text}) 
-      {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: TextFormField(
-            controller: ctrl,
-            keyboardType: type,
-            style: const TextStyle(color: _textDark, fontSize: 14),
-            decoration: InputDecoration(
-              labelText: label,
-              labelStyle: const TextStyle(color: _textMuted, fontSize: 13),
-              prefixIcon: Icon(icon, color: _primary, size: 18),
-              filled: true,
-              fillColor: const Color(0xFFE8F5E9).withValues(alpha: 0.3),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFC8E6C9), width: 0.8)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFC8E6C9), width: 0.8)),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _primary, width: 1.5)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            ),
+  Widget _buildField(
+    String label,
+    TextEditingController ctrl, {
+    required IconData icon,
+    TextInputType type = TextInputType.text,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: TextFormField(
+        controller: ctrl,
+        keyboardType: type,
+        style: const TextStyle(color: _textDark, fontSize: 14),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: _textMuted, fontSize: 13),
+          prefixIcon: Icon(icon, color: _primary, size: 18),
+          filled: true,
+          fillColor: const Color(0xFFE8F5E9).withValues(alpha: 0.3),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFFC8E6C9), width: 0.8),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -1371,26 +1389,37 @@ class _EditUserViewState extends State<_EditUserView> {
     String value,
     List<String> items,
     ValueChanged<String?> onChanged, {
-      required IconData icon,
-    }) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: DropdownButtonFormField<String>(
-          value: value,
-          onChanged: onChanged,
-          style: const TextStyle(color: _textDark, fontSize: 14),
-          dropdownColor: Colors.white,
-          isExpanded: true,
-          decoration: InputDecoration(
-            labelText: label,
-            labelStyle: const TextStyle(color: _textMuted, fontSize: 13),
-            prefixIcon: Icon(icon, color: _primary, size: 18),
-            filled: true,
-            fillColor: const Color(0xFFE8F5E9).withValues(alpha: 0.3),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFC8E6C9), width: 0.8)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFC8E6C9), width: 0.8)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _primary, width: 1.5)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+    required IconData icon,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: DropdownButtonFormField<String>(
+        value: value,
+        onChanged: onChanged,
+        style: const TextStyle(color: _textDark, fontSize: 14),
+        dropdownColor: Colors.white,
+        isExpanded: true,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: _textMuted, fontSize: 13),
+          prefixIcon: Icon(icon, color: _primary, size: 18),
+          filled: true,
+          fillColor: const Color(0xFFE8F5E9).withValues(alpha: 0.3),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFFC8E6C9), width: 0.8),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFFC8E6C9), width: 0.8),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: _primary, width: 1.5),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 12,
           ),
         ),
         items:
