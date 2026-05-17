@@ -145,7 +145,7 @@ class _RegisterViewState extends State<RegisterView> {
                             width: 38,
                             height: 38,
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: Colors.white.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: const Icon(Icons.arrow_back_rounded,
@@ -167,7 +167,7 @@ class _RegisterViewState extends State<RegisterView> {
                           decoration: BoxDecoration(
                             color: _currentStep >= i
                                 ? Colors.white
-                                : Colors.white.withOpacity(0.35),
+                                : Colors.white.withValues(alpha: 0.35),
                             borderRadius: BorderRadius.circular(4),
                           ),
                         );
@@ -607,3 +607,4 @@ class _RegisterViewState extends State<RegisterView> {
     );
   }
 }
+

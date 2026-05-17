@@ -67,6 +67,7 @@ class SubmissionFirebaseService {
     String localPath,
     String submissionId, {
     void Function(double progress)? onProgress,
+    String? folder,
   }) async {
     // Jika sudah URL (sudah diupload sebelumnya), kembalikan langsung
     if (localPath.isEmpty || localPath.startsWith('http')) return localPath;
@@ -88,6 +89,7 @@ class SubmissionFirebaseService {
       body: {
         'file': 'data:image/jpeg;base64,$base64Image',
         'upload_preset': _uploadPreset,
+        'folder': folder ?? 'submissions',
         // public_id dibiarkan kosong — Cloudinary generate nama otomatis
       },
     );

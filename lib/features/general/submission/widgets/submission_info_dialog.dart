@@ -5,7 +5,7 @@ class SubmissionInfoDialog extends StatelessWidget {
 
   static const _primary = Color(0xFF2ECC71);
   static const _textDark = Color(0xFF1A2E22);
-  static const _textMuted = Color(0xFF7A9485);
+
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +22,7 @@ class SubmissionInfoDialog extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: _primary.withOpacity(0.1),
+                    color: _primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(Icons.info_outline_rounded,
@@ -54,7 +54,7 @@ class SubmissionInfoDialog extends StatelessWidget {
               decoration: BoxDecoration(
                 color: const Color(0xFFFFF8E1),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFFFB800).withOpacity(0.4)),
+                border: Border.all(color: const Color(0xFFFFB800).withValues(alpha: 0.4)),
               ),
               child: Row(
                 children: [
@@ -109,3 +109,4 @@ class SubmissionInfoDialog extends StatelessWidget {
     );
   }
 }
+

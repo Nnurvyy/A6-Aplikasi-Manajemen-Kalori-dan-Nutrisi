@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -141,6 +141,7 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
       // item langsung muncul di list dengan isSynced=false,
       // lalu upload Storage + Firestore jalan di background.
       // Kita tidak perlu await sampai selesai — cukup kick off lalu pop.
+      if (!mounted) return;
       final ctrl = context.read<SubmissionController>();
 
       // Jalankan tanpa await — upload jalan di background
@@ -277,7 +278,7 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
           // ── Overlay progress saat saving ──
           if (_isSaving)
             Container(
-              color: Colors.black.withOpacity(0.45),
+              color: Colors.black.withValues(alpha: 0.45),
               child: Center(
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 40),
@@ -294,7 +295,7 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
                         width: 64,
                         height: 64,
                         decoration: BoxDecoration(
-                          color: _primary.withOpacity(0.1),
+                          color: _primary.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
@@ -320,7 +321,7 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
                         child: LinearProgressIndicator(
                           value: _uploadProgress,
                           minHeight: 8,
-                          backgroundColor: _primary.withOpacity(0.15),
+                          backgroundColor: _primary.withValues(alpha: 0.15),
                           valueColor: const AlwaysStoppedAnimation<Color>(
                             _primary,
                           ),
@@ -353,7 +354,7 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
       child: Container(
         height: 200,
         decoration: BoxDecoration(
-          color: _imageFile != null ? _primary.withOpacity(0.08) : Colors.white,
+          color: _imageFile != null ? _primary.withValues(alpha: 0.08) : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: _imageFile != null ? _primary : _border,
@@ -442,7 +443,7 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: _primary.withOpacity(0.1),
+                        color: _primary.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -497,7 +498,7 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
         style: const TextStyle(color: _textDark, fontSize: 14),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(color: _textMuted.withOpacity(0.6)),
+          hintStyle: TextStyle(color: _textMuted.withValues(alpha: 0.6)),
           prefixIcon: Icon(icon, color: _textMuted, size: 20),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
@@ -527,7 +528,7 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
                   ? []
                   : [
                     BoxShadow(
-                      color: _primary.withOpacity(0.4),
+                      color: _primary.withValues(alpha: 0.4),
                       blurRadius: 14,
                       offset: const Offset(0, 6),
                     ),
@@ -564,3 +565,4 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
     );
   }
 }
+

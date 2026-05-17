@@ -113,7 +113,7 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
             Text('Pilih Sumber Foto', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: _dark)),
             const SizedBox(height: 16),
             ListTile(
-              leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: _primary.withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.camera_alt_rounded, color: _primary)),
+              leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: _primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.camera_alt_rounded, color: _primary)),
               title: Text('Kamera', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
               onTap: () async {
                 Navigator.pop(ctx);
@@ -122,7 +122,7 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
               },
             ),
             ListTile(
-              leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.photo_library_rounded, color: Colors.blue)),
+              leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.photo_library_rounded, color: Colors.blue)),
               title: Text('Galeri', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
               onTap: () async {
                 Navigator.pop(ctx);
@@ -132,7 +132,7 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
             ),
             if (_pickedImage != null || _existingImageUrl != null)
               ListTile(
-                leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.delete_outline_rounded, color: Colors.red)),
+                leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.delete_outline_rounded, color: Colors.red)),
                 title: Text('Hapus Foto', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.red)),
                 onTap: () { Navigator.pop(ctx); setState(() { _pickedImage = null; _existingImageUrl = null; }); },
               ),
@@ -223,7 +223,7 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [Colors.transparent, catColor.withOpacity(0.85)],
+                        colors: [Colors.transparent, catColor.withValues(alpha: 0.85)],
                       ),
                     ),
                   ),
@@ -238,7 +238,7 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(20),
-                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 6, offset: const Offset(0, 2))],
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 6, offset: const Offset(0, 2))],
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -263,7 +263,7 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
+                          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(20)),
                           child: Text(isEdit ? 'Edit Makanan' : 'Tambah Makanan Baru', style: GoogleFonts.poppins(fontSize: 11, color: Colors.white70)),
                         ),
                         const SizedBox(height: 4),
@@ -313,15 +313,15 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
                         Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: catColor.withOpacity(0.07),
+                            color: catColor.withValues(alpha: 0.07),
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: catColor.withOpacity(0.3)),
+                            border: Border.all(color: catColor.withValues(alpha: 0.3)),
                           ),
                           child: Row(
                             children: [
                               Container(
                                 padding: const EdgeInsets.all(9),
-                                decoration: BoxDecoration(color: catColor.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+                                decoration: BoxDecoration(color: catColor.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
                                 child: Icon(Icons.scale_rounded, color: catColor, size: 20),
                               ),
                               const SizedBox(width: 12),
@@ -348,7 +348,7 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
 
                         // Calories — full width
                         _nutriField(controller: _caloriesCtrl, label: 'Kalori', unit: 'kcal',
-                          icon: Icons.local_fire_department_rounded, color: catColor, bgColor: catColor.withOpacity(0.07), fullWidth: true),
+                          icon: Icons.local_fire_department_rounded, color: catColor, bgColor: catColor.withValues(alpha: 0.07), fullWidth: true),
                         const SizedBox(height: 10),
 
                         // Protein + Karbo side by side
@@ -454,8 +454,8 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
   Widget _placeholder(Color color) => Container(
-    decoration: BoxDecoration(gradient: LinearGradient(colors: [color, color.withOpacity(0.7)], begin: Alignment.topLeft, end: Alignment.bottomRight)),
-    child: Center(child: Icon(Icons.fastfood_rounded, size: 70, color: Colors.white.withOpacity(0.4))),
+    decoration: BoxDecoration(gradient: LinearGradient(colors: [color, color.withValues(alpha: 0.7)], begin: Alignment.topLeft, end: Alignment.bottomRight)),
+    child: Center(child: Icon(Icons.fastfood_rounded, size: 70, color: Colors.white.withValues(alpha: 0.4))),
   );
 
   Widget _sectionCard({required IconData icon, required String title, String? subtitle, required Widget child}) {
@@ -465,14 +465,14 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: _primary.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+              Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: _primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
                 child: Icon(icon, color: _primary, size: 17)),
               const SizedBox(width: 10),
               Column(
@@ -519,7 +519,7 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
     required String unit, required IconData icon, required Color color, required Color bgColor, bool fullWidth = false}) {
     final inner = Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(13), border: Border.all(color: color.withOpacity(0.25))),
+      decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(13), border: Border.all(color: color.withValues(alpha: 0.25))),
       child: Row(
         children: [
           Icon(icon, color: color, size: 16),
@@ -535,7 +535,7 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
                   style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w700, color: _dark),
                   decoration: InputDecoration(
                     border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero,
-                    hintText: '0', hintStyle: GoogleFonts.poppins(color: _muted.withOpacity(0.4), fontSize: 15),
+                    hintText: '0', hintStyle: GoogleFonts.poppins(color: _muted.withValues(alpha: 0.4), fontSize: 15),
                   ),
                   readOnly: _ingredients.isNotEmpty,
                   onChanged: (_) => setState(() {}),
@@ -544,7 +544,7 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
               ],
             ),
           ),
-          Text(unit, style: GoogleFonts.poppins(fontSize: 11, color: color.withOpacity(0.8), fontWeight: FontWeight.w700)),
+          Text(unit, style: GoogleFonts.poppins(fontSize: 11, color: color.withValues(alpha: 0.8), fontWeight: FontWeight.w700)),
         ],
       ),
     );
@@ -577,7 +577,7 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
                 duration: const Duration(milliseconds: 180),
                 padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
                 decoration: BoxDecoration(
-                  color: isSelected ? cc : cc.withOpacity(0.08),
+                  color: isSelected ? cc : cc.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: cc.withValues(alpha: isSelected ? 1 : 0.3)),
                 ),
@@ -601,9 +601,9 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [catColor.withOpacity(0.10), catColor.withOpacity(0.04)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+        gradient: LinearGradient(colors: [catColor.withValues(alpha: 0.10), catColor.withValues(alpha: 0.04)], begin: Alignment.topLeft, end: Alignment.bottomRight),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: catColor.withOpacity(0.2)),
+        border: Border.all(color: catColor.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -668,3 +668,4 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
     _fatCtrl.text = fat.round().toString();
   }
 }
+

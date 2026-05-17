@@ -98,7 +98,9 @@ class AdminUserController extends ChangeNotifier {
           applyFilter(); 
         })
 
-        .catchError((e) => debugPrint("Firebase error: $e"));
+        .catchError((e) {
+          debugPrint("Firebase error: $e");
+        });
   }
 
   // ─── DELETE USER (Offline-First) ───
@@ -119,7 +121,9 @@ class AdminUserController extends ChangeNotifier {
     applyFilter();
 
     _db.collection('users').doc(user.id).delete()
-        .catchError((e) => debugPrint("Firebase error: $e"));
+        .catchError((e) {
+          debugPrint("Firebase error: $e");
+        });
   }
 
   // ─── UPDATE USER (Offline-First) ───
@@ -174,7 +178,9 @@ class AdminUserController extends ChangeNotifier {
           applyFilter(); 
         })
 
-        .catchError((e) => debugPrint("Firebase error: $e"));
+        .catchError((e) {
+          debugPrint("Firebase error: $e");
+        });
 
     isSaving = false;
     notifyListeners();

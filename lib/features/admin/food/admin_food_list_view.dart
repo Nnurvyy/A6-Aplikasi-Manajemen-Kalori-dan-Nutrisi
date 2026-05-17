@@ -90,11 +90,7 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
     super.dispose();
   }
 
-  List<FoodModel> get _filteredFoods {
-    final all = context.read<FoodController>().foods;
-    if (_selectedCategory == 'Semua') return all;
-    return all.where((f) => f.category == _selectedCategory).toList();
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -137,7 +133,7 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
                   borderRadius: BorderRadius.circular(14),
                   boxShadow: [
                     BoxShadow(
-                      color: _primary.withOpacity(0.35),
+                      color: _primary.withValues(alpha: 0.35),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -211,7 +207,7 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
             child: Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFE8F5E9).withOpacity(0.5),
+                color: const Color(0xFFE8F5E9).withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: const Color(0xFFC8E6C9), width: 1),
               ),
@@ -279,10 +275,12 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
                           ),
                         )).toList(),
                         onChanged: (val) {
-                          if (val != null) setState(() {
-                            _selectedCategory = val;
-                            _currentPage = 0;
-                          });
+                          if (val != null) {
+                            setState(() {
+                              _selectedCategory = val;
+                              _currentPage = 0;
+                            });
+                          }
                         },
                       ),
                     ),
@@ -297,9 +295,27 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
   }
 
   Widget _buildPagination(int current, int total) {
+    const int maxVisible = 3; 
+
+    int startPage = current - (maxVisible ~/ 2);
+    if (startPage < 0) startPage = 0;
+
+    int endPage = startPage + maxVisible - 1;
+    if (endPage >= total) {
+      endPage = total - 1;
+      startPage = endPage - maxVisible + 1;
+      if (startPage < 0) startPage = 0;
+    }
+
+    List<int> visiblePages = [];
+    for (int i = startPage; i <= endPage; i++) {
+      visiblePages.add(i);
+    }
+    
     return Container(
       color: _surface,
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+      
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16), 
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -307,7 +323,8 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
           const SizedBox(width: 4),
           _pageBtn(Icons.chevron_left_rounded, current > 0, () => setState(() => _currentPage--)),
           const SizedBox(width: 8),
-          ...List.generate(total, (i) {
+          
+          ...visiblePages.map((i) {
             final isActive = i == current;
             return GestureDetector(
               onTap: () => setState(() => _currentPage = i),
@@ -333,7 +350,8 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
                 ),
               ),
             );
-          }).take(7).toList(), // show max 7 page buttons
+          }),
+          
           const SizedBox(width: 8),
           _pageBtn(Icons.chevron_right_rounded, current < total - 1, () => setState(() => _currentPage++)),
           const SizedBox(width: 4),
@@ -353,7 +371,7 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: enabled ? const Color(0xFFD0E8D0) : Colors.transparent),
         ),
-        child: Icon(icon, size: 18, color: enabled ? _primary : _textMuted.withOpacity(0.3)),
+        child: Icon(icon, size: 18, color: enabled ? _primary : _textMuted.withValues(alpha: 0.3)),
       ),
     );
   }
@@ -377,7 +395,7 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
           border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: Colors.black.withValues(alpha: 0.03),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -386,24 +404,50 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
         child: Row(
           children: [
             // Food image or avatar
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: food.imageUrl != null
-                  ? (food.imageUrl!.startsWith('http')
-                      ? Image.network(
-                          food.imageUrl!,
-                          width: 50, height: 50,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _buildAvatar(food.name, accentColor),
-                        )
-                      : Image.file(
-                          File(food.imageUrl!),
-                          width: 50, height: 50,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _buildAvatar(food.name, accentColor),
-                        ))
-                  : _buildAvatar(food.name, accentColor),
+            Stack(
+              clipBehavior: Clip.none, 
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: food.imageUrl != null
+                      ? (food.imageUrl!.startsWith('http')
+                          ? Image.network(
+                              food.imageUrl!,
+                              width: 50, height: 50,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => _buildAvatar(food.name, accentColor),
+                            )
+                          : Image.file(
+                              File(food.imageUrl!),
+                              width: 50, height: 50,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => _buildAvatar(food.name, accentColor),
+                            ))
+                      : _buildAvatar(food.name, accentColor),
+                ),
+
+                Positioned(
+                  top: -4,
+                  left: -4,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(color: Colors.black12, blurRadius: 2)
+                      ],
+                    ),
+                    child: Icon(
+                      food.isSynced ? Icons.cloud_done_rounded : Icons.cloud_upload_rounded,
+                      size: 14,
+                      color: food.isSynced ? Colors.green : Colors.orange,
+                    ),
+                  ),
+                ),
+              ],
             ),
+
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -458,7 +502,7 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
                       child: Container(
                         padding: const EdgeInsets.all(5),
                         decoration: BoxDecoration(
-                          color: Colors.blue.withOpacity(0.1),
+                          color: Colors.blue.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Icon(Icons.edit_rounded, color: Colors.blue, size: 16),
@@ -471,7 +515,7 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
                       child: Container(
                         padding: const EdgeInsets.all(5),
                         decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.1),
+                          color: Colors.red.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 16),
@@ -491,7 +535,7 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
     return Container(
       width: 50, height: 50,
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Center(

@@ -216,7 +216,7 @@ class _FoodDetailViewState extends State<FoodDetailView> {
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkCard : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.primary.withOpacity(0.1)),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -247,9 +247,9 @@ class _FoodDetailViewState extends State<FoodDetailView> {
           SliderTheme(
             data: SliderTheme.of(context).copyWith(
               activeTrackColor: AppColors.primary,
-              inactiveTrackColor: AppColors.primary.withOpacity(0.1),
+              inactiveTrackColor: AppColors.primary.withValues(alpha: 0.1),
               thumbColor: AppColors.primary,
-              overlayColor: AppColors.primary.withOpacity(0.2),
+              overlayColor: AppColors.primary.withValues(alpha: 0.2),
               trackHeight: 4,
             ),
             child: Slider(
@@ -279,7 +279,7 @@ class _FoodDetailViewState extends State<FoodDetailView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
@@ -297,7 +297,7 @@ class _FoodDetailViewState extends State<FoodDetailView> {
         : Container(
             decoration: const BoxDecoration(gradient: AppColors.headerGradient),
             child: Center(
-              child: Icon(Icons.fastfood_rounded, size: 80, color: Colors.white.withOpacity(0.5)),
+              child: Icon(Icons.fastfood_rounded, size: 80, color: Colors.white.withValues(alpha: 0.5)),
             ),
           );
   }
@@ -408,7 +408,7 @@ class _FoodDetailViewState extends State<FoodDetailView> {
           color: isDark ? AppColors.darkCard : Colors.white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)
           ],
         ),
         child: Column(
@@ -450,7 +450,7 @@ class _FoodDetailViewState extends State<FoodDetailView> {
         ),
         Container(
           decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.1),
+            color: AppColors.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
@@ -506,7 +506,7 @@ class _FoodDetailViewState extends State<FoodDetailView> {
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurface : Colors.white,
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, -5))
+          BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, -5))
         ],
       ),
       child: Column(
@@ -620,3 +620,4 @@ class _FoodDetailViewState extends State<FoodDetailView> {
     }
   }
 }
+

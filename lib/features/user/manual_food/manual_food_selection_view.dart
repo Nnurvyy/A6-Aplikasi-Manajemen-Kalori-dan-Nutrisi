@@ -3,9 +3,10 @@ import 'package:provider/provider.dart';
 import '../../general/food/food_controller.dart';
 
 import '../../general/food/models/food_model.dart';
+import './manual_food_form_view.dart';
 import '../../general/food/food_detail_view.dart';
 import '../../general/auth/auth_controller.dart';
-import './manual_food_form_view.dart';
+
 import './manual_ingredient_input_page.dart';
 import 'dart:io';
 import 'dart:convert';
@@ -53,7 +54,6 @@ class _PilihMakananManualState extends State<PilihMakananManual> with SingleTick
   Widget build(BuildContext context) {
     final foodCtrl = context.watch<FoodController>();
     final authCtrl = context.watch<AuthController>();
-    final userId = authCtrl.currentUser?.id ?? '';
     
     final manualItems = foodCtrl.manualFoods
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -112,6 +112,7 @@ class _PilihMakananManualState extends State<PilihMakananManual> with SingleTick
               MaterialPageRoute(builder: (_) => const ManualIngredientInputPage()),
             );
             if (result != null && result is Map) {
+              if (!mounted) return;
               // Save as manual ingredient
               final foodCtrl = context.read<FoodController>();
               final foodId = 'manual_${DateTime.now().millisecondsSinceEpoch}';
@@ -127,7 +128,7 @@ class _PilihMakananManualState extends State<PilihMakananManual> with SingleTick
                 isApproved: true,
                 createdAt: DateTime.now(),
                 isManualIngredient: true,
-                userId: context.read<AuthController>().currentUser?.id, // ← TAMBAHKAN INI
+                userId: mounted ? context.read<AuthController>().currentUser?.id : null, // ← TAMBAHKAN INI
               );
               await foodCtrl.addFood(newIngredient);
             }
@@ -209,7 +210,7 @@ class _PilihMakananManualState extends State<PilihMakananManual> with SingleTick
                 ),
               ),
             );
-          }).take(7).toList(),
+          }).take(7),
           const SizedBox(width: 8),
           _pageBtn(Icons.chevron_right_rounded, current < total - 1, () => setState(() => _currentPage++)),
         ],
@@ -227,7 +228,7 @@ class _PilihMakananManualState extends State<PilihMakananManual> with SingleTick
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: enabled ? const Color(0xFFD0E8D0) : Colors.transparent),
         ),
-        child: Icon(icon, size: 18, color: enabled ? const Color(0xFF2E7D32) : _textMuted.withOpacity(0.3)),
+        child: Icon(icon, size: 18, color: enabled ? const Color(0xFF2E7D32) : _textMuted.withValues(alpha: 0.3)),
       ),
     );
   }
@@ -242,7 +243,7 @@ class _PilihMakananManualState extends State<PilihMakananManual> with SingleTick
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -264,7 +265,7 @@ class _PilihMakananManualState extends State<PilihMakananManual> with SingleTick
                         width: 50,
                         height: 50,
                         decoration: BoxDecoration(
-                          color: accentColor.withOpacity(0.12),
+                          color: accentColor.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: food.imageUrl != null 
@@ -389,7 +390,7 @@ class _PilihMakananManualState extends State<PilihMakananManual> with SingleTick
       child: Container(
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(icon, color: color, size: 20),
@@ -408,6 +409,7 @@ class _PilihMakananManualState extends State<PilihMakananManual> with SingleTick
     );
     if (result == true || (result != null && result is Map)) {
       if (result is Map && food.isManualIngredient) {
+        if (!mounted) return;
         final foodCtrl = context.read<FoodController>();
         await foodCtrl.updateFood(food.copyWith(
           name: result['name'],
@@ -509,3 +511,4 @@ Color _getCategoryColor(String category) {
     default: return const Color(0xFF78909C);
   }
 }
+

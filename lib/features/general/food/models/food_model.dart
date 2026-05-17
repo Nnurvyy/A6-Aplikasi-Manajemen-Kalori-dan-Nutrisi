@@ -16,7 +16,8 @@ class FoodModel extends HiveObject {
   String? description;
   String? ingredientsJson;
   bool isManualIngredient;
-  String? userId; // ← TAMBAHKAN INI
+  String? userId;
+  bool isSynced;
 
   FoodModel({
     required this.id,
@@ -33,7 +34,8 @@ class FoodModel extends HiveObject {
     this.description,
     this.ingredientsJson,
     this.isManualIngredient = false,
-    this.userId, // ← TAMBAHKAN INI
+    this.userId, 
+    this.isSynced = true,
   });
 
   factory FoodModel.fromFirestore(Map<String, dynamic> map, String docId) {
@@ -57,6 +59,7 @@ class FoodModel extends HiveObject {
       ingredientsJson: map['ingredientsJson'],
       isManualIngredient: map['isManualIngredient'] ?? false,
       userId: map['userId'], // ← TAMBAHKAN INI
+      isSynced: true,
     );
   }
 
@@ -76,7 +79,7 @@ class FoodModel extends HiveObject {
       'description': description,
       'ingredientsJson': ingredientsJson,
       'isManualIngredient': isManualIngredient,
-      'userId': userId, // ← TAMBAHKAN INI
+      'userId': userId, 
     };
   }
 
@@ -107,7 +110,8 @@ class FoodModel extends HiveObject {
     String? description,
     String? ingredientsJson,
     bool? isManualIngredient,
-    String? userId, // ← TAMBAHKAN INI
+    String? userId, 
+    bool? isSynced,
   }) {
     return FoodModel(
       id: id ?? this.id,
@@ -124,7 +128,8 @@ class FoodModel extends HiveObject {
       description: description ?? this.description,
       ingredientsJson: ingredientsJson ?? this.ingredientsJson,
       isManualIngredient: isManualIngredient ?? this.isManualIngredient,
-      userId: userId ?? this.userId, // ← TAMBAHKAN INI
+      userId: userId ?? this.userId,
+      isSynced: isSynced ?? this.isSynced,
     );
   }
 
@@ -144,7 +149,8 @@ class FoodModel extends HiveObject {
       'description': description,
       'ingredientsJson': ingredientsJson,
       'isManualIngredient': isManualIngredient,
-      'userId': userId, // ← TAMBAHKAN INI
+      'userId': userId, 
+      'isSynced': isSynced,
     };
   }
 
@@ -164,7 +170,8 @@ class FoodModel extends HiveObject {
       description: map['description'],
       ingredientsJson: map['ingredientsJson'],
       isManualIngredient: map['isManualIngredient'] ?? false,
-      userId: map['userId'], // ← TAMBAHKAN INI
+      userId: map['userId'],
+      isSynced: map['isSynced'] ?? true,
     );
   }
 }
@@ -194,14 +201,15 @@ class FoodModelAdapter extends TypeAdapter<FoodModel> {
       defaultServingSize: f[11] as double? ?? 100,
       ingredientsJson: f[12] as String?,
       isManualIngredient: f[13] as bool? ?? false,
-      userId: f[14] as String?, // ← TAMBAHKAN INI
+      userId: f[14] as String?,
+      isSynced: f[15] as bool ?? true,
     );
   }
 
   @override
   void write(BinaryWriter writer, FoodModel obj) {
     writer
-      ..writeByte(15) // ← UBAH DARI 14 KE 15
+      ..writeByte(16) 
       ..writeByte(0)..write(obj.id)
       ..writeByte(1)..write(obj.name)
       ..writeByte(2)..write(obj.category)
@@ -216,6 +224,7 @@ class FoodModelAdapter extends TypeAdapter<FoodModel> {
       ..writeByte(11)..write(obj.defaultServingSize)
       ..writeByte(12)..write(obj.ingredientsJson)
       ..writeByte(13)..write(obj.isManualIngredient)
-      ..writeByte(14)..write(obj.userId); // ← TAMBAHKAN INI
+      ..writeByte(14)..write(obj.userId)
+      ..writeByte(15)..write(obj.isSynced);
   }
 }

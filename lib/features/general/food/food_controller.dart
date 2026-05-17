@@ -172,20 +172,17 @@ class FoodController extends ChangeNotifier {
 
 
   Future<void> addFood(FoodModel food) async {
-    
+    food.isSynced = false; 
     await HiveService.foods.put(food.id, food);
-    
-    _allFoods.add(food);
     
     _searchQuery = ''; 
-    _applyFilter(); 
-    
-    await HiveService.foods.put(food.id, food);
 
-    _applyFilter();
+    loadFromLocal(userId: food.userId);
 
-    _db.collection('foods').doc(food.id).set(food.toMap()).then((_) {
-      
+    _db.collection('foods').doc(food.id).set(food.toFirestore()).then((_) async {
+      food.isSynced = true;
+      await HiveService.foods.put(food.id, food);
+      loadFromLocal(userId: food.userId);
       debugPrint("Berhasil sinkron ke Firebase!");
     }).catchError((error) {
       debugPrint("Gagal sinkron ke Firebase: $error");
@@ -194,29 +191,33 @@ class FoodController extends ChangeNotifier {
   }
 
   Future<void> updateFood(FoodModel food) async {
+    food.isSynced = false;
     await HiveService.foods.put(food.id, food);
-    loadFoods(approvedOnly: false);
 
-    loadFromLocal();
+    loadFromLocal(userId: food.userId);
 
-    try {
-      await _db.collection('foods').doc(food.id).set(food.toFirestore(), SetOptions(merge: true));
-    } catch (e) {
+    
+    _db.collection('foods').doc(food.id).set(food.toFirestore(), SetOptions(merge: true)).then((_) async {
+      food.isSynced = true;
+      await HiveService.foods.put(food.id, food);
+      loadFromLocal(userId: food.userId);
+    }).catchError((e) {
       debugPrint("Cloud Update Error: $e");
-    }
+    });
   }
 
   Future<void> deleteFood(String id) async {
+  
+    final foodToDelete = findById(id);
+    final currentUserId = foodToDelete?.userId;
+
     await HiveService.foods.delete(id);
-    loadFoods(approvedOnly: false);
 
-    loadFromLocal();
+    loadFromLocal(userId: currentUserId);
 
-    try {
-      await _db.collection('foods').doc(id).delete();
-    } catch (e) {
+    _db.collection('foods').doc(id).delete().catchError((e) {
       debugPrint("Cloud Delete Error: $e");
-    }
+    });
   }
 
 
@@ -270,25 +271,21 @@ class FoodController extends ChangeNotifier {
       quantity: quantity,
     );
 
-    // 1. Simpan ke Hive dulu — ini yang paling penting, tidak boleh gagal
+    
     await HiveService.logs.put(newLog.id, newLog);
 
-    // 2. Refresh UI segera setelah Hive tersimpan
     notifyListeners();
 
-    // 3. Upload ke Firebase di background — TANPA await agar tidak blocking
-    // try-catch di dalam saveLog sudah menangani error offline
     FoodLogSyncService.saveLog(newLog, onSynced: () => notifyListeners());
 
-    return true; // selalu return true karena Hive sudah pasti tersimpan
+    return true; 
   }
 
   Future<void> updateLog(LogModel log) async {
-    log.syncStatus = 'pending'; // Mark as pending update
+    log.syncStatus = 'pending'; 
     await HiveService.logs.put(log.id, log);
     notifyListeners();
     
-    // Push update to Firestore in background
     FoodLogSyncService.saveLog(log, onSynced: () => notifyListeners());
   }
 
@@ -335,15 +332,13 @@ class FoodController extends ChangeNotifier {
   }
 
   Future<void> updateSpecificLog(LogModel updatedLog) async {
-    // Update di Hive
+    
     await HiveService.logs.put(updatedLog.id, updatedLog);
 
-    // Sync update ke Firebase jika online
     if (await FoodLogSyncService.isOnline()) {
       try {
         await FoodLogFirestoreService.upsertLog(updatedLog);
       } catch (e) {
-        // Tandai ulang sebagai pending agar di-retry saat sync berikutnya
         updatedLog.syncStatus = 'pending';
         await updatedLog.save();
       }
@@ -356,13 +351,11 @@ class FoodController extends ChangeNotifier {
   }
 
   Future<void> deleteLog(String logId, {BuildContext? context, String? foodName}) async {
-    // 1. Hapus dari Hive dulu — selalu berhasil online maupun offline
+    
     await HiveService.logs.delete(logId);
 
-    // 2. Refresh UI segera
     notifyListeners();
 
-    // 3. Hapus dari Firebase di background — TANPA await
     FoodLogSyncService.deleteLog(logId);
   }
 

@@ -10,13 +10,13 @@ class SeedHelper {
     await _seedFoods();
     await seedFirebaseFoods(); // ← Tambahan untuk Firebase
 
-    // Debug Print: Pastikan isi database tampil di terminal
-    print('--- DEBUG: ISI DATABASE MAKANAN ---');
-    print('Total Makanan: ${HiveService.foods.length}');
-    for (var f in HiveService.foods.values) {
-      print('- ${f.name} (${f.defaultServingSize}g)');
-    }
-    print('----------------------------------');
+    // Debug Print: Pastikan isi database tampil di terminal (Dinonaktifkan)
+    // print('--- DEBUG: ISI DATABASE MAKANAN ---');
+    // print('Total Makanan: ${HiveService.foods.length}');
+    // for (var f in HiveService.foods.values) {
+    //   print('- ${f.name} (${f.defaultServingSize}g)');
+    // }
+    // print('----------------------------------');
   }
 
   static Future<void> _seedUsers() async {
