@@ -24,6 +24,10 @@ import './features/general/auth/splash_view.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
+import 'services/food_log_sync_service.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+
+import './features/user/smartwatch/smartwatch_controller.dart';
 import './services/notification_service.dart';
 import './features/user/notification/notification_controller.dart';
 import 'services/food_log_sync_service.dart';
@@ -102,6 +106,8 @@ class NutriTrackApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => WatchlistController()),
         ChangeNotifierProvider(create: (_) => DateController()),
         ChangeNotifierProvider(create: (_) => AdminUserController()),
+        ChangeNotifierProvider(create: (_) => SubmissionController()),
+        ChangeNotifierProvider(create: (_) => SmartwatchController()),
         ChangeNotifierProvider.value(value: submissionCtrl),
         // Pakai .value agar instance-nya sama dengan yang sudah loadSettings() di atas
         ChangeNotifierProvider.value(value: notifCtrl),

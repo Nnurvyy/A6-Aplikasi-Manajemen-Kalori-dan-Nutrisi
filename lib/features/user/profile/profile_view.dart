@@ -13,6 +13,8 @@ import 'dart:ui' as ui;
 import 'dart:io';
 import './qr_scanner_page.dart';
 import 'package:gal/gal.dart';
+import '../smartwatch/smartwatch_controller.dart';
+import '../smartwatch/smartwatch_settings_view.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 import '../../../services/submission_firebase_service.dart';
@@ -37,8 +39,6 @@ class _ProfileViewState extends State<ProfileView> {
     'Sangat aktif (olahraga berat/olahraga 6-7 hari seminggu)',
     'Ekstra aktif (Berolahraga secara berat disertai pekerjaan fisik)',
   ];
-
-
 
   void _editProfil(UserModel user) {
     final namaCtrl = TextEditingController(text: user.name);
@@ -115,45 +115,70 @@ class _ProfileViewState extends State<ProfileView> {
                               final picker = ImagePicker();
                               final pickedFile = await showDialog<XFile?>(
                                 context: context,
-                                builder: (ctx) => AlertDialog(
-                                  title: const Text('Pilih Foto Profil'),
-                                  content: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      ListTile(
-                                        leading: const Icon(Icons.camera_alt),
-                                        title: const Text('Kamera'),
-                                        onTap: () async => Navigator.pop(ctx, await picker.pickImage(source: ImageSource.camera)),
+                                builder:
+                                    (ctx) => AlertDialog(
+                                      title: const Text('Pilih Foto Profil'),
+                                      content: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          ListTile(
+                                            leading: const Icon(
+                                              Icons.camera_alt,
+                                            ),
+                                            title: const Text('Kamera'),
+                                            onTap:
+                                                () async => Navigator.pop(
+                                                  ctx,
+                                                  await picker.pickImage(
+                                                    source: ImageSource.camera,
+                                                  ),
+                                                ),
+                                          ),
+                                          ListTile(
+                                            leading: const Icon(
+                                              Icons.photo_library,
+                                            ),
+                                            title: const Text('Galeri'),
+                                            onTap:
+                                                () async => Navigator.pop(
+                                                  ctx,
+                                                  await picker.pickImage(
+                                                    source: ImageSource.gallery,
+                                                  ),
+                                                ),
+                                          ),
+                                        ],
                                       ),
-                                      ListTile(
-                                        leading: const Icon(Icons.photo_library),
-                                        title: const Text('Galeri'),
-                                        onTap: () async => Navigator.pop(ctx, await picker.pickImage(source: ImageSource.gallery)),
-                                      ),
-                                    ],
-                                  ),
-                                ),
+                                    ),
                               );
 
                               if (pickedFile != null) {
-                                final croppedFile = await ImageCropper().cropImage(
-                                  sourcePath: pickedFile.path,
-                                  aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
-                                  uiSettings: [
-                                    AndroidUiSettings(
-                                      toolbarTitle: 'Crop Foto',
-                                      toolbarColor: _green,
-                                      toolbarWidgetColor: Colors.white,
-                                      initAspectRatio: CropAspectRatioPreset.square,
-                                      lockAspectRatio: true,
-                                    ),
-                                    IOSUiSettings(
-                                      title: 'Crop Foto',
-                                    ),
-                                  ],
-                                );
+                                final croppedFile = await ImageCropper()
+                                    .cropImage(
+                                      sourcePath: pickedFile.path,
+                                      aspectRatio: const CropAspectRatio(
+                                        ratioX: 1,
+                                        ratioY: 1,
+                                      ),
+                                      uiSettings: [
+                                        AndroidUiSettings(
+                                          toolbarTitle: 'Crop Foto',
+                                          toolbarColor: _green,
+                                          toolbarWidgetColor: Colors.white,
+                                          initAspectRatio:
+                                              CropAspectRatioPreset.square,
+                                          lockAspectRatio: true,
+                                        ),
+                                        IOSUiSettings(title: 'Crop Foto'),
+                                      ],
+                                    );
                                 if (croppedFile != null) {
-                                  setModal(() => newProfileImage = File(croppedFile.path));
+                                  setModal(
+                                    () =>
+                                        newProfileImage = File(
+                                          croppedFile.path,
+                                        ),
+                                  );
                                 }
                               }
                             },
@@ -167,25 +192,55 @@ class _ProfileViewState extends State<ProfileView> {
                                     shape: BoxShape.circle,
                                   ),
                                   child: ClipOval(
-                                    child: newProfileImage != null
-                                        ? Image.file(newProfileImage!, fit: BoxFit.cover, width: 80, height: 80)
-                                        : (user.localProfileImagePath != null && user.localProfileImagePath!.isNotEmpty && File(user.localProfileImagePath!).existsSync())
+                                    child:
+                                        newProfileImage != null
                                             ? Image.file(
-                                                File(user.localProfileImagePath!),
-                                                fit: BoxFit.cover,
-                                                width: 80,
-                                                height: 80,
-                                                errorBuilder: (_, __, ___) => const Icon(Icons.person, color: Colors.grey, size: 40),
-                                              )
-                                            : (user.profileImageUrl != null && user.profileImageUrl!.isNotEmpty)
-                                                ? Image.network(
-                                                    user.profileImageUrl!,
-                                                    fit: BoxFit.cover,
-                                                    width: 80,
-                                                    height: 80,
-                                                    errorBuilder: (_, __, ___) => const Icon(Icons.person, color: Colors.grey, size: 40),
-                                                  )
-                                                : const Icon(Icons.person, color: Colors.grey, size: 40),
+                                              newProfileImage!,
+                                              fit: BoxFit.cover,
+                                              width: 80,
+                                              height: 80,
+                                            )
+                                            : (user.localProfileImagePath !=
+                                                    null &&
+                                                user
+                                                    .localProfileImagePath!
+                                                    .isNotEmpty &&
+                                                File(
+                                                  user.localProfileImagePath!,
+                                                ).existsSync())
+                                            ? Image.file(
+                                              File(user.localProfileImagePath!),
+                                              fit: BoxFit.cover,
+                                              width: 80,
+                                              height: 80,
+                                              errorBuilder:
+                                                  (_, __, ___) => const Icon(
+                                                    Icons.person,
+                                                    color: Colors.grey,
+                                                    size: 40,
+                                                  ),
+                                            )
+                                            : (user.profileImageUrl != null &&
+                                                user
+                                                    .profileImageUrl!
+                                                    .isNotEmpty)
+                                            ? Image.network(
+                                              user.profileImageUrl!,
+                                              fit: BoxFit.cover,
+                                              width: 80,
+                                              height: 80,
+                                              errorBuilder:
+                                                  (_, __, ___) => const Icon(
+                                                    Icons.person,
+                                                    color: Colors.grey,
+                                                    size: 40,
+                                                  ),
+                                            )
+                                            : const Icon(
+                                              Icons.person,
+                                              color: Colors.grey,
+                                              size: 40,
+                                            ),
                                   ),
                                 ),
                                 Positioned(
@@ -196,11 +251,21 @@ class _ProfileViewState extends State<ProfileView> {
                                     decoration: const BoxDecoration(
                                       color: Colors.white,
                                       shape: BoxShape.circle,
-                                      boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black12,
+                                          blurRadius: 4,
+                                        ),
+                                      ],
                                     ),
                                     child: Icon(
-                                      user.isProfileImageSynced ? Icons.cloud_done : Icons.cloud_off,
-                                      color: user.isProfileImageSynced ? Colors.green : Colors.orange,
+                                      user.isProfileImageSynced
+                                          ? Icons.cloud_done
+                                          : Icons.cloud_off,
+                                      color:
+                                          user.isProfileImageSynced
+                                              ? Colors.green
+                                              : Colors.orange,
                                       size: 16,
                                     ),
                                   ),
@@ -214,7 +279,11 @@ class _ProfileViewState extends State<ProfileView> {
                                       color: _green,
                                       shape: BoxShape.circle,
                                     ),
-                                    child: const Icon(Icons.edit, color: Colors.white, size: 14),
+                                    child: const Icon(
+                                      Icons.edit,
+                                      color: Colors.white,
+                                      size: 14,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -368,96 +437,138 @@ class _ProfileViewState extends State<ProfileView> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: isSaving ? null : () async {
-                              setModal(() => isSaving = true);
-                              final h = double.tryParse(tinggiCtrl.text.trim());
-                              final a = int.tryParse(umurCtrl.text.trim());
-                              final w = double.tryParse(beratCtrl.text.trim());
-                              final initW = double.tryParse(initialBeratCtrl.text.trim());
-                              final target =
-                                  double.tryParse(targetCtrl.text.trim()) ?? 0;
-                              final newCal =
-                                  (h != null && a != null && w != null)
-                                      ? CalorieHelper.calculateDailyCalorieNeed(
-                                        weightKg: w,
-                                        heightCm: h,
-                                        age: a,
+                            onPressed:
+                                isSaving
+                                    ? null
+                                    : () async {
+                                      setModal(() => isSaving = true);
+                                      final h = double.tryParse(
+                                        tinggiCtrl.text.trim(),
+                                      );
+                                      final a = int.tryParse(
+                                        umurCtrl.text.trim(),
+                                      );
+                                      final w = double.tryParse(
+                                        beratCtrl.text.trim(),
+                                      );
+                                      final initW = double.tryParse(
+                                        initialBeratCtrl.text.trim(),
+                                      );
+                                      final target =
+                                          double.tryParse(
+                                            targetCtrl.text.trim(),
+                                          ) ??
+                                          0;
+                                      final newCal =
+                                          (h != null && a != null && w != null)
+                                              ? CalorieHelper.calculateDailyCalorieNeed(
+                                                weightKg: w,
+                                                heightCm: h,
+                                                age: a,
+                                                gender: jenisKelamin,
+                                                activityLevel: selectedActivity,
+                                                targetWeightGainPerMonth:
+                                                    target,
+                                              )
+                                              : user.dailyCalorieNeed;
+
+                                      final history = Map<String, double>.from(
+                                        user.targetHistory ?? {},
+                                      );
+                                      if (target !=
+                                          user.targetWeightGainPerMonth) {
+                                        history[DateFormat(
+                                              'yyyy-MM',
+                                            ).format(DateTime.now())] =
+                                            target;
+                                      }
+
+                                      String? newUrl = user.profileImageUrl;
+                                      String? newLocalPath =
+                                          newProfileImage?.path ??
+                                          user.localProfileImagePath;
+                                      bool isImageSynced =
+                                          newProfileImage == null
+                                              ? user.isProfileImageSynced
+                                              : false;
+
+                                      if (newProfileImage != null) {
+                                        try {
+                                          newUrl =
+                                              await SubmissionFirebaseService.uploadImage(
+                                                newProfileImage!.path,
+                                                user.id,
+                                                folder: 'users',
+                                              );
+                                          isImageSynced = true;
+                                        } catch (e) {
+                                          isImageSynced = false;
+                                          if (mounted) {
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  'Offline: Foto profil disimpan lokal',
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        }
+                                      }
+
+                                      final updated = UserModel(
+                                        id: user.id,
+                                        name:
+                                            namaCtrl.text.trim().isEmpty
+                                                ? user.name
+                                                : namaCtrl.text.trim(),
+                                        email: user.email,
+                                        password: user.password,
+                                        role: user.role,
                                         gender: jenisKelamin,
+                                        height: h ?? user.height,
+                                        age: a ?? user.age,
+                                        weight: w ?? user.weight,
                                         activityLevel: selectedActivity,
+                                        birthDate: user.birthDate,
+                                        dailyCalorieNeed: newCal,
                                         targetWeightGainPerMonth: target,
-                                      )
-                                      : user.dailyCalorieNeed;
+                                        initialWeight:
+                                            initW ?? user.initialWeight,
+                                        targetHistory: history,
+                                        isBlocked: user.isBlocked,
+                                        profileImageUrl: newUrl,
+                                        localProfileImagePath: newLocalPath,
+                                        isProfileImageSynced: isImageSynced,
+                                      );
+                                      context
+                                          .read<AuthController>()
+                                          .updateProfile(updated);
 
-                              final history = Map<String, double>.from(user.targetHistory ?? {});
-                              if (target != user.targetWeightGainPerMonth) {
-                                history[DateFormat('yyyy-MM').format(DateTime.now())] = target;
-                              }
+                                      // SINKRONISASI: Update juga di log berat badan bulan ini jika berat diinput
+                                      if (w != null) {
+                                        final now = DateTime.now();
+                                        final key =
+                                            '${user.id}_${now.year}_${now.month}';
+                                        final log = WeightLogModel(
+                                          id: key,
+                                          userId: user.id,
+                                          month: DateTime(
+                                            now.year,
+                                            now.month,
+                                            1,
+                                          ),
+                                          actualWeight: w,
+                                        );
+                                        await HiveService.weightLogs.put(
+                                          key,
+                                          log,
+                                        );
+                                      }
 
-                              String? newUrl = user.profileImageUrl;
-                              String? newLocalPath = newProfileImage?.path ?? user.localProfileImagePath;
-                              bool isImageSynced = newProfileImage == null ? user.isProfileImageSynced : false;
-
-                              if (newProfileImage != null) {
-                                try {
-                                  newUrl = await SubmissionFirebaseService.uploadImage(
-                                    newProfileImage!.path,
-                                    user.id,
-                                    folder: 'users',
-                                  );
-                                  isImageSynced = true;
-                                } catch (e) {
-                                  isImageSynced = false;
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Offline: Foto profil disimpan lokal')),
-                                    );
-                                  }
-                                }
-                              }
-
-                              final updated = UserModel(
-                                id: user.id,
-                                name:
-                                    namaCtrl.text.trim().isEmpty
-                                        ? user.name
-                                        : namaCtrl.text.trim(),
-                                email: user.email,
-                                password: user.password,
-                                role: user.role,
-                                gender: jenisKelamin,
-                                height: h ?? user.height,
-                                age: a ?? user.age,
-                                weight: w ?? user.weight,
-                                activityLevel: selectedActivity,
-                                birthDate: user.birthDate,
-                                dailyCalorieNeed: newCal,
-                                targetWeightGainPerMonth: target,
-                                initialWeight: initW ?? user.initialWeight,
-                                targetHistory: history,
-                                isBlocked: user.isBlocked,
-                                profileImageUrl: newUrl,
-                                localProfileImagePath: newLocalPath,
-                                isProfileImageSynced: isImageSynced,
-                              );
-                              context
-                                  .read<AuthController>()
-                                  .updateProfile(updated);
-                              
-                              // SINKRONISASI: Update juga di log berat badan bulan ini jika berat diinput
-                              if (w != null) {
-                                final now = DateTime.now();
-                                final key = '${user.id}_${now.year}_${now.month}';
-                                final log = WeightLogModel(
-                                  id: key,
-                                  userId: user.id,
-                                  month: DateTime(now.year, now.month, 1),
-                                  actualWeight: w,
-                                );
-                                await HiveService.weightLogs.put(key, log);
-                              }
-
-                              if (mounted) Navigator.pop(context);
-                            },
+                                      if (mounted) Navigator.pop(context);
+                                    },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: _green,
                               padding: const EdgeInsets.symmetric(vertical: 14),
@@ -465,16 +576,24 @@ class _ProfileViewState extends State<ProfileView> {
                                 borderRadius: BorderRadius.circular(14),
                               ),
                             ),
-                            child: isSaving
-                                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                : const Text(
-                                    'Simpan',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 15,
+                            child:
+                                isSaving
+                                    ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                    : const Text(
+                                      'Simpan',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 15,
+                                      ),
                                     ),
-                                  ),
                           ),
                         ),
                       ],
@@ -529,7 +648,8 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
-  Widget _buildNotificationSettings() { // ← BARU TAHAP 4
+  Widget _buildNotificationSettings() {
+    // ← BARU TAHAP 4
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -561,12 +681,13 @@ class _ProfileViewState extends State<ProfileView> {
               'Atur Notifikasi Makan',
               const Color(0xFFE8F5E9),
               _green,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const NotificationSettingsView(),
-                ),
-              ),
+              onTap:
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const NotificationSettingsView(),
+                    ),
+                  ),
               isFirst: true,
               isLast: true,
             ),
@@ -575,7 +696,6 @@ class _ProfileViewState extends State<ProfileView> {
       ),
     );
   }
- 
 
   @override
   Widget build(BuildContext context) {
@@ -603,6 +723,10 @@ class _ProfileViewState extends State<ProfileView> {
                   const SizedBox(height: 20),
                   _buildPersonalisasi(user, auth),
                   const SizedBox(height: 20),
+                  if (!auth.isMonitoring) ...[
+                    _buildSmartwatchSection(context),
+                    const SizedBox(height: 20),
+                  ], // ← tambah
                   _buildNotificationSettings(),
                   const SizedBox(height: 20),
                   _buildParentalControl(auth),
@@ -688,24 +812,30 @@ class _ProfileViewState extends State<ProfileView> {
   void _confirmStopMonitoring(AuthController auth) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Kembali ke Utama?'),
-        content: const Text('Anda akan berhenti memantau aktivitas anak ini dan kembali ke profil Anda sendiri.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Kembali ke Utama?'),
+            content: const Text(
+              'Anda akan berhenti memantau aktivitas anak ini dan kembali ke profil Anda sendiri.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text(
+                  'Batal',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  auth.stopMonitoring();
+                  Navigator.pop(ctx);
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: _green),
+                child: const Text('Ya, Kembali'),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () {
-              auth.stopMonitoring();
-              Navigator.pop(ctx);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: _green),
-            child: const Text('Ya, Kembali'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -714,148 +844,191 @@ class _ProfileViewState extends State<ProfileView> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
+      builder:
+          (ctx) => Container(
+            padding: const EdgeInsets.all(24),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
-            const SizedBox(height: 20),
-            const Text(
-              'QR Code & ID Anda',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF1A2E1A),
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Tunjukkan QR ini atau bagikan ID di bawah kepada orang tua Anda agar mereka dapat memantau aktivitas Anda.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: Colors.grey),
-            ),
-            const SizedBox(height: 24),
-            QrImageView(
-              data: myId,
-              version: QrVersions.auto,
-              size: 200.0,
-              backgroundColor: Colors.white,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: () async {
-                try {
-                  final painter = QrPainter(
-                    data: myId,
-                    version: QrVersions.auto,
-                    errorCorrectionLevel: QrErrorCorrectLevel.M,
-                    color: const Color(0xFF000000),
-                    emptyColor: const Color(0xFFFFFFFF),
-                    gapless: true,
-                  );
-                  
-                  // Membuat margin putih (Quiet Zone) secara manual agar scanner mudah mendeteksi
-                  const double qrSize = 1024.0;
-                  const double margin = 100.0;
-                  const double totalSize = qrSize + (margin * 2);
-                  
-                  final recorder = ui.PictureRecorder();
-                  final canvas = Canvas(recorder, const Rect.fromLTWH(0, 0, totalSize, totalSize));
-                  
-                  // Gambar background putih
-                  canvas.drawRect(const Rect.fromLTWH(0, 0, totalSize, totalSize), Paint()..color = Colors.white);
-                  
-                  // Gambar QR di tengah
-                  canvas.save();
-                  canvas.translate(margin, margin);
-                  painter.paint(canvas, const Size(qrSize, qrSize));
-                  canvas.restore();
-                  
-                  final img = await recorder.endRecording().toImage(totalSize.toInt(), totalSize.toInt());
-                  final picData = await img.toByteData(format: ui.ImageByteFormat.png);
-                  if (picData != null) {
-                    await Gal.putImageBytes(picData.buffer.asUint8List());
-                    if (mounted) {
-                      Navigator.pop(context); // tutup modal
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Row(
-                            children: [
-                              Icon(Icons.check_circle_rounded, color: Colors.white),
-                              SizedBox(width: 10),
-                              Text('QR Code berhasil disimpan ke Galeri!', style: TextStyle(fontWeight: FontWeight.w600)),
-                            ],
-                          ),
-                          backgroundColor: const Color(0xFF2E7D32),
-                          duration: const Duration(seconds: 3),
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'QR Code & ID Anda',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1A2E1A),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Tunjukkan QR ini atau bagikan ID di bawah kepada orang tua Anda agar mereka dapat memantau aktivitas Anda.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+                const SizedBox(height: 24),
+                QrImageView(
+                  data: myId,
+                  version: QrVersions.auto,
+                  size: 200.0,
+                  backgroundColor: Colors.white,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    try {
+                      final painter = QrPainter(
+                        data: myId,
+                        version: QrVersions.auto,
+                        errorCorrectionLevel: QrErrorCorrectLevel.M,
+                        color: const Color(0xFF000000),
+                        emptyColor: const Color(0xFFFFFFFF),
+                        gapless: true,
                       );
+
+                      // Membuat margin putih (Quiet Zone) secara manual agar scanner mudah mendeteksi
+                      const double qrSize = 1024.0;
+                      const double margin = 100.0;
+                      const double totalSize = qrSize + (margin * 2);
+
+                      final recorder = ui.PictureRecorder();
+                      final canvas = Canvas(
+                        recorder,
+                        const Rect.fromLTWH(0, 0, totalSize, totalSize),
+                      );
+
+                      // Gambar background putih
+                      canvas.drawRect(
+                        const Rect.fromLTWH(0, 0, totalSize, totalSize),
+                        Paint()..color = Colors.white,
+                      );
+
+                      // Gambar QR di tengah
+                      canvas.save();
+                      canvas.translate(margin, margin);
+                      painter.paint(canvas, const Size(qrSize, qrSize));
+                      canvas.restore();
+
+                      final img = await recorder.endRecording().toImage(
+                        totalSize.toInt(),
+                        totalSize.toInt(),
+                      );
+                      final picData = await img.toByteData(
+                        format: ui.ImageByteFormat.png,
+                      );
+                      if (picData != null) {
+                        await Gal.putImageBytes(picData.buffer.asUint8List());
+                        if (mounted) {
+                          Navigator.pop(context); // tutup modal
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Row(
+                                children: [
+                                  Icon(
+                                    Icons.check_circle_rounded,
+                                    color: Colors.white,
+                                  ),
+                                  SizedBox(width: 10),
+                                  Text(
+                                    'QR Code berhasil disimpan ke Galeri!',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              backgroundColor: const Color(0xFF2E7D32),
+                              duration: const Duration(seconds: 3),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          );
+                        }
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Gagal menyimpan QR: $e')),
+                        );
+                      }
                     }
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Gagal menyimpan QR: $e')),
-                    );
-                  }
-                }
-              },
-              icon: const Icon(Icons.download_rounded, color: Colors.white, size: 18),
-              label: const Text('Download QR', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _green,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF4FAF4),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SelectableText(
-                    myId,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: _green,
+                  },
+                  icon: const Icon(
+                    Icons.download_rounded,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                  label: const Text(
+                    'Download QR',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () {
-                      Clipboard.setData(ClipboardData(text: myId));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('ID berhasil disalin!')),
-                      );
-                    },
-                    child: const Icon(Icons.copy_rounded, color: _green, size: 20),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _green,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF4FAF4),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SelectableText(
+                        myId,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: _green,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () {
+                          Clipboard.setData(ClipboardData(text: myId));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('ID berhasil disalin!'),
+                            ),
+                          );
+                        },
+                        child: const Icon(
+                          Icons.copy_rounded,
+                          color: _green,
+                          size: 20,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
             ),
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
@@ -866,79 +1039,94 @@ class _ProfileViewState extends State<ProfileView> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
+      builder:
+          (ctx) => Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
+            ),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
-              const SizedBox(height: 20),
-              const Text(
-                'Pantau Anak',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1A2E1A),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Expanded(child: _inputField('Masukkan ID Anak', idCtrl)),
-                  const SizedBox(width: 12),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 24),
-                    child: IconButton(
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Pantau Anak',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1A2E1A),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(child: _inputField('Masukkan ID Anak', idCtrl)),
+                      const SizedBox(width: 12),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 24),
+                        child: IconButton(
+                          onPressed: () async {
+                            final scannedId = await Navigator.push(
+                              ctx,
+                              MaterialPageRoute(
+                                builder: (_) => const QRScannerPage(),
+                              ),
+                            );
+                            if (scannedId != null && scannedId is String) {
+                              idCtrl.text = scannedId;
+                            }
+                          },
+                          icon: const Icon(
+                            Icons.qr_code_scanner,
+                            color: _green,
+                            size: 32,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
                       onPressed: () async {
-                        final scannedId = await Navigator.push(
-                          ctx,
-                          MaterialPageRoute(builder: (_) => const QRScannerPage()),
-                        );
-                        if (scannedId != null && scannedId is String) {
-                          idCtrl.text = scannedId;
-                        }
+                        if (idCtrl.text.trim().isEmpty) return;
+                        Navigator.pop(ctx);
+                        _confirmStartMonitoring(auth, idCtrl.text.trim());
                       },
-                      icon: const Icon(Icons.qr_code_scanner, color: _green, size: 32),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _green,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: const Text(
+                        'Mulai Pantau',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    if (idCtrl.text.trim().isEmpty) return;
-                    Navigator.pop(ctx);
-                    _confirmStartMonitoring(auth, idCtrl.text.trim());
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _green,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  child: const Text('Mulai Pantau', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
     );
   }
 
@@ -951,38 +1139,60 @@ class _ProfileViewState extends State<ProfileView> {
           builder: (context, setState) {
             return AlertDialog(
               title: const Text('Konfirmasi Pantau'),
-              content: isLoading 
-                ? const SizedBox(height: 50, child: Center(child: CircularProgressIndicator()))
-                : Text('Apakah Anda yakin ingin mulai memantau aktivitas akun dengan ID:\n$childId?'),
-              actions: isLoading ? [] : [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Batal', style: TextStyle(color: Colors.grey)),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    setState(() => isLoading = true);
-                    final success = await auth.startMonitoring(childId);
-                    if (mounted) {
-                      Navigator.pop(ctx);
-                      if (!success) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(auth.errorMessage ?? 'Gagal memantau')),
-                        );
-                      }
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _green,
-                    foregroundColor: Colors.white, // Agar teks putih dan kontras
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text('Ya, Pantau', style: TextStyle(fontWeight: FontWeight.bold)),
-                ),
-              ],
+              content:
+                  isLoading
+                      ? const SizedBox(
+                        height: 50,
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                      : Text(
+                        'Apakah Anda yakin ingin mulai memantau aktivitas akun dengan ID:\n$childId?',
+                      ),
+              actions:
+                  isLoading
+                      ? []
+                      : [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: const Text(
+                            'Batal',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ),
+                        ElevatedButton(
+                          onPressed: () async {
+                            setState(() => isLoading = true);
+                            final success = await auth.startMonitoring(childId);
+                            if (mounted) {
+                              Navigator.pop(ctx);
+                              if (!success) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      auth.errorMessage ?? 'Gagal memantau',
+                                    ),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _green,
+                            foregroundColor:
+                                Colors.white, // Agar teks putih dan kontras
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Ya, Pantau',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
             );
-          }
+          },
         );
       },
     );
@@ -1085,7 +1295,11 @@ class _ProfileViewState extends State<ProfileView> {
                         ),
                         child: const Row(
                           children: [
-                            Icon(Icons.edit_outlined, color: Colors.white, size: 14),
+                            Icon(
+                              Icons.edit_outlined,
+                              color: Colors.white,
+                              size: 14,
+                            ),
                             SizedBox(width: 5),
                             Text(
                               'Edit Profil',
@@ -1146,43 +1360,65 @@ class _ProfileViewState extends State<ProfileView> {
             children: [
               GestureDetector(
                 onTap: () {
-                  final hasLocal = user.localProfileImagePath != null && user.localProfileImagePath!.isNotEmpty && File(user.localProfileImagePath!).existsSync();
-                  final hasNetwork = user.profileImageUrl != null && user.profileImageUrl!.isNotEmpty;
+                  final hasLocal =
+                      user.localProfileImagePath != null &&
+                      user.localProfileImagePath!.isNotEmpty &&
+                      File(user.localProfileImagePath!).existsSync();
+                  final hasNetwork =
+                      user.profileImageUrl != null &&
+                      user.profileImageUrl!.isNotEmpty;
 
                   if (hasLocal || hasNetwork) {
                     showDialog(
                       context: context,
-                      builder: (ctx) => Dialog(
-                        backgroundColor: Colors.transparent,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            InteractiveViewer(
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(16),
-                                child: hasLocal
-                                    ? Image.file(File(user.localProfileImagePath!), fit: BoxFit.contain)
-                                    : Image.network(user.profileImageUrl!, fit: BoxFit.contain),
-                              ),
+                      builder:
+                          (ctx) => Dialog(
+                            backgroundColor: Colors.transparent,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                InteractiveViewer(
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(16),
+                                    child:
+                                        hasLocal
+                                            ? Image.file(
+                                              File(user.localProfileImagePath!),
+                                              fit: BoxFit.contain,
+                                            )
+                                            : Image.network(
+                                              user.profileImageUrl!,
+                                              fit: BoxFit.contain,
+                                            ),
+                                  ),
+                                ),
+                                Positioned(
+                                  top: 10,
+                                  right: 10,
+                                  child: IconButton(
+                                    icon: const Icon(
+                                      Icons.close,
+                                      color: Colors.white,
+                                      size: 30,
+                                    ),
+                                    onPressed: () => Navigator.pop(ctx),
+                                  ),
+                                ),
+                              ],
                             ),
-                            Positioned(
-                              top: 10,
-                              right: 10,
-                              child: IconButton(
-                                icon: const Icon(Icons.close, color: Colors.white, size: 30),
-                                onPressed: () => Navigator.pop(ctx),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                          ),
                     );
                   }
                 },
                 child: Builder(
                   builder: (context) {
-                    final hasLocal = user.localProfileImagePath != null && user.localProfileImagePath!.isNotEmpty && File(user.localProfileImagePath!).existsSync();
-                    final hasNetwork = user.profileImageUrl != null && user.profileImageUrl!.isNotEmpty;
+                    final hasLocal =
+                        user.localProfileImagePath != null &&
+                        user.localProfileImagePath!.isNotEmpty &&
+                        File(user.localProfileImagePath!).existsSync();
+                    final hasNetwork =
+                        user.profileImageUrl != null &&
+                        user.profileImageUrl!.isNotEmpty;
                     return Container(
                       width: 64,
                       height: 64,
@@ -1192,26 +1428,41 @@ class _ProfileViewState extends State<ProfileView> {
                         border: Border.all(color: Colors.white38, width: 2),
                       ),
                       child: ClipOval(
-                        child: hasLocal
-                            ? Image.file(
-                                File(user.localProfileImagePath!),
-                                fit: BoxFit.cover,
-                                width: 64,
-                                height: 64,
-                                errorBuilder: (_, __, ___) => const Icon(Icons.person, color: Colors.white, size: 34),
-                              )
-                            : (hasNetwork
-                                ? Image.network(
-                                    user.profileImageUrl!,
-                                    fit: BoxFit.cover,
-                                    width: 64,
-                                    height: 64,
-                                    errorBuilder: (_, __, ___) => const Icon(Icons.person, color: Colors.white, size: 34),
-                                  )
-                                : const Icon(Icons.person, color: Colors.white, size: 34)),
+                        child:
+                            hasLocal
+                                ? Image.file(
+                                  File(user.localProfileImagePath!),
+                                  fit: BoxFit.cover,
+                                  width: 64,
+                                  height: 64,
+                                  errorBuilder:
+                                      (_, __, ___) => const Icon(
+                                        Icons.person,
+                                        color: Colors.white,
+                                        size: 34,
+                                      ),
+                                )
+                                : (hasNetwork
+                                    ? Image.network(
+                                      user.profileImageUrl!,
+                                      fit: BoxFit.cover,
+                                      width: 64,
+                                      height: 64,
+                                      errorBuilder:
+                                          (_, __, ___) => const Icon(
+                                            Icons.person,
+                                            color: Colors.white,
+                                            size: 34,
+                                          ),
+                                    )
+                                    : const Icon(
+                                      Icons.person,
+                                      color: Colors.white,
+                                      size: 34,
+                                    )),
                       ),
                     );
-                  }
+                  },
                 ),
               ),
               const SizedBox(width: 16),
@@ -1560,7 +1811,10 @@ class _ProfileViewState extends State<ProfileView> {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: isMonitor ? const Color(0xFF1976D2) : const Color(0xFF2E7D32),
+                color:
+                    isMonitor
+                        ? const Color(0xFF1976D2)
+                        : const Color(0xFF2E7D32),
               ),
             ),
             if (!isMonitor) ...[
@@ -1581,5 +1835,127 @@ class _ProfileViewState extends State<ProfileView> {
     padding: EdgeInsets.symmetric(horizontal: 18),
     child: Divider(height: 1, color: Color(0xFFE8F5E9)),
   );
-}
 
+  Widget _buildSmartwatchSection(BuildContext context) {
+    final sw = context.watch<SmartwatchController>();
+    final isConnected = sw.isConnected;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Perangkat',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1A2E1A),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: InkWell(
+              onTap:
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const SmartwatchSettingsView(),
+                    ),
+                  ),
+              borderRadius: BorderRadius.circular(20),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 16,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE8F5E9),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.watch_rounded,
+                        color: _green,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    const Expanded(
+                      child: Text(
+                        'Smartwatch',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF1A2E1A),
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color:
+                            isConnected
+                                ? const Color(0xFFE8F5E9)
+                                : Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color:
+                                  isConnected ? _green : Colors.grey.shade400,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            isConnected ? 'Terhubung' : 'Tidak aktif',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color:
+                                  isConnected ? _green : Colors.grey.shade500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: Color(0xFF8EBA8E),
+                      size: 20,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

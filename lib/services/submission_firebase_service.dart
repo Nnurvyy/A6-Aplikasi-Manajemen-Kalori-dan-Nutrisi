@@ -4,26 +4,21 @@ import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../features/general/submission/submission_model.dart';
 
-/// Service layer untuk semua operasi Firestore & Cloudinary terkait submission.
-/// Gambar diupload ke Cloudinary (gratis, tanpa Firebase Storage).
 class SubmissionFirebaseService {
   static final _db = FirebaseFirestore.instance;
   static const _col = 'submissions';
 
-  // ── Cloudinary config ─────────────────────────────────────────────────────
   static const _cloudName = 'dxvg4czip';
-  static const _uploadPreset = 'submission_images'; // sesuai preset yang dibuat
+  static const _uploadPreset = 'submission_images';
   static const _cloudinaryUrl =
       'https://api.cloudinary.com/v1_1/$_cloudName/image/upload';
-
-  // ── Konversi model ────────────────────────────────────────────────────────
 
   static Map<String, dynamic> _toMap(SubmissionModel m) => {
     'id': m.id,
     'userId': m.userId,
     'userName': m.userName,
     'foodName': m.foodName,
-    'imagePath': m.imagePath, // URL Cloudinary
+    'imagePath': m.imagePath,
     'calories': m.calories,
     'protein': m.protein,
     'carbs': m.carbs,
@@ -57,43 +52,33 @@ class SubmissionFirebaseService {
     );
   }
 
-  // ── Upload gambar ke Cloudinary ───────────────────────────────────────────
-  //
-  // Mengembalikan URL gambar permanen dari Cloudinary.
-  // URL ini disimpan di Firestore dan bisa diakses dari device manapun
-  // (user, admin, nutritionist) tanpa Firebase Storage.
-
+  /// Upload gambar ke Cloudinary.
+  /// Jika [localPath] kosong → kembalikan '' (submission tanpa foto valid).
   static Future<String> uploadImage(
     String localPath,
     String submissionId, {
     void Function(double progress)? onProgress,
     String? folder,
   }) async {
-    // Jika sudah URL (sudah diupload sebelumnya), kembalikan langsung
-    if (localPath.isEmpty || localPath.startsWith('http')) return localPath;
+    if (localPath.isEmpty) return '';
+    if (localPath.startsWith('http')) return localPath;
 
     final file = File(localPath);
-    if (!file.existsSync()) return localPath;
+    if (!file.existsSync()) return ''; // file hilang → anggap tanpa foto
 
     onProgress?.call(0.1);
-
-    // Baca file sebagai bytes lalu encode ke base64 untuk dikirim
     final bytes = await file.readAsBytes();
     final base64Image = base64Encode(bytes);
-
     onProgress?.call(0.3);
 
-    // Upload ke Cloudinary via REST API (unsigned upload)
     final response = await http.post(
       Uri.parse(_cloudinaryUrl),
       body: {
         'file': 'data:image/jpeg;base64,$base64Image',
         'upload_preset': _uploadPreset,
         'folder': folder ?? 'submissions',
-        // public_id dibiarkan kosong — Cloudinary generate nama otomatis
       },
     );
-
     onProgress?.call(0.9);
 
     if (response.statusCode != 200) {
@@ -104,12 +89,9 @@ class SubmissionFirebaseService {
 
     final json = jsonDecode(response.body) as Map<String, dynamic>;
     final url = json['secure_url'] as String;
-
     onProgress?.call(1.0);
-    return url; // URL HTTPS permanen dari Cloudinary
+    return url;
   }
-
-  // ── CRUD Firestore ────────────────────────────────────────────────────────
 
   static Future<void> add(SubmissionModel model) async {
     await _db.collection(_col).doc(model.id).set(_toMap(model));
@@ -123,9 +105,6 @@ class SubmissionFirebaseService {
     await _db.collection(_col).doc(id).delete();
   }
 
-  // ── Stream realtime ───────────────────────────────────────────────────────
-
-  /// Semua submission — untuk Admin & Nutritionist
   static Stream<List<SubmissionModel>> streamAll() {
     return _db
         .collection(_col)
@@ -134,7 +113,6 @@ class SubmissionFirebaseService {
         .map((snap) => snap.docs.map(_fromDoc).toList());
   }
 
-  /// Submission milik user tertentu — untuk User biasa
   static Stream<List<SubmissionModel>> streamByUser(String userId) {
     return _db
         .collection(_col)
