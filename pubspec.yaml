@@ -4,50 +4,60 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.7.2
+  sdk: '>=3.7.2 <4.0.0'
+  flutter: '>=3.35.0'
 
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.8
-  uuid: ^4.5.1 
-  http: ^1.2.0
 
-  # Database
+  cupertino_icons: ^1.0.8
+  uuid: ^4.5.1
+  http: ^1.2.0
+  health: ^11.0.0
+
+  # Database lokal
   hive: ^2.2.3
   hive_flutter: ^1.1.0
 
-  #notification
+  # Notifikasi
   flutter_local_notifications: ^18.0.1
   timezone: ^0.9.4
 
-  # State Management
+  # State management
   provider: ^6.1.2
 
-  # UI
+  # UI / Chart
   fl_chart: ^0.68.0
   percent_indicator: ^4.2.3
   google_fonts: ^6.2.1
 
-  # Utilities
+  # Utilitas
   intl: ^0.19.0
-  image_picker: ^1.1.2
-  flutter_vision: ^2.0.0
-  get: ^4.7.3
   connectivity_plus: ^6.1.4
+  crypto: ^3.0.6
+  get: ^4.7.3
+  image: ^4.1.7
+
+  # Gambar & kamera
+  image_picker: ^1.1.2
+  image_cropper: ^12.2.1
+  gal: ^2.3.2
+
+  # AI / Vision
+  flutter_vision: ^2.0.0
+  google_mlkit_text_recognition: ^0.14.0
+  google_mlkit_barcode_scanning: ^0.13.0
+
+  # QR
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^7.2.0
+
+  # Firebase
   firebase_core: ^4.7.0
   firebase_auth: ^6.4.0
   cloud_firestore: ^6.3.0
-  firebase_storage: 13.3.0
-  
-  qr_flutter: ^4.1.0
-  mobile_scanner: ^7.2.0
-  google_mlkit_barcode_scanning: ^0.13.0
-  gal: ^2.3.2
-  crypto: ^3.0.6
-  google_mlkit_text_recognition: ^0.14.0
-  image_cropper: ^12.2.1
-  image: ^4.1.7
+  firebase_storage: ^13.3.0
 
 dev_dependencies:
   flutter_test:

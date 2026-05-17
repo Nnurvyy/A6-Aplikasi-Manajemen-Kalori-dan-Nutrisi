@@ -17,14 +17,17 @@ class ScanService {
       labels: 'assets/labels.txt',
       modelVersion: 'yolov8',
       numThreads: 2,
-      useGpu: false, // Set true logic can be added later for performance
+      useGpu: false,
     );
     _isLoaded = true;
   }
 
-  Future<List<Map<String, dynamic>>> detect(Uint8List imageBytes, int height, int width) async {
+  Future<List<Map<String, dynamic>>> detect(
+    Uint8List imageBytes,
+    int height,
+    int width,
+  ) async {
     if (!_isLoaded) await init();
-    
     return await _vision.yoloOnImage(
       bytesList: imageBytes,
       imageHeight: height,
