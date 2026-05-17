@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 import '../dashboard/admin_dashboard_controller.dart';
-import '../../general/submission/submission_controller.dart'; // ← TAMBAH
+import '../../general/submission/submission_controller.dart'; 
 
 class AdminDashboardView extends GetView<AdminDashboardController> {
   const AdminDashboardView({super.key});
@@ -43,12 +43,8 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
   Widget build(BuildContext context) {
     Get.put(AdminDashboardController());
 
-    // ── PERUBAHAN UTAMA ────────────────────────────────────────────────────
-    // Ambil data dari SubmissionController (Firestore) lalu kasih ke controller
-    // context.watch → otomatis rebuild setiap kali data Firestore berubah
     final submissions = context.watch<SubmissionController>().all;
     controller.loadFromSubmissionController(submissions);
-    // ──────────────────────────────────────────────────────────────────────
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9FBF9),
@@ -522,17 +518,8 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
                   children: [
                     Row(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade50,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            item['icon'],
-                            style: const TextStyle(fontSize: 20),
-                          ),
-                        ),
+                        _buildSubmissionThumb(item['imageUrl'], size: 48),
+
                         const SizedBox(width: 12),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -665,10 +652,9 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
                       final item = list[index];
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
-                        leading: Text(
-                          item['icon'],
-                          style: const TextStyle(fontSize: 24),
-                        ),
+
+                        leading: _buildSubmissionThumb(item['imageUrl'], size: 40),
+
                         title: Text(
                           item['name'],
                           style: const TextStyle(
@@ -710,7 +696,8 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(item['icon'], style: const TextStyle(fontSize: 48)),
+                _buildSubmissionThumb(item['imageUrl'], size: 160),
+
                 const SizedBox(height: 16),
                 Text(
                   item['name'],
@@ -791,5 +778,31 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
       ),
     );
   }
+
+  Widget _buildSubmissionThumb(String? imageUrl, {double size = 48}) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: (imageUrl != null && imageUrl.isNotEmpty)
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                imageUrl,
+                width: size,
+                height: size,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Icon(Icons.fastfood_rounded,
+                    color: Colors.grey.shade400, size: size * 0.5),
+              ),
+            )
+          : Icon(Icons.fastfood_rounded,
+              color: Colors.grey.shade400, size: size * 0.5),
+    );
+  }
+
 }
 

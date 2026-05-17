@@ -5,7 +5,7 @@ import 'dart:io';
 import 'package:provider/provider.dart';
 import '../../general/auth/auth_controller.dart';
 import '../../general/food/food_controller.dart';
-
+import '../../../services/submission_firebase_service.dart';
 
 import '../../general/food/widgets/ingredient_picker_dialog.dart';
 import '../../general/food/models/food_model.dart';
@@ -147,10 +147,35 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
     final carbs = double.tryParse(_carbsCtrl.text) ?? 0;
     final fat = double.tryParse(_fatCtrl.text) ?? 0;
     final servingSize = double.tryParse(_servingSizeCtrl.text) ?? 100.0;
+    final foodId = widget.initialFood?.id ?? 'manual_${DateTime.now().millisecondsSinceEpoch}';
+
+    String? uploadedImageUrl;
+    if (_image != null) {
+      if (_image!.path.startsWith('http')) {
+        uploadedImageUrl = _image!.path; 
+      } else {
+        try {
+          uploadedImageUrl = await SubmissionFirebaseService.uploadImage(
+            _image!.path, 
+            foodId,
+          );
+        } catch (e) {
+          if (mounted) {
+            setState(() => _isSaving = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Gagal mengupload foto: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return; 
+        }
+      }
+    }
 
     final foodCtrl = context.read<FoodController>();
     if (widget.initialLog != null && widget.isHistoricalEdit) {
-      // MODE EDIT RIWAYAT (Update log yang sudah ada)
       await foodCtrl.updateSpecificLog(
         widget.initialLog!.copyWith(
           foodName: foodName,
@@ -160,7 +185,7 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
           carbs: carbs,
           fat: fat,
           servingSize: servingSize,
-          imageUrl: _image?.path,
+          imageUrl: uploadedImageUrl, 
           ingredientsJson: _ingredients.isEmpty ? null : jsonEncode(_ingredients),
         ),
       );
@@ -170,22 +195,20 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
         Navigator.pop(context, true);
       }
     } else {
-      // MODE TAMBAH BARU atau EDIT DEFINISI (Save ke Food database)
-      final foodId = widget.initialFood?.id ?? 'manual_${DateTime.now().millisecondsSinceEpoch}';
       final newFood = FoodModel(
         id: foodId,
         name: foodName,
         category: _selectedCategory,
-        calories: (calories / servingSize) * 100, // stored per 100g
+        calories: (calories / servingSize) * 100,
         protein: (protein / servingSize) * 100,
         carbs: (carbs / servingSize) * 100,
         fat: (fat / servingSize) * 100,
         defaultServingSize: servingSize,
         isApproved: true,
         createdAt: widget.initialFood?.createdAt ?? DateTime.now(),
-        imageUrl: _image?.path,
+        imageUrl: uploadedImageUrl, 
         ingredientsJson: _ingredients.isEmpty ? null : jsonEncode(_ingredients),
-        userId: userId, // ← TAMBAHKAN INI
+        userId: userId, 
       );
 
       if (widget.initialFood != null) {
