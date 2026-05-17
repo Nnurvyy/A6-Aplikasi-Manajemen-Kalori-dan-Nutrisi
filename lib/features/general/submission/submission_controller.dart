@@ -16,6 +16,7 @@ import '../../../services/hive_service.dart';
 /// 4. App ditutup sebelum upload selesai → Hive tetap ada
 /// 5. Buka app lagi → init() baca Hive, retry upload yang tertunda otomatis
 /// 6. Saat offline → item tetap di Hive; listener konektivitas otomatis retry saat online lagi
+/// perocobaan kecil
 class SubmissionController extends ChangeNotifier {
   List<SubmissionModel> _cloudItems = [];
   List<SubmissionModel> _localItems = [];
