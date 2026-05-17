@@ -109,7 +109,7 @@ class NotificationSettingsView extends StatelessWidget {
           const SizedBox(width: 12),
           const Expanded(
             child: Text(
-              'Notifikasi akan muncul setiap hari sesuai jadwal, meski aplikasi tidak dibuka.',
+              'Notifikasi akan muncul setiap hari sesuai jadwal.',
               style: TextStyle(
                   fontSize: 13, color: Color(0xFF2E7D32), height: 1.4),
             ),
