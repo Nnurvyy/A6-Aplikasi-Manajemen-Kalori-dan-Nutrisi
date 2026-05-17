@@ -61,22 +61,35 @@
             android:name="health_connect_privacy_policy_url"
             android:value="https://sites.google.com/view/nutritrack-privacy-policy/halaman-muka"/>
 
-        <!-- Receiver untuk reschedule notifikasi setelah device restart -->
+        <!--
+            PERBAIKAN: android:exported="true" wajib agar sistem Android
+            bisa mengirim broadcast BOOT_COMPLETED ke receiver ini.
+            Dengan exported="false" (sebelumnya), sistem tidak bisa
+            menjangkau receiver dari luar proses aplikasi sehingga
+            notifikasi tidak terjadwal ulang setelah restart.
+        -->
         <receiver
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"
-            android:exported="false">
+            android:exported="true">
             <intent-filter>
+                <!-- Restart normal -->
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <!-- Aplikasi diupdate / reinstall -->
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <!-- Fast-boot HTC / Qualcomm -->
                 <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
                 <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
             </intent-filter>
         </receiver>
 
-        <!-- Receiver untuk memicu notifikasi terjadwal -->
+        <!--
+            PERBAIKAN: exported="true" agar AlarmManager bisa memicu
+            receiver ini dari luar proses aplikasi (dibutuhkan sejak
+            Android 12 / API 31 untuk PendingIntent eksplisit).
+        -->
         <receiver
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"
-            android:exported="false"/>
+            android:exported="true"/>
 
         <meta-data
             android:name="flutterEmbedding"
