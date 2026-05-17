@@ -112,7 +112,7 @@ class SubmissionScreen extends StatelessWidget {
             width: 120,
             height: 120,
             decoration: BoxDecoration(
-              color: _green.withOpacity(0.1),
+              color: _green.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -160,3 +160,4 @@ class SubmissionScreen extends StatelessWidget {
     );
   }
 }
+

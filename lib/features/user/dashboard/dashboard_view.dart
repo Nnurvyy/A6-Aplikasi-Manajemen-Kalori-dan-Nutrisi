@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
+
 import '../../general/auth/auth_controller.dart';
 import './dashboard_controller.dart';
 import '../../general/food/food_controller.dart';
 import '../../general/food/models/log_model.dart';
 import '../../../helpers/date_controller.dart';
-import '../manual_food/manual_food_form_view.dart';
+
 import '../../general/food/food_detail_view.dart';
 import '../../general/food/models/food_model.dart';
 import '../../../services/hive_service.dart';
@@ -93,7 +93,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
                   color: const Color(0xFFF4F6F0),
-                  border: Border.all(color: const Color(0xFF2E7D32).withOpacity(0.2)),
+                  border: Border.all(color: const Color(0xFF2E7D32).withValues(alpha: 0.2)),
                 ),
                 child: Row(
                   children: [
@@ -106,7 +106,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                         label: 'Bulan',
                       ),
                     ),
-                    Container(width: 1, color: const Color(0xFF2E7D32).withOpacity(0.1)),
+                    Container(width: 1, color: const Color(0xFF2E7D32).withValues(alpha: 0.1)),
                     Expanded(
                       flex: 1,
                       child: _wheelPicker(
@@ -170,7 +170,7 @@ class _DashboardBodyState extends State<DashboardBody> {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Text(label, style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF2E7D32).withOpacity(0.6))),
+          child: Text(label, style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF2E7D32).withValues(alpha: 0.6))),
         ),
         Expanded(
           child: ListWheelScrollView(
@@ -237,7 +237,7 @@ class _DashboardBodyState extends State<DashboardBody> {
             final fatConsumed = filteredHistory.fold(0.0, (s, i) => s + i.fat);
             final waterConsumed = filteredHistory.fold(0.0, (s, i) {
               if (i.foodName.toLowerCase() == 'air putih') {
-                return s + i.servingSize;
+                return s + (i.servingSize * i.quantity);
               }
               return s;
             });
@@ -314,7 +314,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
-                    color: (isMonitor ? const Color(0xFF1976D2) : const Color(0xFF2E7D32)).withOpacity(0.12),
+                    color: (isMonitor ? const Color(0xFF1976D2) : const Color(0xFF2E7D32)).withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
@@ -352,7 +352,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1976D2).withOpacity(0.2),
+                      color: const Color(0xFF1976D2).withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.child_care_rounded, color: Color(0xFF1976D2)),
@@ -466,7 +466,7 @@ class _DashboardBodyState extends State<DashboardBody> {
           border: Border.all(color: const Color(0xFFC8E6C9), width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF4CAF50).withOpacity(0.10),
+              color: const Color(0xFF4CAF50).withValues(alpha: 0.10),
               blurRadius: 12,
               offset: const Offset(0, 2),
             ),
@@ -500,9 +500,11 @@ class _DashboardBodyState extends State<DashboardBody> {
     final displayPercentage = percentage > 1.0 ? 1.0 : percentage;
 
     return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 25),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
           Expanded(
             child: Container(
               decoration: BoxDecoration(
@@ -513,7 +515,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                     isCompleted
                         ? [
                           BoxShadow(
-                            color: const Color(0xFF2E7D32).withOpacity(0.3),
+                            color: const Color(0xFF2E7D32).withValues(alpha: 0.3),
                             blurRadius: 10,
                             spreadRadius: 2,
                           ),
@@ -545,7 +547,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                     ),
                     Center(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 24),
+                        padding: const EdgeInsets.symmetric(vertical: 34),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -579,7 +581,7 @@ class _DashboardBodyState extends State<DashboardBody> {
           const SizedBox(width: 6),
           Container(
             width: 8,
-            height: 36,
+            height: 48,
             decoration: BoxDecoration(
               color: const Color(0xFF2E7D32),
               borderRadius: BorderRadius.circular(4),
@@ -587,7 +589,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                   isCompleted
                       ? [
                         BoxShadow(
-                          color: const Color(0xFF2E7D32).withOpacity(0.3),
+                          color: const Color(0xFF2E7D32).withValues(alpha: 0.3),
                           blurRadius: 4,
                         ),
                       ]
@@ -596,6 +598,7 @@ class _DashboardBodyState extends State<DashboardBody> {
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -658,7 +661,7 @@ class _DashboardBodyState extends State<DashboardBody> {
         border: Border.all(color: const Color(0xFFE0E0E0), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -716,7 +719,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                     isCompleted
                         ? [
                           BoxShadow(
-                            color: item.borderColor.withOpacity(0.3),
+                            color: item.borderColor.withValues(alpha: 0.3),
                             blurRadius: 2,
                           ),
                         ]
@@ -737,7 +740,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                     isCompleted
                         ? [
                           BoxShadow(
-                            color: item.borderColor.withOpacity(0.2),
+                            color: item.borderColor.withValues(alpha: 0.2),
                             blurRadius: 4,
                             spreadRadius: 1,
                           ),
@@ -925,7 +928,7 @@ class _DashboardBodyState extends State<DashboardBody> {
               ],
             ),
           ),
-        ...pageItems.map((item) => _buildFoodHistoryCard(item, isMonitor)).toList(),
+        ...pageItems.map((item) => _buildFoodHistoryCard(item, isMonitor)),
         if (totalPages > 1) _buildRiwayatPagination(safeCurrentPage, totalPages),
       ],
     );
@@ -981,7 +984,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                 ),
               ),
             );
-          }).take(7).toList(),
+          }).take(7),
           const SizedBox(width: 8),
           _riwayatPageBtn(
             Icons.chevron_right_rounded,
@@ -1012,7 +1015,7 @@ class _DashboardBodyState extends State<DashboardBody> {
           color:
               enabled
                   ? const Color(0xFF2E7D32)
-                  : const Color(0xFF5A7A5A).withOpacity(0.3),
+                  : const Color(0xFF5A7A5A).withValues(alpha: 0.3),
         ),
       ),
     );
@@ -1034,7 +1037,7 @@ class _DashboardBodyState extends State<DashboardBody> {
           border: Border.all(color: const Color(0xFFE0E0E0), width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -1048,7 +1051,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                 width: 46,
                 height: 46,
                 decoration: BoxDecoration(
-                  color: accentColor.withOpacity(0.12),
+                  color: accentColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child:
@@ -1223,23 +1226,7 @@ class _DashboardBodyState extends State<DashboardBody> {
     );
   }
 
-  Widget _pillBadge(String text, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          color: color,
-        ),
-      ),
-    );
-  }
+
 
   Widget _buildHistoryAvatar(LogModel item, Color accentColor) {
     if (item.imageUrl != null && File(item.imageUrl!).existsSync()) {
@@ -1260,41 +1247,7 @@ class _DashboardBodyState extends State<DashboardBody> {
     );
   }
 
-  Widget _macroCard(
-    String label,
-    double value,
-    Color bg,
-    Color color,
-    IconData icon,
-  ) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 18),
-            const SizedBox(height: 6),
-            Text(
-              '${value.toStringAsFixed(1)}g',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-                color: color,
-              ),
-            ),
-            Text(
-              label,
-              style: TextStyle(fontSize: 10, color: color.withOpacity(0.7)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+
 
   Color _categoryColor(String category) {
     switch (category.toLowerCase()) {
@@ -1318,3 +1271,4 @@ class _DashboardBodyState extends State<DashboardBody> {
 
 // Alias agar import lama tetap compile
 typedef DashboardView = DashboardBody;
+

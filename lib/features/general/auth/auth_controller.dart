@@ -188,12 +188,12 @@ class AuthController extends ChangeNotifier {
         return true;
       }
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found') {
-        _errorMessage = 'Email tidak terdaftar';
-      } else if (e.code == 'wrong-password') {
-        _errorMessage = 'Password salah';
+      if (e.code == 'user-disabled') {
+        _errorMessage = 'Akun Anda telah dinonaktifkan';
+      } else if (e.code == 'too-many-requests') {
+        _errorMessage = 'Terlalu banyak percobaan. Coba lagi nanti.';
       } else {
-        _errorMessage = 'Login gagal: ${e.message}';
+        _errorMessage = 'Login gagal: email atau password salah';
       }
     } catch (e) {
       _errorMessage = 'Terjadi kesalahan: $e';
@@ -291,14 +291,20 @@ class AuthController extends ChangeNotifier {
 
   Future<void> updateProfile(UserModel updated) async {
     try {
-      await _firestore.collection('users').doc(updated.id).update(updated.toMap());
-      await HiveService.users.put(updated.id, updated);
       if (_currentUser?.id == updated.id) {
         _currentUser = updated;
       } else if (_monitoredUser?.id == updated.id) {
         _monitoredUser = updated;
       }
+      
+      await HiveService.users.put(updated.id, updated);
+      
       notifyListeners();
+
+      _firestore.collection('users').doc(updated.id).update(updated.toMap())
+          .then((_) => debugPrint("Profile synced to Firestore"))
+          .catchError((e) => debugPrint("Error syncing profile (offline?): $e"));
+
     } catch (e) {
       debugPrint("Error updating profile: $e");
     }

@@ -237,7 +237,7 @@ class _AdminUserManagementViewState extends State<AdminUserManagementView> {
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 14),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFFE8F5E9).withOpacity(0.5),
+          color: const Color(0xFFE8F5E9).withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: const Color(0xFFC8E6C9), width: 1),
         ),
@@ -325,7 +325,7 @@ class _AdminUserManagementViewState extends State<AdminUserManagementView> {
                 ),
               ),
             );
-          }).take(7).toList(),
+          }).take(7),
           const SizedBox(width: 8),
           _pageBtn(
             Icons.chevron_right_rounded,
@@ -361,6 +361,10 @@ class _AdminUserManagementViewState extends State<AdminUserManagementView> {
           size: 18,
           color: enabled ? _primary : _textMuted.withOpacity(0.3),
         ),
+<<<<<<< HEAD
+=======
+        child: Icon(icon, size: 18, color: enabled ? _primary : _textMuted.withValues(alpha: 0.3)),
+>>>>>>> 45531b1e77931498498a9fde646074f56de93d2a
       ),
     );
   }
@@ -452,11 +456,15 @@ class _UserCard extends StatelessWidget {
             width: user.isBlocked ? 1.2 : 1,
           ),
           boxShadow: [
+<<<<<<< HEAD
             BoxShadow(
               color: Colors.black.withOpacity(0.03),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
+=======
+            BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))
+>>>>>>> 45531b1e77931498498a9fde646074f56de93d2a
           ],
         ),
         child: Row(
@@ -563,6 +571,7 @@ class _UserCard extends StatelessWidget {
 
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
+<<<<<<< HEAD
               children: [
                 Row(
                   mainAxisSize: MainAxisSize.min,
@@ -625,6 +634,26 @@ class _UserCard extends StatelessWidget {
                       onTap: onDelete,
                     ),
                   ],
+=======
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [      
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F5E9),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFC8E6C9), width: 0.8),
+                  ),
+                  child: const Text('Detail', style: TextStyle( color: _primary, fontSize: 11, fontWeight: FontWeight.w700)),
+                ),
+
+                const SizedBox(height: 12),
+
+                Icon(
+                  user.isSynced ? Icons.cloud_done_rounded : Icons.cloud_upload_rounded,
+                  size: 16,
+                  color: user.isSynced ? Colors.green : Colors.orange,
+>>>>>>> 45531b1e77931498498a9fde646074f56de93d2a
                 ),
               ],
             ),
@@ -634,6 +663,7 @@ class _UserCard extends StatelessWidget {
     );
   }
 
+<<<<<<< HEAD
   Widget _iconBtn({
     required IconData icon,
     required Color color,
@@ -652,6 +682,9 @@ class _UserCard extends StatelessWidget {
       ),
     );
   }
+=======
+
+>>>>>>> 45531b1e77931498498a9fde646074f56de93d2a
 }
 
 // ─── Bottom Sheet: Detail User ────────────────────────────────────────────────
@@ -1059,9 +1092,9 @@ class _ActionButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3), width: 0.8),
+          border: Border.all(color: color.withValues(alpha: 0.3), width: 0.8),
         ),
         child: Column(
           children: [
@@ -1137,7 +1170,11 @@ class _EditUserView extends StatefulWidget {
 
 class _EditUserViewState extends State<_EditUserView> {
   static const Color _primary = Color(0xFF4CAF50);
+<<<<<<< HEAD
   static const Color _primaryDark = Color(0xFF2E7D32);
+=======
+
+>>>>>>> 45531b1e77931498498a9fde646074f56de93d2a
   static const Color _bg = Color(0xFFF4F6F0);
   static const Color _surface = Colors.white;
   static const Color _textDark = Color(0xFF1B2A1B);
@@ -1368,11 +1405,15 @@ class _EditUserViewState extends State<_EditUserView> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
         boxShadow: [
+<<<<<<< HEAD
           BoxShadow(
             color: Colors.black.withOpacity(0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
+=======
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
+>>>>>>> 45531b1e77931498498a9fde646074f56de93d2a
         ],
       ),
       child: Column(
@@ -1394,6 +1435,7 @@ class _EditUserViewState extends State<_EditUserView> {
     );
   }
 
+<<<<<<< HEAD
   Widget _buildField(
     String label,
     TextEditingController ctrl, {
@@ -1415,6 +1457,28 @@ class _EditUserViewState extends State<_EditUserView> {
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: Color(0xFFC8E6C9), width: 0.8),
+=======
+  Widget _buildField(String label, TextEditingController ctrl, 
+    {required IconData icon, TextInputType type = TextInputType.text}) 
+      {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: TextFormField(
+            controller: ctrl,
+            keyboardType: type,
+            style: const TextStyle(color: _textDark, fontSize: 14),
+            decoration: InputDecoration(
+              labelText: label,
+              labelStyle: const TextStyle(color: _textMuted, fontSize: 13),
+              prefixIcon: Icon(icon, color: _primary, size: 18),
+              filled: true,
+              fillColor: const Color(0xFFE8F5E9).withValues(alpha: 0.3),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFC8E6C9), width: 0.8)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFC8E6C9), width: 0.8)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _primary, width: 1.5)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            ),
+>>>>>>> 45531b1e77931498498a9fde646074f56de93d2a
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -1438,6 +1502,7 @@ class _EditUserViewState extends State<_EditUserView> {
     String value,
     List<String> items,
     ValueChanged<String?> onChanged, {
+<<<<<<< HEAD
     required IconData icon,
   }) {
     return Padding(
@@ -1469,6 +1534,28 @@ class _EditUserViewState extends State<_EditUserView> {
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 12,
             vertical: 12,
+=======
+      required IconData icon,
+    }) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: DropdownButtonFormField<String>(
+          value: value,
+          onChanged: onChanged,
+          style: const TextStyle(color: _textDark, fontSize: 14),
+          dropdownColor: Colors.white,
+          isExpanded: true,
+          decoration: InputDecoration(
+            labelText: label,
+            labelStyle: const TextStyle(color: _textMuted, fontSize: 13),
+            prefixIcon: Icon(icon, color: _primary, size: 18),
+            filled: true,
+            fillColor: const Color(0xFFE8F5E9).withValues(alpha: 0.3),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFC8E6C9), width: 0.8)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFC8E6C9), width: 0.8)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _primary, width: 1.5)),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+>>>>>>> 45531b1e77931498498a9fde646074f56de93d2a
           ),
         ),
         items:

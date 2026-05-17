@@ -102,10 +102,10 @@ class _SplashViewState extends State<SplashView>
                           width: 100,
                           height: 100,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.15),
+                            color: Colors.white.withValues(alpha: 0.15),
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: Colors.white.withOpacity(0.3),
+                              color: Colors.white.withValues(alpha: 0.3),
                               width: 2,
                             ),
                           ),
@@ -130,7 +130,7 @@ class _SplashViewState extends State<SplashView>
                           'Track your Nutrition, Stay Healthy',
                           style: GoogleFonts.poppins(
                             fontSize: 14,
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withValues(alpha: 0.8),
                             fontWeight: FontWeight.w300,
                           ),
                         ),
@@ -141,7 +141,7 @@ class _SplashViewState extends State<SplashView>
                           child: CircularProgressIndicator(
                             strokeWidth: 2.5,
                             valueColor: AlwaysStoppedAnimation(
-                              Colors.white.withOpacity(0.6),
+                              Colors.white.withValues(alpha: 0.6),
                             ),
                           ),
                         ),
@@ -155,3 +155,4 @@ class _SplashViewState extends State<SplashView>
     );
   }
 }
+

@@ -377,7 +377,7 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: _borderColor, width: 2),
               boxShadow: [
-                BoxShadow(color: _primary.withOpacity(0.05), blurRadius: 10, spreadRadius: 1),
+                BoxShadow(color: _primary.withValues(alpha: 0.05), blurRadius: 10, spreadRadius: 1),
               ],
             ),
             child: ListView.separated(
@@ -457,7 +457,7 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
       child: Container(
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(icon, color: color, size: 20),
@@ -514,7 +514,7 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
       decoration: BoxDecoration(
         color: _surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3), width: 1.5),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -733,7 +733,7 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
           children: [
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
               child: Icon(icon, color: color, size: 24),
             ),
             const SizedBox(width: 16),
@@ -746,7 +746,7 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded, color: _textMuted.withOpacity(0.5)),
+            Icon(Icons.chevron_right_rounded, color: _textMuted.withValues(alpha: 0.5)),
           ],
         ),
       ),
@@ -836,3 +836,4 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
     );
   }
 }
+

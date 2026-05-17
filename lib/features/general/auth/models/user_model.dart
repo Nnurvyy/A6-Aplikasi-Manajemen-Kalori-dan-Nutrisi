@@ -22,6 +22,9 @@ class UserModel extends HiveObject {
   double? initialWeight; // kg (saat pertama kali mendaftar)
   Map<String, double>? targetHistory; // Key: "yyyy-MM", Value: target
   bool isSynced ;
+  String? profileImageUrl;
+  String? localProfileImagePath;
+  bool isProfileImageSynced;
 
   UserModel({
     required this.id,
@@ -41,6 +44,9 @@ class UserModel extends HiveObject {
     this.initialWeight,
     this.targetHistory,
     this.isSynced = true,
+    this.profileImageUrl,
+    this.localProfileImagePath,
+    this.isProfileImageSynced = true,
   });
 
   /// Target makro harian (gram) - Menggunakan logic baru dari CalorieHelper
@@ -67,7 +73,7 @@ class UserModel extends HiveObject {
       'targetWeightGainPerMonth': targetWeightGainPerMonth,
       'initialWeight': initialWeight,
       'targetHistory': targetHistory,
-      'isSynced': isSynced,
+      'profileImageUrl': profileImageUrl,
     };
   }
 
@@ -92,6 +98,7 @@ class UserModel extends HiveObject {
       initialWeight: (map['initialWeight'] as num?)?.toDouble(),
       targetHistory: map['targetHistory'] != null ? Map<String, double>.from(map['targetHistory']) : null,
       isSynced: map['isSynced'] ?? true,
+      profileImageUrl: map['profileImageUrl'],
     );
   }
 }
@@ -124,13 +131,16 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
       initialWeight: (f[15] as num?)?.toDouble(),
       targetHistory: f[16] != null ? Map<String, double>.from(f[16] as Map) : null,
       isSynced: f[17] as bool? ?? true,
+      profileImageUrl: f[18] as String?,
+      localProfileImagePath: f[19] as String?,
+      isProfileImageSynced: f[20] as bool? ?? true,
     );
   }
 
   @override
   void write(BinaryWriter writer, UserModel obj) {
     writer
-      ..writeByte(17) 
+      ..writeByte(20) 
       ..writeByte(0)..write(obj.id)
       ..writeByte(1)..write(obj.name)
       ..writeByte(2)..write(obj.email)
@@ -147,6 +157,9 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
       ..writeByte(14)..write(obj.targetWeightGainPerMonth)
       ..writeByte(15)..write(obj.initialWeight)
       ..writeByte(16)..write(obj.targetHistory)
-      ..writeByte(17)..write(obj.isSynced);
+      ..writeByte(17)..write(obj.isSynced)
+      ..writeByte(18)..write(obj.profileImageUrl)
+      ..writeByte(19)..write(obj.localProfileImagePath)
+      ..writeByte(20)..write(obj.isProfileImageSynced);
   }
 }

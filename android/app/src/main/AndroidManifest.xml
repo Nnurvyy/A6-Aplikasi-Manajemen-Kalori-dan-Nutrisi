@@ -7,6 +7,18 @@
     <uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED"/>
     <uses-permission android:name="android.permission.health.READ_OXYGEN_SATURATION"/>
     <!-- ─────────────────────────────────────────────────────────────────── -->
+    <!-- Izin notifikasi biasa (wajib Android 13+ / API 33) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
+    <!-- SCHEDULE_EXACT_ALARM: untuk Android 12 (API 31-32), butuh approval user -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+
+    <!-- USE_EXACT_ALARM: untuk Android 13+ (API 33+), TIDAK butuh approval user -->
+    <!-- Ini yang menyelesaikan error exact_alarms_not_permitted -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
+
+    <!-- Wajib agar notifikasi bisa dijadwal ulang setelah device restart -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
 
     <application
         android:label="nutritrack_app"
@@ -59,6 +71,23 @@
             android:value="https://sites.google.com/view/nutritrack-privacy-policy/halaman-muka"/>
 
         <!-- Meta Flutter embedding (bawaan, jangan diubah) -->
+        <!-- Receiver untuk reschedule notifikasi setelah device restart -->
+        <receiver
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
+
+        <!-- Receiver untuk memicu notifikasi terjadwal -->
+        <receiver
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"
+            android:exported="false"/>
+
         <meta-data
             android:name="flutterEmbedding"
             android:value="2"/>
@@ -71,6 +100,9 @@
     </application>
 
     <!-- ── Queries: WAJIB di luar <application> ──────────────────────────── -->
+            android:value="barcode" />
+    </application>
+
     <queries>
         <!-- PERBAIKAN 4: Tambah package Health Connect secara eksplisit          -->
         <!-- Android 11+ membutuhkan deklarasi ini agar app bisa "melihat"        -->

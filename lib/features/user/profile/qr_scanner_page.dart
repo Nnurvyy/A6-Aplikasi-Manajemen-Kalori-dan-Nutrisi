@@ -119,7 +119,7 @@ class _QRScannerPageState extends State<QRScannerPage> {
 
           if (_isAnalyzing)
             Container(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withValues(alpha: 0.5),
               child: const Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -146,7 +146,7 @@ class _QRScannerPageState extends State<QRScannerPage> {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: const Color(0xFF2E7D32).withOpacity(0.1),
+                color: const Color(0xFF2E7D32).withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.qr_code_scanner_rounded, size: 80, color: Color(0xFF2E7D32)),
@@ -199,9 +199,9 @@ class _QRScannerPageState extends State<QRScannerPage> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withOpacity(0.2)),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
           boxShadow: [
-            BoxShadow(color: color.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+            BoxShadow(color: color.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
           ],
         ),
         child: Column(
@@ -218,3 +218,4 @@ class _QRScannerPageState extends State<QRScannerPage> {
     );
   }
 }
+

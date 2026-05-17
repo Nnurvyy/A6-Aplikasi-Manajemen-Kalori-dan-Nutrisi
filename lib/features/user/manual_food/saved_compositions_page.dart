@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../general/food/food_controller.dart';
 import '../../general/auth/auth_controller.dart';
 import '../../general/food/models/food_model.dart';
-import '../../general/food/models/log_model.dart';
 import 'dart:io';
 
 class SavedCompositionsPage extends StatelessWidget {
@@ -58,7 +57,7 @@ class SavedCompositionsPage extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15, offset: const Offset(0, 5))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 15, offset: const Offset(0, 5))],
       ),
       child: Material(
         color: Colors.transparent,
@@ -78,7 +77,7 @@ class SavedCompositionsPage extends StatelessWidget {
                 Container(
                   width: 56,
                   height: 56,
-                  decoration: BoxDecoration(color: const Color(0xFF2E7D32).withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
+                  decoration: BoxDecoration(color: const Color(0xFF2E7D32).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(16)),
                   child: item.imageUrl != null
                       ? (item.imageUrl!.startsWith('http')
                           ? ClipRRect(borderRadius: BorderRadius.circular(16), child: Image.network(item.imageUrl!, fit: BoxFit.cover))
@@ -136,3 +135,4 @@ class SavedCompositionsPage extends StatelessWidget {
     );
   }
 }
+
