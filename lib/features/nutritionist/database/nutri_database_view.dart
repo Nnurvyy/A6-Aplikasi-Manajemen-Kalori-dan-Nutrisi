@@ -4,6 +4,7 @@ import '../../general/food/food_controller.dart';
 import '../../general/food/models/food_model.dart';
 import '../../general/food/food_detail_view.dart';
 import '../../admin/food/admin_food_form_view.dart';
+import 'dart:io';
 
 class NutritionistFoodDatabaseView extends StatefulWidget {
   const NutritionistFoodDatabaseView({super.key});
@@ -277,7 +278,52 @@ class _NutritionistFoodDatabaseViewState extends State<NutritionistFoodDatabaseV
         ),
         child: Row(
           children: [
-            _buildAvatar(food.name, accentColor),
+
+            Stack(
+              clipBehavior: Clip.none, // Biar ikonnya gak kepotong kotak
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: food.imageUrl != null
+                      ? (food.imageUrl!.startsWith('http')
+                          ? Image.network(
+                              food.imageUrl!,
+                              width: 50, height: 50,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => _buildAvatar(food.name, accentColor),
+                            )
+                          : Image.file(
+                              File(food.imageUrl!),
+                              width: 50, height: 50,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => _buildAvatar(food.name, accentColor),
+                            ))
+                      : _buildAvatar(food.name, accentColor),
+
+                ),
+
+                Positioned(
+                  top: -4,
+                  left: -4,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(color: Colors.black12, blurRadius: 2)
+                      ],
+                    ),
+                    child: Icon(
+                      food.isSynced ? Icons.cloud_done_rounded : Icons.cloud_upload_rounded,
+                      size: 14,
+                      color: food.isSynced ? Colors.green : Colors.orange,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
             const SizedBox(width: 14),
             Expanded(
               child: Column(
