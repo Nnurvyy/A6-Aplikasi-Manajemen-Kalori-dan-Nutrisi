@@ -295,9 +295,27 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
   }
 
   Widget _buildPagination(int current, int total) {
+    const int maxVisible = 3; 
+
+    int startPage = current - (maxVisible ~/ 2);
+    if (startPage < 0) startPage = 0;
+
+    int endPage = startPage + maxVisible - 1;
+    if (endPage >= total) {
+      endPage = total - 1;
+      startPage = endPage - maxVisible + 1;
+      if (startPage < 0) startPage = 0;
+    }
+
+    List<int> visiblePages = [];
+    for (int i = startPage; i <= endPage; i++) {
+      visiblePages.add(i);
+    }
+    
     return Container(
       color: _surface,
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+      
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16), 
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -305,7 +323,8 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
           const SizedBox(width: 4),
           _pageBtn(Icons.chevron_left_rounded, current > 0, () => setState(() => _currentPage--)),
           const SizedBox(width: 8),
-          ...List.generate(total, (i) {
+          
+          ...visiblePages.map((i) {
             final isActive = i == current;
             return GestureDetector(
               onTap: () => setState(() => _currentPage = i),
@@ -331,7 +350,8 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
                 ),
               ),
             );
-          }).take(7), // show max 7 page buttons
+          }),
+          
           const SizedBox(width: 8),
           _pageBtn(Icons.chevron_right_rounded, current < total - 1, () => setState(() => _currentPage++)),
           const SizedBox(width: 4),
