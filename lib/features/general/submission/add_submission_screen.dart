@@ -112,15 +112,6 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_imageFile == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Harap pilih foto makanan terlebih dahulu'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
-      return;
-    }
 
     final user = context.read<AuthController>().currentUser;
     if (user == null) return;
@@ -153,12 +144,13 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
       if (!mounted) return;
       final ctrl = context.read<SubmissionController>();
 
-      // Jalankan tanpa await — upload jalan di background
+      // Jalankan tanpa await — upload jalan di background.
+      // localImagePath boleh kosong (foto opsional).
       ctrl.addSubmission(
         userId: user.id,
         userName: user.name,
         foodName: _nameCtrl.text.trim(),
-        localImagePath: _imageFile!.path,
+        localImagePath: _imageFile?.path ?? '',
       );
 
       // Langsung update progress ke "selesai" dan keluar
@@ -363,7 +355,10 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
       child: Container(
         height: 200,
         decoration: BoxDecoration(
-          color: _imageFile != null ? _primary.withValues(alpha: 0.08) : Colors.white,
+          color:
+              _imageFile != null
+                  ? _primary.withValues(alpha: 0.08)
+                  : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: _imageFile != null ? _primary : _border,
@@ -463,7 +458,7 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
                     ),
                     const SizedBox(height: 10),
                     const Text(
-                      'Ketuk untuk tambah foto',
+                      'Ketuk untuk tambah foto (Opsional)',
                       style: TextStyle(
                         color: _textDark,
                         fontWeight: FontWeight.w600,
@@ -574,4 +569,3 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
     );
   }
 }
-
