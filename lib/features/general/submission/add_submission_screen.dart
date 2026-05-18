@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import './widgets/submission_toast.dart';
 import '../auth/auth_controller.dart';
 import './submission_controller.dart';
 
@@ -26,16 +27,14 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
 
   File? _imageFile;
   bool _isSaving = false;
-  double _uploadProgress = 0; // 0.0 – 1.0
-  String _uploadStatus = ''; // teks keterangan progress
+  double _uploadProgress = 0;
+  String _uploadStatus = '';
 
   @override
   void dispose() {
     _nameCtrl.dispose();
     super.dispose();
   }
-
-  // ── Pick image dengan kualitas & ukuran dibatasi langsung dari image_picker ──
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
@@ -59,9 +58,9 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
                     Navigator.pop(context);
                     final picked = await picker.pickImage(
                       source: ImageSource.camera,
-                      imageQuality: 60, // turun dari 80 → 60
-                      maxWidth: 1024, // resize lebar max 1024px
-                      maxHeight: 1024, // resize tinggi max 1024px
+                      imageQuality: 60,
+                      maxWidth: 1024,
+                      maxHeight: 1024,
                     );
                     if (picked != null) {
                       setState(() => _imageFile = File(picked.path));
@@ -78,7 +77,7 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
                     Navigator.pop(context);
                     final picked = await picker.pickImage(
                       source: ImageSource.gallery,
-                      imageQuality: 60, // turun dari 80 → 60
+                      imageQuality: 60,
                       maxWidth: 1024,
                       maxHeight: 1024,
                     );
@@ -108,8 +107,6 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
     );
   }
 
-  // ── Submit: optimistic UI — langsung kembali ke list, upload jalan di background ──
-
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -118,42 +115,28 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
 
     setState(() {
       _isSaving = true;
-      _uploadProgress = 0;
+      _uploadProgress = 0.1;
       _uploadStatus = 'Menyiapkan pengajuan...';
     });
 
     try {
-      // Tahap 1 — persiapan (cepat)
-      setState(() {
-        _uploadProgress = 0.1;
-        _uploadStatus = 'Memproses foto...';
-      });
-
-      await Future.delayed(const Duration(milliseconds: 300));
-
-      // Tahap 2 — panggil controller (upload berjalan di background)
       setState(() {
         _uploadProgress = 0.3;
         _uploadStatus = 'Mengirim ke server...';
       });
 
-      // addSubmission sekarang pakai optimistic UI:
-      // item langsung muncul di list dengan isSynced=false,
-      // lalu upload Storage + Firestore jalan di background.
-      // Kita tidak perlu await sampai selesai — cukup kick off lalu pop.
       if (!mounted) return;
       final ctrl = context.read<SubmissionController>();
 
-      // Jalankan tanpa await — upload jalan di background.
-      // localImagePath boleh kosong (foto opsional).
+      // FIX 1: localImagePath boleh kosong string kalau tidak ada foto
       ctrl.addSubmission(
         userId: user.id,
         userName: user.name,
         foodName: _nameCtrl.text.trim(),
-        localImagePath: _imageFile?.path ?? '',
+        localImagePath:
+            _imageFile?.path ?? '', // aman: null-safe tanpa force-unwrap
       );
 
-      // Langsung update progress ke "selesai" dan keluar
       setState(() {
         _uploadProgress = 1.0;
         _uploadStatus = 'Pengajuan dikirim!';
@@ -163,22 +146,13 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
 
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.cloud_upload_rounded, color: Colors.white, size: 18),
-                SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Pengajuan dikirim! Foto sedang diupload di background.',
-                  ),
-                ),
-              ],
-            ),
-            backgroundColor: Color(0xFF2E7D32),
-            duration: Duration(seconds: 4),
-          ),
+        SubmissionToast.show(
+          context,
+          message: 'Pengajuan dikirim! Foto sedang diupload di background.',
+          icon: Icons.cloud_upload_rounded,
+          iconColor: const Color(0xFF69F0AE),
+          bgColor: const Color(0xFF1B5E20),
+          duration: const Duration(seconds: 4),
         );
       }
     } catch (e) {
@@ -257,8 +231,7 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
                       SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Data nutrisi akan diisi oleh ahli gizi setelah '
-                          'pengajuanmu disetujui admin.',
+                          'Foto bersifat opsional. Data nutrisi akan diisi oleh ahli gizi setelah pengajuanmu disetujui admin.',
                           style: TextStyle(
                             color: Color(0xFF2E7D32),
                             fontSize: 12,
@@ -275,8 +248,6 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
               ],
             ),
           ),
-
-          // ── Overlay progress saat saving ──
           if (_isSaving)
             Container(
               color: Colors.black.withValues(alpha: 0.45),
@@ -291,7 +262,6 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Ikon animasi
                       Container(
                         width: 64,
                         height: 64,
@@ -316,7 +286,6 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 14),
-                      // Progress bar
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
                         child: LinearProgressIndicator(
@@ -378,7 +347,6 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
                         fit: BoxFit.cover,
                       ),
                     ),
-                    // Info ukuran file
                     Positioned(
                       left: 10,
                       bottom: 10,

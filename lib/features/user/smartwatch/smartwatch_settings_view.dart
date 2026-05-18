@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'smartwatch_controller.dart';
@@ -52,26 +53,202 @@ class SmartwatchSettingsView extends StatelessWidget {
             ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
+      // Stack: konten di bawah, blur overlay di atas
+      body: Stack(
         children: [
-          _buildStatusCard(context, ctrl),
-          const SizedBox(height: 20),
-          if (ctrl.isConnected) ...[
-            _buildDataGrid(ctrl),
-            const SizedBox(height: 20),
-            _buildSyncButton(context, ctrl),
-            const SizedBox(height: 20),
-          ],
-          _buildInfoCard(),
-          const SizedBox(height: 20),
-          _buildSupportedDevices(),
+          // ── Konten utama (selalu dirender, di-blur kalau coming soon) ──
+          ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              _buildStatusCard(context, ctrl),
+              const SizedBox(height: 20),
+              if (ctrl.isConnected) ...[
+                _buildDataGrid(ctrl),
+                const SizedBox(height: 20),
+                _buildSyncButton(context, ctrl),
+                const SizedBox(height: 20),
+              ],
+              _buildInfoCard(),
+              const SizedBox(height: 20),
+              _buildSupportedDevices(),
+              const SizedBox(height: 80), // ruang ekstra bawah
+            ],
+          ),
+
+          // ── Blur overlay "Coming Soon" ──────────────────────────────────
+          Positioned.fill(
+            child: ClipRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                child: Container(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Ikon jam dengan efek glow
+                        Container(
+                          width: 96,
+                          height: 96,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.3),
+                              width: 2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: _green.withValues(alpha: 0.4),
+                                blurRadius: 32,
+                                spreadRadius: 4,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.watch_rounded,
+                            color: Colors.white,
+                            size: 48,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Badge "Segera Hadir"
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _green.withValues(alpha: 0.85),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Text(
+                            'SEGERA HADIR',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 2,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        const Text(
+                          'Fitur Smartwatch',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 48),
+                          child: Text(
+                            'Fitur ini sedang dalam pengembangan.\n'
+                            'Kami sedang mengurus izin Health Connect\nagar data smartwatch kamu bisa terbaca.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.8),
+                              fontSize: 13,
+                              height: 1.6,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+
+                        // Chip fitur yang akan datang
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          alignment: WrapAlignment.center,
+                          children: [
+                            _comingSoonChip(
+                              Icons.directions_walk_rounded,
+                              'Langkah Kaki',
+                            ),
+                            _comingSoonChip(
+                              Icons.favorite_rounded,
+                              'Detak Jantung',
+                            ),
+                            _comingSoonChip(
+                              Icons.local_fire_department_rounded,
+                              'Kalori',
+                            ),
+                            _comingSoonChip(Icons.air_rounded, 'SpO2'),
+                          ],
+                        ),
+                        const SizedBox(height: 36),
+
+                        // Tombol kembali
+                        OutlinedButton.icon(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(
+                            Icons.arrow_back_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                          label: const Text(
+                            'Kembali',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(
+                              color: Colors.white.withValues(alpha: 0.6),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 28,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  // ── Status Card ───────────────────────────────────────────────────────────
+  Widget _comingSoonChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 14),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Status Card ──────────────────────────────────────────────────────────
   Widget _buildStatusCard(BuildContext context, SmartwatchController ctrl) {
     final isConnected = ctrl.isConnected;
     final isConnecting = ctrl.status == SmartwatchStatus.connecting;
@@ -142,7 +319,6 @@ class SmartwatchSettingsView extends StatelessWidget {
                   ],
                 ),
               ),
-              // Status indicator
               Container(
                 width: 12,
                 height: 12,
@@ -162,70 +338,21 @@ class SmartwatchSettingsView extends StatelessWidget {
               ),
             ],
           ),
-          if (ctrl.lastSynced != null) ...[
-            const SizedBox(height: 12),
-            Text(
-              'Terakhir sync: ${_formatTime(ctrl.lastSynced!)}',
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.7),
-                fontSize: 11,
-              ),
-            ),
-          ],
-          if (ctrl.errorMessage != null) ...[
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.warning_rounded,
-                    color: Colors.orangeAccent,
-                    size: 14,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      ctrl.errorMessage!,
-                      style: const TextStyle(color: Colors.white, fontSize: 12),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
           if (!isConnected) ...[
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed:
-                    ctrl.isLoading
-                        ? null
-                        : () => _showPermissionDialog(context, ctrl),
-                icon:
-                    ctrl.isLoading
-                        ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            color: _green,
-                            strokeWidth: 2,
-                          ),
-                        )
-                        : const Icon(
-                          Icons.link_rounded,
-                          size: 18,
-                          color: _green,
-                        ),
-                label: Text(
-                  ctrl.isLoading ? 'Menghubungkan...' : 'Hubungkan Sekarang',
-                  style: const TextStyle(
-                    color: _green,
+                onPressed: null, // dinonaktifkan — coming soon
+                icon: const Icon(
+                  Icons.link_rounded,
+                  size: 18,
+                  color: Colors.grey,
+                ),
+                label: const Text(
+                  'Segera Hadir',
+                  style: TextStyle(
+                    color: Colors.grey,
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
                   ),
@@ -246,10 +373,8 @@ class SmartwatchSettingsView extends StatelessWidget {
     );
   }
 
-  // ── Grid Data Kesehatan ───────────────────────────────────────────────────
   Widget _buildDataGrid(SmartwatchController ctrl) {
     final data = ctrl.latestData;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -262,10 +387,8 @@ class SmartwatchSettingsView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        // Langkah kaki — full width dengan progress bar
         _buildStepsCard(data),
         const SizedBox(height: 12),
-        // 3 card lainnya dalam grid
         Row(
           children: [
             Expanded(
@@ -318,7 +441,6 @@ class SmartwatchSettingsView extends StatelessWidget {
   Widget _buildStepsCard(SmartwatchDataModel? data) {
     final steps = data?.steps ?? 0;
     final progress = data?.stepsProgress ?? 0.0;
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -571,7 +693,6 @@ class SmartwatchSettingsView extends StatelessWidget {
     );
   }
 
-  // ── Tombol Sync ───────────────────────────────────────────────────────────
   Widget _buildSyncButton(BuildContext context, SmartwatchController ctrl) {
     return GestureDetector(
       onTap: ctrl.isLoading ? null : () => ctrl.syncData(),
@@ -614,7 +735,6 @@ class SmartwatchSettingsView extends StatelessWidget {
     );
   }
 
-  // ── Info Card ─────────────────────────────────────────────────────────────
   Widget _buildInfoCard() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -662,7 +782,6 @@ class SmartwatchSettingsView extends StatelessWidget {
     );
   }
 
-  // ── Perangkat yang Didukung ───────────────────────────────────────────────
   Widget _buildSupportedDevices() {
     final devices = [
       ('Samsung Galaxy Watch', Icons.watch_rounded, const Color(0xFF1E88E5)),
@@ -768,188 +887,6 @@ class SmartwatchSettingsView extends StatelessWidget {
     );
   }
 
-  // ── Popup Izin ────────────────────────────────────────────────────────────
-  void _showPermissionDialog(BuildContext context, SmartwatchController ctrl) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder:
-          (_) => Dialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE8F5E9),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.watch_rounded,
-                      color: _green,
-                      size: 36,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Hubungkan Smartwatch?',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: _dark,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'NutriTrack akan meminta izin untuk membaca data kesehatan dari Health Connect:',
-                    style: TextStyle(fontSize: 13, color: _muted, height: 1.5),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  // Daftar izin yang diminta
-                  ...[
-                    (
-                      Icons.directions_walk_rounded,
-                      'Langkah Kaki',
-                      'Jumlah langkah harian',
-                    ),
-                    (Icons.favorite_rounded, 'Detak Jantung', 'BPM saat ini'),
-                    (
-                      Icons.local_fire_department_rounded,
-                      'Kalori Terbakar',
-                      'Aktivitas fisik harian',
-                    ),
-                    (Icons.air_rounded, 'Saturasi Oksigen', 'SpO2 terbaru'),
-                  ].map(
-                    (item) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFE8F5E9),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(item.$1, color: _green, size: 16),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  item.$2,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                    color: _dark,
-                                  ),
-                                ),
-                                Text(
-                                  item.$3,
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    color: _muted,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const Icon(
-                            Icons.check_circle_rounded,
-                            color: _green,
-                            size: 18,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Divider(),
-                  const SizedBox(height: 8),
-                  const Text(
-                    '🔒 Data hanya dibaca secara lokal dan tidak dibagikan ke pihak lain.',
-                    style: TextStyle(fontSize: 11, color: _muted, height: 1.4),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Color(0xFFD5EDE0)),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                          child: const Text(
-                            'Nanti',
-                            style: TextStyle(
-                              color: _muted,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        flex: 2,
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            Navigator.pop(context);
-                            final ok = await ctrl.requestPermissionAndConnect();
-                            if (!ok && context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    ctrl.errorMessage ?? 'Gagal terhubung',
-                                  ),
-                                  backgroundColor: Colors.red,
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                              );
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _green,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            elevation: 0,
-                          ),
-                          child: const Text(
-                            'Izinkan & Hubungkan',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-    );
-  }
-
-  // ── Dialog Konfirmasi Disconnect ──────────────────────────────────────────
   void _confirmDisconnect(BuildContext context, SmartwatchController ctrl) {
     showDialog(
       context: context,
@@ -963,7 +900,7 @@ class SmartwatchSettingsView extends StatelessWidget {
               style: TextStyle(fontWeight: FontWeight.w800),
             ),
             content: const Text(
-              'Data smartwatch tidak akan lagi ditampilkan di NutriTrack. Kamu bisa hubungkan kembali kapan saja.',
+              'Data smartwatch tidak akan lagi ditampilkan di NutriTrack.',
             ),
             actions: [
               TextButton(
@@ -994,7 +931,6 @@ class SmartwatchSettingsView extends StatelessWidget {
     );
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
   String _formatTime(DateTime dt) {
     final h = dt.hour.toString().padLeft(2, '0');
     final m = dt.minute.toString().padLeft(2, '0');
