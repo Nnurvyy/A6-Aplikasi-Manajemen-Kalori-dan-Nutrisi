@@ -7,6 +7,7 @@ import './add_submission_screen.dart';
 import './submission_detail_screen.dart';
 import './widgets/submission_card.dart';
 import './widgets/submission_info_dialog.dart';
+import './widgets/submission_toast.dart';
 
 class SubmissionScreen extends StatelessWidget {
   const SubmissionScreen({super.key});
@@ -23,51 +24,6 @@ class SubmissionScreen extends StatelessWidget {
     );
   }
 
-  /// Konfirmasi lalu hapus submission pending
-  Future<void> _confirmDelete(
-    BuildContext context,
-    SubmissionController ctrl,
-    SubmissionModel item,
-  ) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder:
-          (_) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: const Text('Hapus Pengajuan?'),
-            content: Text(
-              'Pengajuan "${item.foodName}" akan dihapus permanen dan tidak dapat dikembalikan.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Batal'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
-                child: const Text('Hapus'),
-              ),
-            ],
-          ),
-    );
-
-    if (confirm == true && context.mounted) {
-      await ctrl.deleteSubmission(item);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Pengajuan berhasil dihapus.'),
-            backgroundColor: Colors.redAccent,
-            duration: Duration(seconds: 3),
-          ),
-        );
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthController>().currentUser;
@@ -77,15 +33,16 @@ class SubmissionScreen extends StatelessWidget {
 
     if (ctrl.error != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(context)
-          ..clearSnackBars()
-          ..showSnackBar(
-            SnackBar(
-              content: Text(ctrl.error!),
-              backgroundColor: Colors.redAccent,
-              duration: const Duration(seconds: 4),
-            ),
+        if (context.mounted) {
+          SubmissionToast.show(
+            context,
+            message: ctrl.error!,
+            icon: Icons.warning_rounded,
+            iconColor: Colors.orangeAccent,
+            bgColor: Colors.red.shade800,
+            duration: const Duration(seconds: 4),
           );
+        }
       });
     }
 
@@ -119,10 +76,7 @@ class SubmissionScreen extends StatelessWidget {
           ),
         ],
       ),
-      body:
-          items.isEmpty
-              ? _buildEmpty(context)
-              : _buildList(context, ctrl, items),
+      body: items.isEmpty ? _buildEmpty(context) : _buildList(context, items),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _goToAdd(context),
         backgroundColor: _green,
@@ -131,116 +85,23 @@ class SubmissionScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildList(
-    BuildContext context,
-    SubmissionController ctrl,
-    List<SubmissionModel> items,
-  ) {
+  Widget _buildList(BuildContext context, List<SubmissionModel> items) {
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: items.length,
       separatorBuilder: (_, __) => const SizedBox(height: 10),
-      itemBuilder: (_, i) {
-        final item = items[i];
-        final canDelete = item.status == SubmissionStatus.pending;
-
-        // Swipe-to-delete hanya untuk item pending
-        if (canDelete) {
-          return Dismissible(
-            key: Key(item.id),
-            direction: DismissDirection.endToStart,
-            confirmDismiss: (_) async {
-              bool? result;
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder:
-                    (_) => AlertDialog(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      title: const Text('Hapus Pengajuan?'),
-                      content: Text(
-                        'Pengajuan "${item.foodName}" akan dihapus permanen.',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, false),
-                          child: const Text('Batal'),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, true),
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.redAccent,
-                          ),
-                          child: const Text('Hapus'),
-                        ),
-                      ],
-                    ),
-              );
-              result = confirm ?? false;
-              if (result && context.mounted) {
-                await ctrl.deleteSubmission(item);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Pengajuan berhasil dihapus.'),
-                      backgroundColor: Colors.redAccent,
-                      duration: Duration(seconds: 3),
-                    ),
-                  );
-                }
-              }
-              return result;
-            },
-            background: Container(
-              margin: const EdgeInsets.symmetric(vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.redAccent,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              alignment: Alignment.centerRight,
-              padding: const EdgeInsets.only(right: 20),
-              child: const Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.delete_rounded, color: Colors.white, size: 26),
-                  SizedBox(height: 4),
-                  Text(
-                    'Hapus',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
+      itemBuilder:
+          (_, i) => SubmissionCard(
+            item: items[i],
+            onTap:
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (_) => SubmissionDetailScreen(submission: items[i]),
                   ),
-                ],
-              ),
-            ),
-            child: SubmissionCard(
-              item: item,
-              onTap:
-                  () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => SubmissionDetailScreen(submission: item),
-                    ),
-                  ),
-            ),
-          );
-        }
-
-        // Item non-pending: tampil biasa tanpa swipe
-        return SubmissionCard(
-          item: item,
-          onTap:
-              () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => SubmissionDetailScreen(submission: item),
                 ),
-              ),
-        );
-      },
+          ),
     );
   }
 

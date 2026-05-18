@@ -154,6 +154,7 @@ class SubmissionCard extends StatelessWidget {
                   : Border.all(color: Colors.orange.shade300, width: 1.5),
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Gambar + badge sync
             ClipRRect(
@@ -215,9 +216,13 @@ class SubmissionCard extends StatelessWidget {
                 ),
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.only(right: 12),
-              child: Icon(Icons.chevron_right_rounded, color: _textMuted),
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Icon(
+                Icons.chevron_right_rounded,
+                color: _textMuted.withValues(alpha: 0.6),
+                size: 22,
+              ),
             ),
           ],
         ),
@@ -225,4 +230,3 @@ class SubmissionCard extends StatelessWidget {
     );
   }
 }
-
