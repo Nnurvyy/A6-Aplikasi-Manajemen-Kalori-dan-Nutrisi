@@ -258,6 +258,35 @@ class SubmissionController extends ChangeNotifier {
     }
   }
 
+  // ── Admin: edit nama makanan & foto pengajuan ─────────────────────────────
+
+  Future<void> editSubmission({
+    required String id,
+    required String foodName,
+    String? newLocalImagePath, // null = tidak ganti foto
+  }) async {
+    try {
+      final updates = <String, dynamic>{'foodName': foodName};
+
+      if (newLocalImagePath != null && newLocalImagePath.isNotEmpty) {
+        // Upload foto baru ke Cloudinary, lalu simpan URL-nya
+        final imageUrl = await SubmissionFirebaseService.uploadImage(
+          newLocalImagePath,
+          id,
+          folder: 'submissions',
+        );
+        if (imageUrl.isNotEmpty) {
+          updates['imagePath'] = imageUrl;
+        }
+      }
+
+      await SubmissionFirebaseService.update(id, updates);
+    } catch (e) {
+      _error = 'Gagal mengedit pengajuan: $e';
+      notifyListeners();
+    }
+  }
+
   // ── Admin: terima / tolak ─────────────────────────────────────────────────
 
   Future<void> reviewSubmission({

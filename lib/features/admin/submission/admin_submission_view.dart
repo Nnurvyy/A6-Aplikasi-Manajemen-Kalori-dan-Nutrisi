@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../general/submission/submission_model.dart';
 import '../../general/submission/widgets/submission_image_widget.dart';
@@ -238,6 +240,370 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
         ),
       ],
     );
+  }
+
+  // ── Edit Sheet — ubah nama & foto pengajuan (admin) ─────────────────────
+  void _showEditSheet(BuildContext ctx, SubmissionModel item) {
+    final nameCtrl = TextEditingController(text: item.foodName);
+    File? newImageFile;
+    bool isSaving = false;
+
+    showModalBottomSheet(
+      context: ctx,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) {
+        return StatefulBuilder(
+          builder: (_, setSheetState) {
+            Future<void> pickImage() async {
+              final picker = ImagePicker();
+              showModalBottomSheet(
+                context: sheetCtx,
+                backgroundColor: Colors.white,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                builder:
+                    (_) => SafeArea(
+                      child: Wrap(
+                        children: [
+                          ListTile(
+                            leading: const Icon(
+                              Icons.camera_alt_rounded,
+                              color: _green,
+                            ),
+                            title: const Text('Ambil Foto'),
+                            onTap: () async {
+                              Navigator.pop(sheetCtx);
+                              final picked = await picker.pickImage(
+                                source: ImageSource.camera,
+                                imageQuality: 60,
+                                maxWidth: 1024,
+                                maxHeight: 1024,
+                              );
+                              if (picked != null) {
+                                setSheetState(
+                                  () => newImageFile = File(picked.path),
+                                );
+                              }
+                            },
+                          ),
+                          ListTile(
+                            leading: const Icon(
+                              Icons.photo_library_rounded,
+                              color: _green,
+                            ),
+                            title: const Text('Pilih dari Galeri'),
+                            onTap: () async {
+                              Navigator.pop(sheetCtx);
+                              final picked = await picker.pickImage(
+                                source: ImageSource.gallery,
+                                imageQuality: 60,
+                                maxWidth: 1024,
+                                maxHeight: 1024,
+                              );
+                              if (picked != null) {
+                                setSheetState(
+                                  () => newImageFile = File(picked.path),
+                                );
+                              }
+                            },
+                          ),
+                          if (newImageFile != null)
+                            ListTile(
+                              leading: const Icon(
+                                Icons.delete_rounded,
+                                color: Colors.redAccent,
+                              ),
+                              title: const Text(
+                                'Hapus Foto Baru',
+                                style: TextStyle(color: Colors.redAccent),
+                              ),
+                              onTap: () {
+                                Navigator.pop(sheetCtx);
+                                setSheetState(() => newImageFile = null);
+                              },
+                            ),
+                        ],
+                      ),
+                    ),
+              );
+            }
+
+            Future<void> save() async {
+              final name = nameCtrl.text.trim();
+              if (name.isEmpty) return;
+              setSheetState(() => isSaving = true);
+              await ctx.read<SubmissionController>().editSubmission(
+                id: item.id,
+                foodName: name,
+                newLocalImagePath: newImageFile?.path,
+              );
+              if (sheetCtx.mounted) Navigator.pop(sheetCtx);
+            }
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(sheetCtx).viewInsets.bottom,
+              ),
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                ),
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Handle
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    // Header
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: _green.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.edit_rounded,
+                            color: _green,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            'Edit Pengajuan',
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                              color: _dark,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Preview foto
+                    GestureDetector(
+                      onTap: isSaving ? null : pickImage,
+                      child: Container(
+                        height: 160,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF4FAF6),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: _green.withValues(alpha: 0.3),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(13),
+                          child: Stack(
+                            children: [
+                              // Tampilkan foto baru (lokal) atau foto lama (bisa URL)
+                              if (newImageFile != null)
+                                Image.file(
+                                  newImageFile!,
+                                  width: double.infinity,
+                                  height: 160,
+                                  fit: BoxFit.cover,
+                                )
+                              else if (item.imagePath.isNotEmpty)
+                                SubmissionImage(
+                                  imagePath: item.imagePath,
+                                  width: double.infinity,
+                                  height: 160,
+                                  fit: BoxFit.cover,
+                                )
+                              else
+                                const Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.add_a_photo_rounded,
+                                        color: _green,
+                                        size: 32,
+                                      ),
+                                      SizedBox(height: 8),
+                                      Text(
+                                        'Ketuk untuk tambah foto',
+                                        style: TextStyle(
+                                          color: _muted,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              // Badge ganti
+                              Positioned(
+                                right: 10,
+                                bottom: 10,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black54,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.edit,
+                                        color: Colors.white,
+                                        size: 14,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        newImageFile != null
+                                            ? 'Ganti lagi'
+                                            : 'Ganti Foto',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              if (newImageFile != null)
+                                Positioned(
+                                  left: 10,
+                                  top: 10,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: _green,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Text(
+                                      'Foto Baru',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Field nama makanan
+                    const Text(
+                      'Nama Makanan',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: _dark,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF4FAF6),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: _green.withValues(alpha: 0.3),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: TextField(
+                        controller: nameCtrl,
+                        enabled: !isSaving,
+                        style: const TextStyle(fontSize: 14, color: _dark),
+                        decoration: const InputDecoration(
+                          hintText: 'Nama makanan...',
+                          prefixIcon: Icon(
+                            Icons.fastfood_rounded,
+                            color: _muted,
+                            size: 20,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Tombol simpan
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: isSaving ? null : save,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _green,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          elevation: 0,
+                        ),
+                        child:
+                            isSaving
+                                ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2.5,
+                                  ),
+                                )
+                                : const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.save_rounded, size: 18),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Simpan Perubahan',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    ).whenComplete(() => nameCtrl.dispose());
   }
 
   // ── Review bottom sheet ──────────────────────────────────────────────────
@@ -983,8 +1349,9 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
 
   Widget _tabLabel(String label, int count, Color color) => Row(
     mainAxisAlignment: MainAxisAlignment.center,
+    mainAxisSize: MainAxisSize.min,
     children: [
-      Text(label),
+      Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
       const SizedBox(width: 6),
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
@@ -1084,6 +1451,10 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
                                 _showImageViewer(ctx, pageItems[i].imagePath)
                             : null,
                     onTapSubmitter: () => _showSubmitterInfo(ctx, pageItems[i]),
+                    onEdit:
+                        showActions
+                            ? () => _showEditSheet(ctx, pageItems[i])
+                            : null,
                     onApprove:
                         showActions
                             ? () => _showReviewSheet(
@@ -1252,6 +1623,7 @@ class _SubmissionCard extends StatelessWidget {
   final VoidCallback? onTapSubmitter;
   final VoidCallback? onApprove;
   final VoidCallback? onReject;
+  final VoidCallback? onEdit; // ← tambahan: tombol edit untuk pending
 
   const _SubmissionCard({
     required this.item,
@@ -1265,6 +1637,7 @@ class _SubmissionCard extends StatelessWidget {
     this.onTapSubmitter,
     this.onApprove,
     this.onReject,
+    this.onEdit,
   });
 
   static const _green = Color(0xFF2E7D32);
@@ -1549,7 +1922,9 @@ class _SubmissionCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Colors.red.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.red.withValues(alpha: 0.2)),
+                        border: Border.all(
+                          color: Colors.red.withValues(alpha: 0.2),
+                        ),
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1646,60 +2021,98 @@ class _SubmissionCard extends StatelessWidget {
             const Divider(height: 1, color: Color(0xFFF0F0F0)),
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-              child: Row(
+              child: Column(
                 children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: onReject,
-                      icon: const Icon(
-                        Icons.close_rounded,
-                        size: 16,
-                        color: Color(0xFFE53935),
-                      ),
-                      label: const Text(
-                        'Tolak',
-                        style: TextStyle(
-                          color: Color(0xFFE53935),
-                          fontWeight: FontWeight.w700,
+                  // Baris atas: Tombol Edit
+                  if (onEdit != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: onEdit,
+                          icon: const Icon(
+                            Icons.edit_rounded,
+                            size: 16,
+                            color: Color(0xFF1E88E5),
+                          ),
+                          label: const Text(
+                            'Edit Foto / Nama Makanan',
+                            style: TextStyle(
+                              color: Color(0xFF1E88E5),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(
+                              color: Color(0xFF1E88E5),
+                              width: 1.5,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                          ),
                         ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(
-                          color: Color(0xFFE53935),
-                          width: 1.5,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: onApprove,
-                      icon: const Icon(
-                        Icons.check_rounded,
-                        size: 16,
-                        color: Colors.white,
-                      ),
-                      label: const Text(
-                        'Terima',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
+                  // Baris bawah: Tolak & Terima
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: onReject,
+                          icon: const Icon(
+                            Icons.close_rounded,
+                            size: 16,
+                            color: Color(0xFFE53935),
+                          ),
+                          label: const Text(
+                            'Tolak',
+                            style: TextStyle(
+                              color: Color(0xFFE53935),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(
+                              color: Color(0xFFE53935),
+                              width: 1.5,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
                         ),
                       ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _green,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: onApprove,
+                          icon: const Icon(
+                            Icons.check_rounded,
+                            size: 16,
+                            color: Colors.white,
+                          ),
+                          label: const Text(
+                            'Terima',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _green,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
                         ),
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),
@@ -1731,4 +2144,3 @@ class _SubmissionCard extends StatelessWidget {
     ),
   );
 }
-

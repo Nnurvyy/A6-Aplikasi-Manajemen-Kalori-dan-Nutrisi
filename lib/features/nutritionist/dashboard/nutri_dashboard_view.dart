@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../general/auth/auth_controller.dart';
 import '../../general/submission/submission_controller.dart';
 import '../../general/submission/submission_model.dart';
+import '../../general/submission/widgets/submission_image_widget.dart';
 import '../widgets/nutri_fill_sheet.dart';
 
 class NutriDashboardView extends StatelessWidget {
@@ -135,9 +136,13 @@ class NutriDashboardView extends StatelessWidget {
             ),
             SliverList(
               delegate: SliverChildBuilderDelegate(
-                (_, i) => Padding(
+                (ctx, i) => Padding(
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-                  child: _NutriCard(item: belumDiisi[i], needsFill: true),
+                  child: _NutriCard(
+                    item: belumDiisi[i],
+                    needsFill: true,
+                    outerContext: context,
+                  ),
                 ),
                 childCount: belumDiisi.length,
               ),
@@ -159,9 +164,13 @@ class NutriDashboardView extends StatelessWidget {
             ),
             SliverList(
               delegate: SliverChildBuilderDelegate(
-                (_, i) => Padding(
+                (ctx, i) => Padding(
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-                  child: _NutriCard(item: sudahDiisi[i], needsFill: false),
+                  child: _NutriCard(
+                    item: sudahDiisi[i],
+                    needsFill: false,
+                    outerContext: context,
+                  ),
                 ),
                 childCount: sudahDiisi.length,
               ),
@@ -291,12 +300,54 @@ class NutriDashboardView extends StatelessWidget {
 class _NutriCard extends StatelessWidget {
   final SubmissionModel item;
   final bool needsFill;
+  final BuildContext outerContext; // FIX: outer context untuk Provider
 
-  const _NutriCard({required this.item, required this.needsFill});
+  const _NutriCard({
+    required this.item,
+    required this.needsFill,
+    required this.outerContext,
+  });
 
   static const _green = Color(0xFF2E7D32);
   static const _dark = Color(0xFF1A2E22);
   static const _muted = Color(0xFF7A9485);
+
+  Widget _avatarFallback(Color accent) => Container(
+    width: 50,
+    height: 50,
+    decoration: BoxDecoration(
+      color: accent.withValues(alpha: 0.12),
+      borderRadius: BorderRadius.circular(14),
+    ),
+    child: Center(
+      child: Text(
+        item.foodName.isNotEmpty ? item.foodName[0].toUpperCase() : '?',
+        style: TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.w800,
+          color: accent,
+        ),
+      ),
+    ),
+  );
+
+  String _formatDate(DateTime dt) {
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'Mei',
+      'Jun',
+      'Jul',
+      'Agu',
+      'Sep',
+      'Okt',
+      'Nov',
+      'Des',
+    ];
+    return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -305,7 +356,7 @@ class _NutriCard extends StatelessWidget {
     return GestureDetector(
       onTap:
           () => showModalBottomSheet(
-            context: context,
+            context: outerContext, // FIX: Provider tersedia di outer context
             isScrollControlled: true,
             backgroundColor: Colors.transparent,
             builder: (_) => NutriFillSheet(item: item),
@@ -326,23 +377,22 @@ class _NutriCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Avatar
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: accent.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Center(
-                child: Text(
-                  item.foodName[0].toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: accent,
-                  ),
-                ),
+            // Avatar / Foto Makanan — FIX: gunakan SubmissionImage (support URL & lokal)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: SizedBox(
+                width: 50,
+                height: 50,
+                child:
+                    item.imagePath.isNotEmpty
+                        ? SubmissionImage(
+                          imagePath: item.imagePath,
+                          width: 50,
+                          height: 50,
+                          fit: BoxFit.cover,
+                          placeholder: _avatarFallback(accent),
+                        )
+                        : _avatarFallback(accent),
               ),
             ),
             const SizedBox(width: 14),
@@ -361,7 +411,8 @@ class _NutriCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    'dari ${item.userName}',
+                    // FIX: Tampilkan tanggal pengajuan dari admin
+                    'dari ${item.userName} · ${_formatDate(item.createdAt)}',
                     style: const TextStyle(fontSize: 12, color: _muted),
                   ),
                   const SizedBox(height: 6),
@@ -437,4 +488,3 @@ class _NutriCard extends StatelessWidget {
     ),
   );
 }
-

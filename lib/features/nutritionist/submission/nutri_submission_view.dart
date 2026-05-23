@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../general/submission/submission_controller.dart';
 import '../../general/submission/submission_model.dart';
+import '../../general/submission/widgets/submission_image_widget.dart';
 import '../widgets/nutri_fill_sheet.dart';
 
 class NutriSubmissionView extends StatefulWidget {
@@ -14,7 +15,6 @@ class NutriSubmissionView extends StatefulWidget {
 
 class _NutriSubmissionViewState extends State<NutriSubmissionView>
     with SingleTickerProviderStateMixin {
-  // ── Tema hijau selaras ────────────────────────────────────────────────────
   static const _green = Color(0xFF2E7D32);
   static const _dark = Color(0xFF1A2E22);
   static const _muted = Color(0xFF7A9485);
@@ -40,9 +40,35 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
     super.dispose();
   }
 
+  String _formatDate(DateTime dt) {
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'Mei',
+      'Jun',
+      'Jul',
+      'Agu',
+      'Sep',
+      'Okt',
+      'Nov',
+      'Des',
+    ];
+    return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+  }
+
+  String _timeAgo(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return 'Baru saja';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} menit lalu';
+    if (diff.inHours < 24) return '${diff.inHours} jam lalu';
+    if (diff.inDays < 7) return '${diff.inDays} hari lalu';
+    return _formatDate(dt);
+  }
+
   @override
   Widget build(BuildContext context) {
-    // ← Pakai SubmissionController GLOBAL (shared dengan admin & user)
     final ctrl = context.watch<SubmissionController>();
     final belumDiisi =
         ctrl.approvedNeedsFill
@@ -99,7 +125,6 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
           preferredSize: const Size.fromHeight(100),
           child: Column(
             children: [
-              // Search bar
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                 child: Container(
@@ -140,7 +165,6 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
                   ),
                 ),
               ),
-              // Tab bar
               TabBar(
                 controller: _tabCtrl,
                 labelColor: _green,
@@ -151,6 +175,7 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
                 ),
                 unselectedLabelStyle: const TextStyle(
                   fontWeight: FontWeight.w500,
+                  fontSize: 13,
                 ),
                 indicatorColor: _green,
                 indicatorWeight: 3,
@@ -159,9 +184,14 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.pending_actions_rounded, size: 16),
+                        const Flexible(
+                          child: Text(
+                            'Belum Diisi',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                         const SizedBox(width: 6),
-                        Text('Perlu Diisi (${belumDiisi.length})'),
+                        _badge(belumDiisi.length, const Color(0xFFFF8F00)),
                       ],
                     ),
                   ),
@@ -169,9 +199,14 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.check_circle_rounded, size: 16),
+                        const Flexible(
+                          child: Text(
+                            'Sudah Diisi',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                         const SizedBox(width: 6),
-                        Text('Selesai (${sudahDiisi.length})'),
+                        _badge(sudahDiisi.length, _green),
                       ],
                     ),
                   ),
@@ -181,12 +216,38 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
           ),
         ),
       ),
-      body: TabBarView(
-        controller: _tabCtrl,
-        children: [
-          _buildList(belumDiisi, needsFill: true),
-          _buildList(sudahDiisi, needsFill: false),
-        ],
+      body:
+          ctrl.isLoading
+              ? const Center(
+                child: CircularProgressIndicator(color: Color(0xFF2E7D32)),
+              )
+              : TabBarView(
+                controller: _tabCtrl,
+                children: [
+                  _buildList(belumDiisi, needsFill: true),
+                  _buildList(sudahDiisi, needsFill: false),
+                ],
+              ),
+    );
+  }
+
+  Widget _badge(int count, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      decoration: BoxDecoration(
+        color:
+            count > 0
+                ? color.withValues(alpha: 0.15)
+                : Colors.grey.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        '$count',
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          color: count > 0 ? color : _muted,
+        ),
       ),
     );
   }
@@ -195,38 +256,25 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
     if (items.isEmpty) {
       return Center(
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: _green.withValues(alpha: 0.08),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                needsFill
-                    ? Icons.pending_actions_rounded
-                    : Icons.task_alt_rounded,
-                size: 48,
-                color: _green,
-              ),
+            Icon(
+              needsFill
+                  ? Icons.assignment_outlined
+                  : Icons.check_circle_outline_rounded,
+              size: 56,
+              color: _muted.withValues(alpha: 0.4),
             ),
-            const SizedBox(height: 16),
-            Text(
-              needsFill ? 'Semua sudah diisi! 🎉' : 'Belum ada yang selesai',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: _dark,
-              ),
-            ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 14),
             Text(
               needsFill
-                  ? 'Tidak ada pengajuan yang perlu dilengkapi'
-                  : 'Data nutrisi yang sudah diisi muncul di sini',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 13, color: _muted),
+                  ? 'Semua pengajuan sudah diisi!'
+                  : 'Belum ada yang selesai diisi',
+              style: TextStyle(
+                fontSize: 14,
+                color: _muted,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),
@@ -234,34 +282,86 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       itemCount: items.length,
-      itemBuilder:
-          (_, i) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _NutriListCard(item: items[i], needsFill: needsFill),
+      itemBuilder: (ctx, i) {
+        final item = items[i];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: _NutriSubmissionCard(
+            item: item,
+            needsFill: needsFill,
+            timeAgo: _timeAgo(item.createdAt),
+            dateLabel: _formatDate(item.createdAt),
+            // FIX: Pass the outer context so Provider is accessible inside bottom sheet
+            outerContext: context,
           ),
+        );
+      },
     );
   }
 }
 
-// ─── Card di list ─────────────────────────────────────────────────────────────
+// ── Card Widget ─────────────────────────────────────────────────────────────
 
-class _NutriListCard extends StatelessWidget {
+class _NutriSubmissionCard extends StatelessWidget {
   final SubmissionModel item;
   final bool needsFill;
+  final String timeAgo;
+  final String dateLabel;
+  final BuildContext outerContext; // FIX: outer context untuk Provider
 
-  const _NutriListCard({required this.item, required this.needsFill});
+  const _NutriSubmissionCard({
+    required this.item,
+    required this.needsFill,
+    required this.timeAgo,
+    required this.dateLabel,
+    required this.outerContext,
+  });
 
   static const _green = Color(0xFF2E7D32);
   static const _dark = Color(0xFF1A2E22);
   static const _muted = Color(0xFF7A9485);
 
-  String _timeAgo(DateTime dt) {
-    final d = DateTime.now().difference(dt);
-    if (d.inMinutes < 60) return '${d.inMinutes}m lalu';
-    if (d.inHours < 24) return '${d.inHours}j lalu';
-    return '${d.inDays}h lalu';
+  Widget _avatarFallback(Color accent) {
+    return Container(
+      width: 46,
+      height: 46,
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Center(
+        child: Text(
+          item.foodName.isNotEmpty ? item.foodName[0].toUpperCase() : '?',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+            color: accent,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _macro(String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 10, color: Color(0xFF7A9485)),
+        ),
+      ],
+    );
   }
 
   @override
@@ -271,7 +371,8 @@ class _NutriListCard extends StatelessWidget {
     return GestureDetector(
       onTap:
           () => showModalBottomSheet(
-            context: context,
+            context:
+                outerContext, // FIX: gunakan outerContext bukan context card
             isScrollControlled: true,
             backgroundColor: Colors.transparent,
             builder: (_) => NutriFillSheet(item: item),
@@ -295,22 +396,25 @@ class _NutriListCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                // Avatar atau foto makanan
-                if (item.imagePath.isNotEmpty && !needsFill)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: SizedBox(
-                      width: 46,
-                      height: 46,
-                      child: Image.file(
-                        File(item.imagePath),
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _avatarFallback(accent),
-                      ),
-                    ),
-                  )
-                else
-                  _avatarFallback(accent),
+                // FIX: Gunakan SubmissionImage bukan Image.file langsung
+                // (mendukung URL Cloudinary dan file lokal)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: SizedBox(
+                    width: 46,
+                    height: 46,
+                    child:
+                        item.imagePath.isNotEmpty
+                            ? SubmissionImage(
+                              imagePath: item.imagePath,
+                              width: 46,
+                              height: 46,
+                              fit: BoxFit.cover,
+                              placeholder: _avatarFallback(accent),
+                            )
+                            : _avatarFallback(accent),
+                  ),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -325,8 +429,9 @@ class _NutriListCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 2),
+                      // FIX: Tampilkan tanggal pengajuan (dari admin)
                       Text(
-                        'dari ${item.userName} · ${_timeAgo(item.createdAt)}',
+                        'dari ${item.userName} · $dateLabel',
                         style: const TextStyle(fontSize: 11, color: _muted),
                       ),
                     ],
@@ -379,71 +484,9 @@ class _NutriListCard extends StatelessWidget {
                 ],
               ),
             ],
-
-            if (needsFill) ...[
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: _green.withValues(alpha: 0.06),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.edit_rounded, color: _green, size: 14),
-                    SizedBox(width: 6),
-                    Text(
-                      'Ketuk untuk mengisi data nutrisi',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: _green,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
           ],
         ),
       ),
     );
   }
-
-  Widget _avatarFallback(Color accent) => Container(
-    width: 46,
-    height: 46,
-    decoration: BoxDecoration(
-      color: accent.withValues(alpha: 0.12),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: Center(
-      child: Text(
-        item.foodName[0].toUpperCase(),
-        style: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.w800,
-          color: accent,
-        ),
-      ),
-    ),
-  );
-
-  Widget _macro(String label, String value, Color color) => Column(
-    children: [
-      Text(
-        value,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w800,
-          color: color,
-        ),
-      ),
-      const SizedBox(height: 2),
-      Text(label, style: const TextStyle(fontSize: 10, color: _muted)),
-    ],
-  );
 }
-
