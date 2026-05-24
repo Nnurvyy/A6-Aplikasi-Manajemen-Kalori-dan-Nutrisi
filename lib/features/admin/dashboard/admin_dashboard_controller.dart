@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../general/submission/submission_model.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AdminDashboardController extends GetxController {
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  
   final today = DateTime.now().obs;
   final selectedDate = DateTime.now().obs;
   final weekDates = <DateTime>[].obs;
@@ -12,11 +15,13 @@ class AdminDashboardController extends GetxController {
   final itemsPerPage = 3;
 
   final allSubmissions = <Map<String, dynamic>>[].obs;
+  final totalUsersCount = 0.obs;
 
   @override
   void onInit() {
     super.onInit();
     _initDates();
+    fetchTotalUsers();
   }
 
   void _initDates() {
@@ -73,6 +78,20 @@ class AdminDashboardController extends GetxController {
     allSubmissions.value = data;
   }
 
+  Future<void> fetchTotalUsers() async {
+    try {
+      final snapshot = await _db
+          .collection('users')
+          .where('role', isEqualTo: 'user')
+          .get();
+          
+      // Masukkan jumlah dokumen user ke variabel observable
+      totalUsersCount.value = snapshot.docs.length; 
+    } catch (e) {
+      print("Gagal mengambil total pengguna dari Firebase: $e");
+    }
+  }
+
   // ── Statistik ─────────────────────────────────────────────────────────────
 
   int get totalPengajuan => allSubmissions.length;
@@ -80,8 +99,10 @@ class AdminDashboardController extends GetxController {
       allSubmissions.where((item) => item['status'] == 'Menunggu').length;
   int get totalDitolak =>
       allSubmissions.where((item) => item['status'] == 'Ditolak').length;
-  int get totalPengguna =>
-      allSubmissions.map((item) => item['author']).toSet().length;
+  // int get totalPengguna =>
+  //     allSubmissions.map((item) => item['author']).toSet().length;
+
+  int get totalPengguna => totalUsersCount.value;
 
   List<Map<String, dynamic>> getSubmissionsByStatus(String status) =>
       allSubmissions.where((item) => item['status'] == status).toList();
