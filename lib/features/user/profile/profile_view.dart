@@ -791,18 +791,112 @@ class _ProfileViewState extends State<ProfileView> {
                   isLast: !auth.hasMonitoredUser,
                 ),
                 if (auth.hasMonitoredUser) ...[
-                  _divider(),
-                  _chevronAction(
-                    Icons.play_circle_fill_rounded,
-                    'Lanjutkan Pantau Anak (Terakhir)',
-                    const Color(0xFFFFF3E0),
-                    const Color(0xFFFF9800),
-                    onTap: () => auth.resumeMonitoring(),
-                    isLast: true,
-                  ),
+                  for (var i = 0; i < auth.monitoredUsersList.length; i++) ...[
+                    _divider(),
+                    _monitoredChildTile(
+                      auth.monitoredUsersList[i],
+                      auth,
+                      isLast: i == auth.monitoredUsersList.length - 1,
+                    ),
+                  ]
                 ],
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _monitoredChildTile(UserModel child, AuthController auth, {bool isLast = false}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.vertical(
+          bottom: isLast ? const Radius.circular(20) : Radius.zero,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF3E0),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.face_rounded, color: Color(0xFFFF9800), size: 18),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  child.name,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1A2E1A),
+                  ),
+                ),
+                Text(
+                  'ID: ${child.id}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: () => _confirmRemoveMonitoredUser(auth, child),
+            icon: const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 20),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: 12),
+          ElevatedButton(
+            onPressed: () => auth.resumeMonitoringById(child.id),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _green,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Pantau', style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmRemoveMonitoredUser(AuthController auth, UserModel child) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: const Text('Hapus Anak?', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Text('Anda yakin ingin berhenti memantau aktivitas ${child.name}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              auth.removeMonitoredUser(child.id);
+              Navigator.pop(ctx);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Hapus', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),

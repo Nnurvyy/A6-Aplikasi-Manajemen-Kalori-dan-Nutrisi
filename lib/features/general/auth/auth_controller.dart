@@ -14,19 +14,24 @@ class AuthController extends ChangeNotifier {
 
   UserModel? _currentUser;
   UserModel? _monitoredUser; // User yang sedang dipantau (Anak)
+  List<UserModel> _monitoredUsersList = []; // Daftar semua anak yang dipantau
   bool _isMonitoringActive = false; // Flag apakah mode pantau sedang aktif
   bool _isLoading = false;
   String? _errorMessage;
 
   UserModel? get currentUser => _isMonitoringActive ? _monitoredUser : _currentUser;
   UserModel? get mainUser => _currentUser;
+  List<UserModel> get monitoredUsersList => _monitoredUsersList;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get isLoggedIn => _currentUser != null;
   bool get isMonitoring => _isMonitoringActive;
   bool get hasMonitoredUser {
-    final key = 'monitored_user_id_${_currentUser?.id}';
-    return HiveService.settings.get(key) != null;
+    if (_currentUser == null) return false;
+    final legacyKey = 'monitored_user_id_${_currentUser!.id}';
+    final newKey = 'monitored_user_ids_${_currentUser!.id}';
+    return HiveService.settings.get(legacyKey) != null || 
+           (HiveService.settings.get(newKey) as List?)?.isNotEmpty == true;
   }
 
   Future<bool> startMonitoring(String uid) async {
@@ -45,9 +50,18 @@ class AuthController extends ChangeNotifier {
         _monitoredUser = UserModel.fromMap(doc.data()!);
         _isMonitoringActive = true;
         await HiveService.users.put(uid, _monitoredUser!);
-        // Per-akun: simpan monitored_user_id dengan key yang mengandung id akun utama
-        final key = 'monitored_user_id_${_currentUser!.id}';
-        await HiveService.settings.put(key, uid);
+        
+        final newKey = 'monitored_user_ids_${_currentUser!.id}';
+        List<String> ids = (HiveService.settings.get(newKey) as List<dynamic>?)?.cast<String>() ?? [];
+        if (!ids.contains(uid)) {
+          ids.add(uid);
+          await HiveService.settings.put(newKey, ids);
+          _monitoredUsersList.add(_monitoredUser!);
+        } else {
+          final index = _monitoredUsersList.indexWhere((u) => u.id == uid);
+          if (index >= 0) _monitoredUsersList[index] = _monitoredUser!;
+        }
+        
         _setLoading(false);
         return true;
       } else {
@@ -69,7 +83,41 @@ class AuthController extends ChangeNotifier {
     if (_monitoredUser != null) {
       _isMonitoringActive = true;
       notifyListeners();
+    } else if (_monitoredUsersList.isNotEmpty) {
+      _monitoredUser = _monitoredUsersList.first;
+      _isMonitoringActive = true;
+      notifyListeners();
     }
+  }
+
+  void resumeMonitoringById(String uid) {
+    final idx = _monitoredUsersList.indexWhere((u) => u.id == uid);
+    if (idx >= 0) {
+      _monitoredUser = _monitoredUsersList[idx];
+      _isMonitoringActive = true;
+      notifyListeners();
+    }
+  }
+
+  Future<void> removeMonitoredUser(String uid) async {
+    if (_currentUser == null) return;
+    
+    final newKey = 'monitored_user_ids_${_currentUser!.id}';
+    List<String> ids = (HiveService.settings.get(newKey) as List<dynamic>?)?.cast<String>() ?? [];
+    ids.remove(uid);
+    await HiveService.settings.put(newKey, ids);
+    
+    _monitoredUsersList.removeWhere((u) => u.id == uid);
+    
+    if (_monitoredUser?.id == uid) {
+      if (_monitoredUsersList.isNotEmpty) {
+        _monitoredUser = _monitoredUsersList.first;
+      } else {
+        _monitoredUser = null;
+        _isMonitoringActive = false;
+      }
+    }
+    notifyListeners();
   }
 
   AuthController() {
@@ -87,24 +135,37 @@ class AuthController extends ChangeNotifier {
         await _fetchUserProfile(user.uid);
         
         // Coba perbarui data monitored user juga jika ada
-        final key = 'monitored_user_id_${user.uid}';
-        final monitoredId = HiveService.settings.get(key) as String?;
-        if (monitoredId != null) {
-          final mDoc = await _firestore.collection('users').doc(monitoredId).get();
-          if (mDoc.exists) {
-            _monitoredUser = UserModel.fromMap(mDoc.data()!);
-            await HiveService.users.put(monitoredId, _monitoredUser!);
-            notifyListeners();
-          }
+        final newKey = 'monitored_user_ids_${user.uid}';
+        List<String> ids = (HiveService.settings.get(newKey) as List<dynamic>?)?.cast<String>() ?? [];
+        for (var monitoredId in ids) {
+          try {
+            final mDoc = await _firestore.collection('users').doc(monitoredId).get();
+            if (mDoc.exists) {
+              final mUser = UserModel.fromMap(mDoc.data()!);
+              await HiveService.users.put(monitoredId, mUser);
+              
+              final index = _monitoredUsersList.indexWhere((u) => u.id == monitoredId);
+              if (index >= 0) {
+                _monitoredUsersList[index] = mUser;
+              } else {
+                _monitoredUsersList.add(mUser);
+              }
+              
+              if (_monitoredUser?.id == monitoredId) {
+                _monitoredUser = mUser;
+              }
+            }
+          } catch(e) {}
         }
+        notifyListeners();
       } else {
         // Jika user logout di Firebase, bersihkan sesi lokal
         if (_currentUser != null) {
           _currentUser = null;
           _monitoredUser = null;
+          _monitoredUsersList.clear();
           _isMonitoringActive = false;
           await HiveService.settings.delete('current_user_id');
-          await HiveService.settings.delete('monitored_user_id');
           notifyListeners();
         }
       }
@@ -119,10 +180,29 @@ class AuthController extends ChangeNotifier {
     
     // Per-akun: load monitored user hanya untuk akun yang login sekarang
     if (_currentUser != null) {
-      final key = 'monitored_user_id_${_currentUser!.id}';
-      final monitoredId = HiveService.settings.get(key) as String?;
-      if (monitoredId != null) {
-        _monitoredUser = HiveService.users.get(monitoredId);
+      final legacyKey = 'monitored_user_id_${_currentUser!.id}';
+      final legacyId = HiveService.settings.get(legacyKey) as String?;
+      final newKey = 'monitored_user_ids_${_currentUser!.id}';
+      
+      List<String> ids = (HiveService.settings.get(newKey) as List<dynamic>?)?.cast<String>() ?? [];
+      
+      // Migration from single to multi
+      if (legacyId != null) {
+        if (!ids.contains(legacyId)) ids.add(legacyId);
+        HiveService.settings.delete(legacyKey);
+        HiveService.settings.put(newKey, ids);
+      }
+      
+      _monitoredUsersList.clear();
+      for (var id in ids) {
+        final u = HiveService.users.get(id);
+        if (u != null) {
+          _monitoredUsersList.add(u);
+        }
+      }
+      
+      if (_monitoredUser == null && _monitoredUsersList.isNotEmpty) {
+        _monitoredUser = _monitoredUsersList.first;
       }
     }
     
@@ -144,14 +224,35 @@ class AuthController extends ChangeNotifier {
         await HiveService.users.put(uid, _currentUser!);
         await HiveService.settings.put('current_user_id', uid);
         
-        // RELOAD monitored user untuk akun ini
-        final key = 'monitored_user_id_${_currentUser!.id}';
-        final monitoredId = HiveService.settings.get(key) as String?;
-        if (monitoredId != null) {
-          _monitoredUser = HiveService.users.get(monitoredId);
-        } else {
+        // RELOAD monitored users for this account
+        final legacyKey = 'monitored_user_id_${_currentUser!.id}';
+        final legacyId = HiveService.settings.get(legacyKey) as String?;
+        final newKey = 'monitored_user_ids_${_currentUser!.id}';
+        
+        List<String> ids = (HiveService.settings.get(newKey) as List<dynamic>?)?.cast<String>() ?? [];
+        if (legacyId != null) {
+          if (!ids.contains(legacyId)) ids.add(legacyId);
+          HiveService.settings.delete(legacyKey);
+          HiveService.settings.put(newKey, ids);
+        }
+        
+        _monitoredUsersList.clear();
+        for (var id in ids) {
+          final u = HiveService.users.get(id);
+          if (u != null) {
+            _monitoredUsersList.add(u);
+          }
+        }
+        
+        if (_monitoredUsersList.isEmpty) {
           _monitoredUser = null;
           _isMonitoringActive = false;
+        } else if (_monitoredUser != null) {
+           if (!ids.contains(_monitoredUser!.id)) {
+              _monitoredUser = _monitoredUsersList.first;
+           }
+        } else {
+           _monitoredUser = _monitoredUsersList.first;
         }
         notifyListeners();
       }
@@ -295,6 +396,11 @@ class AuthController extends ChangeNotifier {
         _currentUser = updated;
       } else if (_monitoredUser?.id == updated.id) {
         _monitoredUser = updated;
+      }
+      
+      final index = _monitoredUsersList.indexWhere((u) => u.id == updated.id);
+      if (index >= 0) {
+        _monitoredUsersList[index] = updated;
       }
       
       await HiveService.users.put(updated.id, updated);

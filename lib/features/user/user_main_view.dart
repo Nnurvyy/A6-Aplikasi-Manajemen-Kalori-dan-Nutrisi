@@ -995,6 +995,18 @@ class ParentProfilePlaceholder extends StatelessWidget {
                               auth.stopMonitoring();
                             },
                           ),
+                          if (auth.monitoredUsersList.length > 1) ...[
+                            const Divider(height: 1, color: Color(0xFFE8F5E9)),
+                            _buildActionTile(
+                              icon: Icons.swap_horiz_rounded,
+                              label: 'Ganti Anak yang Dipantau',
+                              color: const Color(0xFF1976D2),
+                              bg: const Color(0xFFE3F2FD),
+                              onTap: () {
+                                _showSwitchChildSheet(context, auth);
+                              },
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -1045,6 +1057,99 @@ class ParentProfilePlaceholder extends StatelessWidget {
               color: Colors.grey,
               size: 20,
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showSwitchChildSheet(BuildContext context, AuthController auth) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Ganti Anak',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF1A2E1A),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ...auth.monitoredUsersList.map((child) {
+              final isCurrent = child.id == auth.currentUser?.id;
+              return ListTile(
+                leading: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: isCurrent ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.face_rounded,
+                    color: isCurrent ? const Color(0xFF2E7D32) : const Color(0xFFFF9800),
+                  ),
+                ),
+                title: Text(
+                  child.name,
+                  style: TextStyle(
+                    fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                    color: const Color(0xFF1A2E1A),
+                  ),
+                ),
+                trailing: isCurrent ? const Icon(Icons.check_circle_rounded, color: Color(0xFF2E7D32)) : null,
+                onTap: () {
+                  if (!isCurrent) {
+                    auth.resumeMonitoringById(child.id);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Row(
+                            children: [
+                              const Icon(Icons.check_circle_rounded, color: Colors.white),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'Berhasil beralih memantau ${child.name}',
+                                  style: const TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ],
+                          ),
+                          backgroundColor: const Color(0xFF2E7D32),
+                          duration: const Duration(seconds: 2),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      );
+                    }
+                  }
+                  Navigator.pop(ctx);
+                },
+              );
+            }),
+            const SizedBox(height: 20),
           ],
         ),
       ),
