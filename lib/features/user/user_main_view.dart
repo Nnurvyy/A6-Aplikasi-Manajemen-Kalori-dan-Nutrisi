@@ -447,95 +447,105 @@ class _UserMainViewState extends State<UserMainView>
   Widget _buildNavBtn(int index, List<_NavItem> items) {
     final item = items[index];
     final isActive = _currentIndex == index;
-    final user = context.watch<AuthController>().currentUser;
+    final auth = context.watch<AuthController>();
+    final user = auth.currentUser;
     final isProfileIcon = item.label == 'Profile' || item.label == 'Anda';
-    final hasLocal =
+    final hasLocal = isProfileIcon &&
         user?.localProfileImagePath != null &&
         user!.localProfileImagePath!.isNotEmpty &&
         File(user.localProfileImagePath!).existsSync();
-    final hasNetwork =
-        user?.profileImageUrl != null && user!.profileImageUrl!.isNotEmpty;
-    final hasProfileImg = isProfileIcon && (hasLocal || hasNetwork);
+    final hasNetwork = isProfileIcon &&
+        user?.profileImageUrl != null &&
+        user!.profileImageUrl!.isNotEmpty;
+    final hasProfileImg = hasLocal || hasNetwork;
+
+    final canDoubleTap = item.label == 'Profile' &&
+        !auth.isMonitoring &&
+        auth.hasRegisteredChild;
+
+    Widget iconWidget;
+    if (hasProfileImg) {
+      iconWidget = Container(
+        key: ValueKey('profile_img_$isActive'),
+        width: isActive ? 26 : 24,
+        height: isActive ? 26 : 24,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: isActive ? Colors.white : Colors.white54,
+            width: 1.5,
+          ),
+        ),
+        child: ClipOval(
+          child: hasLocal
+              ? Image.file(
+                  File(user!.localProfileImagePath!),
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Icon(
+                    item.icon,
+                    color: isActive ? Colors.white : Colors.white54,
+                    size: isActive ? 24 : 22,
+                  ),
+                )
+              : Image.network(
+                  user!.profileImageUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Icon(
+                    item.icon,
+                    color: isActive ? Colors.white : Colors.white54,
+                    size: isActive ? 24 : 22,
+                  ),
+                ),
+        ),
+      );
+    } else {
+      iconWidget = Icon(
+        item.icon,
+        key: ValueKey('icon_$isActive'),
+        color: isActive ? Colors.white : Colors.white54,
+        size: isActive ? 24 : 22,
+      );
+    }
 
     return Expanded(
-      child: InkWell(
+      child: GestureDetector(
         onTap: () {
           if (_dialOpen) _closeDial();
           HapticFeedback.selectionClick();
           setState(() => _currentIndex = index);
         },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                child:
-                    hasProfileImg
-                        ? Container(
-                          key: ValueKey('profile_img_$isActive'),
-                          width: isActive ? 26 : 24,
-                          height: isActive ? 26 : 24,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: isActive ? Colors.white : Colors.white54,
-                              width: 1.5,
-                            ),
-                          ),
-                          child: ClipOval(
-                            child:
-                                hasLocal
-                                    ? Image.file(
-                                      File(user!.localProfileImagePath!),
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (_, __, ___) => Icon(
-                                            item.icon,
-                                            color:
-                                                isActive
-                                                    ? Colors.white
-                                                    : Colors.white54,
-                                            size: isActive ? 24 : 22,
-                                          ),
-                                    )
-                                    : Image.network(
-                                      user!.profileImageUrl!,
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (_, __, ___) => Icon(
-                                            item.icon,
-                                            color:
-                                                isActive
-                                                    ? Colors.white
-                                                    : Colors.white54,
-                                            size: isActive ? 24 : 22,
-                                          ),
-                                    ),
-                          ),
-                        )
-                        : Icon(
-                          item.icon,
-                          key: ValueKey('icon_$isActive'),
-                          color: isActive ? Colors.white : Colors.white54,
-                          size: isActive ? 24 : 22,
-                        ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                item.label,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                  color: isActive ? Colors.white : Colors.white54,
+        onDoubleTap: canDoubleTap
+            ? () {
+                HapticFeedback.heavyImpact();
+                auth.startMonitoringExisting();
+              }
+            : null,
+        child: Tooltip(
+          message: canDoubleTap ? 'Double-tap untuk Kontrol Orang Tua' : '',
+          preferBelow: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: iconWidget,
                 ),
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-              ),
-            ],
+                const SizedBox(height: 3),
+                Text(
+                  item.label,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                    color: isActive ? Colors.white : Colors.white54,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -985,22 +995,6 @@ class ParentProfilePlaceholder extends StatelessWidget {
                             bg: const Color(0xFFE8F5E9),
                             onTap: () {
                               auth.stopMonitoring();
-                            },
-                          ),
-                          const Divider(height: 1, color: Color(0xFFE8F5E9)),
-                          _buildActionTile(
-                            icon: Icons.logout_rounded,
-                            label: 'Keluar (Logout)',
-                            color: Colors.red[600]!,
-                            bg: Colors.red[50]!,
-                            onTap: () async {
-                              await auth.logout();
-                              // Assuming login view routing is handled by stream or we need to push
-                              Navigator.pushNamedAndRemoveUntil(
-                                context,
-                                '/',
-                                (r) => false,
-                              );
                             },
                           ),
                         ],
