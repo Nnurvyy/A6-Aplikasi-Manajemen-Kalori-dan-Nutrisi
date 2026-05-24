@@ -695,9 +695,43 @@ class _DashboardBodyState extends State<DashboardBody> {
     );
   }
 
+  // ─── HELPER: warna dinamis berdasarkan persentase ────────────────────────
+  //
+  // 0%   → sangat pudar
+  // 50%  → sedang
+  // 100% → penuh
+  // >100% → bergeser ke merah (over-target)
+
+  Color _dynamicFillColor(NutrisiItem item) {
+    if (item.isOver) {
+      return Color.lerp(
+        const Color(0xFFFF8A65),
+        const Color(0xFFE53935),
+        (item.rawPercentage - 1.0).clamp(0.0, 1.0),
+      )!;
+    }
+    return Color.lerp(item.bgColor, item.fillColor, item.percentage)!;
+  }
+
+  Color _dynamicBorderColor(NutrisiItem item) {
+    if (item.isOver) return const Color(0xFFE53935);
+    final alpha = (0.25 + 0.75 * item.percentage).clamp(0.0, 1.0);
+    return item.borderColor.withValues(alpha: alpha);
+  }
+
+  Color _dynamicIconColor(NutrisiItem item) {
+    if (item.isOver) return Colors.white;
+    final alpha = (0.35 + 0.65 * item.percentage).clamp(0.0, 1.0);
+    return item.iconColor.withValues(alpha: alpha);
+  }
+
   Widget _buildMiniBattery(NutrisiItem item) {
     final bool isCompleted = item.percentage >= 1.0;
-    final double displayPct = item.percentage > 1.0 ? 1.0 : item.percentage;
+    final double displayPct = item.percentage;
+
+    final Color dynBorder = _dynamicBorderColor(item);
+    final Color dynFill   = _dynamicFillColor(item);
+    final Color dynIcon   = _dynamicIconColor(item);
 
     return SizedBox(
       width: 46,
@@ -705,28 +739,26 @@ class _DashboardBodyState extends State<DashboardBody> {
       child: Stack(
         alignment: Alignment.center,
         children: [
+          // ── Kepala baterai ───────────────────────────────────────────
           Positioned(
             top: 0,
             child: Container(
               width: 14,
               height: 5,
               decoration: BoxDecoration(
-                color: item.borderColor,
+                color: dynBorder,
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(3),
                 ),
-                boxShadow:
-                    isCompleted
-                        ? [
-                          BoxShadow(
-                            color: item.borderColor.withValues(alpha: 0.3),
-                            blurRadius: 2,
-                          ),
-                        ]
+                boxShadow: item.isOver
+                    ? [BoxShadow(color: dynBorder.withValues(alpha: 0.4), blurRadius: 3)]
+                    : isCompleted
+                        ? [BoxShadow(color: dynBorder.withValues(alpha: 0.3), blurRadius: 2)]
                         : [],
               ),
             ),
           ),
+          // ── Badan baterai ────────────────────────────────────────────
           Positioned(
             top: 5,
             child: Container(
@@ -735,47 +767,41 @@ class _DashboardBodyState extends State<DashboardBody> {
               decoration: BoxDecoration(
                 color: item.bgColor,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: item.borderColor, width: 2.5),
-                boxShadow:
-                    isCompleted
-                        ? [
-                          BoxShadow(
-                            color: item.borderColor.withValues(alpha: 0.2),
-                            blurRadius: 4,
-                            spreadRadius: 1,
-                          ),
-                        ]
+                border: Border.all(color: dynBorder, width: 2.5),
+                boxShadow: item.isOver
+                    ? [BoxShadow(color: const Color(0xFFE53935).withValues(alpha: 0.25), blurRadius: 6, spreadRadius: 1)]
+                    : isCompleted
+                        ? [BoxShadow(color: dynBorder.withValues(alpha: 0.2), blurRadius: 4, spreadRadius: 1)]
                         : [],
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(isCompleted ? 6 : 8),
+                borderRadius: BorderRadius.circular(
+                  (item.isOver || isCompleted) ? 6 : 8,
+                ),
                 child: Stack(
                   alignment: Alignment.bottomCenter,
                   children: [
+                    // ── Fill bar dinamis ─────────────────────────────
                     FractionallySizedBox(
                       heightFactor: displayPct,
                       alignment: Alignment.bottomCenter,
                       child: Container(
                         decoration: BoxDecoration(
-                          color: item.fillColor,
+                          color: dynFill,
                           borderRadius: const BorderRadius.vertical(
                             bottom: Radius.circular(8),
                           ),
                         ),
                       ),
                     ),
-                    if (isCompleted)
-                      Center(
-                        child: Icon(
-                          Icons.check,
-                          color: item.iconColor,
-                          size: 24,
-                        ),
-                      )
-                    else
-                      Center(
-                        child: Icon(item.icon, color: item.iconColor, size: 20),
-                      ),
+                    // ── Ikon tengah ──────────────────────────────────
+                    Center(
+                      child: item.isOver
+                          ? const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 20)
+                          : isCompleted
+                              ? Icon(Icons.check, color: dynIcon, size: 24)
+                              : Icon(item.icon, color: dynIcon, size: 20),
+                    ),
                   ],
                 ),
               ),
@@ -1271,4 +1297,3 @@ class _DashboardBodyState extends State<DashboardBody> {
 
 // Alias agar import lama tetap compile
 typedef DashboardView = DashboardBody;
-
