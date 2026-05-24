@@ -23,6 +23,38 @@ class DashboardBody extends StatefulWidget {
   State<DashboardBody> createState() => _DashboardBodyState();
 }
 
+enum NutritionState {
+  normal,
+  warning,
+  danger,
+}
+
+  // ─────────────────────────────────────────────────────────────
+  // GLOBAL HANDLER
+  // ─────────────────────────────────────────────────────────────
+
+  NutritionState nutritionState(
+    double consumed,
+    double target, {
+    bool allowOverConsume = true,
+  }) {
+    final ratio = consumed / target;
+
+    if (!allowOverConsume) {
+      return NutritionState.normal;
+    }
+
+    if (ratio <= 1.10) {
+      return NutritionState.normal;
+    }
+
+    if (ratio <= 1.25) {
+      return NutritionState.warning;
+    }
+
+    return NutritionState.danger;
+  }
+
 class _DashboardBodyState extends State<DashboardBody> {
   final DashboardController _controller = DashboardController();
   int _riwayatPage = 0;
@@ -453,10 +485,32 @@ class _DashboardBodyState extends State<DashboardBody> {
     );
   }
 
-  // ─── KALORI CARD ──────────────────────────────────────────────────────────
+  
+
+  double nutritionRatio(double consumed, double target) {
+    return consumed / target;
+  }
+
+  Color _dangerRed() {
+    return const Color(0xFFD96C6C);
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // KALORI CARD
+  // ─────────────────────────────────────────────────────────────
+
   Widget _buildKaloriCard() {
-    final pct = _controller.kaloriPercentage;
-    final isOver = _controller.kaloriConsumed > _controller.kaloriTarget;
+    final consumed = _controller.kaloriConsumed;
+    final target = _controller.kaloriTarget;
+
+    final ratio = nutritionRatio(consumed, target);
+    final state = nutritionState(consumed, target);
+
+    final bool isWarning = state == NutritionState.warning;
+    final bool isDanger = state == NutritionState.danger;
+
+    final displayPct = ratio.clamp(0.0, 1.0);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: Container(
@@ -464,62 +518,73 @@ class _DashboardBodyState extends State<DashboardBody> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
+
           border: Border.all(
-            color: isOver ? const Color(0xFFEF9A9A) : const Color(0xFFC8E6C9),
-            width: 1.5,
+            color: isDanger
+                ? _dangerRed()
+                : isWarning
+                    ? const Color(0xFF7A8D7B)
+                    : const Color(0xFFC8E6C9),
+            width: isWarning || isDanger ? 2 : 1.5,
           ),
+
           boxShadow: [
             BoxShadow(
-              color: (isOver ? const Color(0xFFE53935) : const Color(0xFF4CAF50))
-                  .withValues(alpha: 0.10),
-              blurRadius: 12,
+              color: isDanger
+                  ? _dangerRed().withValues(alpha: 0.12)
+                  : Colors.black.withValues(alpha: 0.05),
+              blurRadius: 8,
               offset: const Offset(0, 2),
             ),
           ],
         ),
+
         child: Column(
           children: [
-            _buildBatteryBar(pct),
+            _buildBatteryBar(displayPct, ratio, state),
+
             const SizedBox(height: 14),
-            Text(
-              isOver ? 'Kalori Tercapai' : 'Kalori',
+
+            const Text(
+              'Kalori',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: isOver ? const Color(0xFFE53935) : const Color(0xFF2E7D32),
+                color: Color(0xFF2E7D32),
               ),
             ),
+
             const SizedBox(height: 4),
+
             Text(
-              '${_controller.kaloriConsumed.toInt()} / ${_controller.kaloriTarget.toInt()} kkal',
-              style: TextStyle(
+              '${consumed.toInt()} / ${target.toInt()} kkal',
+              style: const TextStyle(
                 fontSize: 13,
-                color: isOver ? const Color(0xFFE57373) : const Color(0xFF5A7A5A),
+                color: Color(0xFF5A7A5A),
               ),
             ),
-            if (isOver) ...[
-              const SizedBox(height: 6),
+
+            if (ratio > 1.10) ...[
+              const SizedBox(height: 8),
+
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFEBEE),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.warning_amber_rounded,
-                        color: Color(0xFFE53935), size: 14),
-                    const SizedBox(width: 5),
-                    Text(
-                      'Melebihi target ${(_controller.kaloriConsumed - _controller.kaloriTarget).toInt()} kkal',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFFE53935),
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  'Melebihi target sejumlah ${(consumed - target).toInt()} kkal',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: isDanger
+                        ? _dangerRed()
+                        : const Color(0xFFB85C5C),
+                  ),
                 ),
               ),
             ],
@@ -529,19 +594,45 @@ class _DashboardBodyState extends State<DashboardBody> {
     );
   }
 
-  Widget _buildBatteryBar(double percentage) {
-    final double rawPct = _controller.kaloriConsumed / _controller.kaloriTarget;
-    final bool isCompleted = percentage >= 1.0;
-    final bool isOver = rawPct > 1.0;
-    final displayPercentage = percentage > 1.0 ? 1.0 : percentage;
+  // ─────────────────────────────────────────────────────────────
+  // MAIN BATTERY BAR
+  // ─────────────────────────────────────────────────────────────
 
-    final List<Color> fillColors = isOver
-        ? [const Color(0xFFEF5350), const Color(0xFFB71C1C)]
-        : [const Color(0xFF4CAF50), const Color(0xFF2E7D32)];
+  Widget _buildBatteryBar(
+    double displayPercentage,
+    double rawRatio,
+    NutritionState state,
+  ) {
+    final bool isWarning = state == NutritionState.warning;
+    final bool isDanger = state == NutritionState.danger;
 
-    final Color borderColor = isOver
-        ? const Color(0xFFE53935)
-        : const Color(0xFF2E7D32);
+    final fillIntensity = displayPercentage.clamp(0.0, 1.0);
+
+    final Color fillStart = isDanger
+        ? const Color(0xFFD96C6C)
+        : Color.lerp(
+            const Color(0xFFA5D6A7),
+            const Color(0xFF4CAF50),
+            fillIntensity,
+          )!;
+
+    final Color fillEnd = isDanger
+        ? const Color(0xFFB85C5C)
+        : Color.lerp(
+            const Color(0xFF81C784),
+            const Color(0xFF2E7D32),
+            fillIntensity,
+          )!;
+
+    final Color borderColor = isDanger
+        ? _dangerRed()
+        : isWarning
+            ? const Color(0xFF7A8D7B)
+            : Color.lerp(
+                const Color(0xFFA5D6A7),
+                const Color(0xFF2E7D32),
+                fillIntensity,
+              )!;
 
     return IntrinsicHeight(
       child: Padding(
@@ -549,91 +640,97 @@ class _DashboardBodyState extends State<DashboardBody> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFFE8F5E9),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: borderColor, width: 2),
-                boxShadow: isCompleted
-                    ? [BoxShadow(color: borderColor.withValues(alpha: 0.3), blurRadius: 10, spreadRadius: 2)]
-                    : [],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(isCompleted ? 11 : 12),
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: FractionallySizedBox(
-                        widthFactor: displayPercentage,
-                        alignment: Alignment.centerLeft,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: fillColors,
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(12),
-                              bottomLeft: Radius.circular(12),
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(14),
+
+                  border: Border.all(
+                    color: borderColor,
+                    width: isWarning || isDanger ? 2 : 1.5,
+                  ),
+
+                  boxShadow: isDanger
+                      ? [
+                          BoxShadow(
+                            color: borderColor.withValues(alpha: 0.15),
+                            blurRadius: 6,
+                            spreadRadius: 1,
+                          ),
+                        ]
+                      : [],
+                ),
+
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: FractionallySizedBox(
+                          widthFactor: displayPercentage,
+                          alignment: Alignment.centerLeft,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [fillStart, fillEnd],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(12),
+                                bottomLeft: Radius.circular(12),
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 34),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              isOver
-                                  ? Icons.warning_amber_rounded
-                                  : isCompleted
-                                      ? Icons.check_circle_rounded
-                                      : Icons.local_fire_department,
-                              color: Colors.white,
-                              size: 24,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              isOver
-                                  ? 'Kalori Tercapai!'
-                                  : isCompleted
-                                      ? 'Target Tercapai!'
-                                      : '${(percentage * 100).toInt()}%',
-                              style: const TextStyle(
+
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 34),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.local_fire_department,
                                 color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
+                                size: 24,
                               ),
-                            ),
-                          ],
+
+                              const SizedBox(width: 6),
+
+                              Text(
+                                '${(rawRatio * 100).toInt()}%',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(width: 6),
-          Container(
-            width: 8,
-            height: 48,
-            decoration: BoxDecoration(
-              color: borderColor,
-              borderRadius: BorderRadius.circular(4),
-              boxShadow: isCompleted
-                  ? [BoxShadow(color: borderColor.withValues(alpha: 0.3), blurRadius: 4)]
-                  : [],
+
+            const SizedBox(width: 6),
+
+            Container(
+              width: 8,
+              height: 48,
+              decoration: BoxDecoration(
+                color: borderColor,
+                borderRadius: BorderRadius.circular(4),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
     );
   }
 
@@ -737,36 +834,85 @@ class _DashboardBodyState extends State<DashboardBody> {
   // 100% → penuh
   // >100% → bergeser ke merah (over-target)
 
+  // ─────────────────────────────────────────────────────────────
+  // DYNAMIC COLORS
+  // ─────────────────────────────────────────────────────────────
+
   Color _dynamicFillColor(NutrisiItem item) {
-    if (item.isOver) {
-      return Color.lerp(
-        const Color(0xFFFF8A65),
-        const Color(0xFFE53935),
-        (item.rawPercentage - 1.0).clamp(0.0, 1.0),
-      )!;
+    final allowOver = item.name != 'Air';
+
+    final state = nutritionState(
+      item.consumed,
+      item.target,
+      allowOverConsume: allowOver,
+    );
+
+    final intensity = item.percentage.clamp(0.0, 1.0);
+
+    if (state == NutritionState.danger) {
+      return _dangerRed();
     }
-    return Color.lerp(item.bgColor, item.fillColor, item.percentage)!;
+
+    return Color.lerp(
+      item.bgColor,
+      item.fillColor,
+      intensity,
+    )!;
   }
 
   Color _dynamicBorderColor(NutrisiItem item) {
-    if (item.isOver) return const Color(0xFFE53935);
-    final alpha = (0.25 + 0.75 * item.percentage).clamp(0.0, 1.0);
-    return item.borderColor.withValues(alpha: alpha);
+    final allowOver = item.name != 'Air';
+
+    final state = nutritionState(
+      item.consumed,
+      item.target,
+      allowOverConsume: allowOver,
+    );
+
+    final intensity = item.percentage.clamp(0.0, 1.0);
+
+    if (state == NutritionState.danger) {
+      return _dangerRed();
+    }
+
+    if (state == NutritionState.warning) {
+      return const Color(0xFF7A8D7B);
+    }
+
+    return Color.lerp(
+      item.borderColor.withValues(alpha: 0.35),
+      item.borderColor,
+      intensity,
+    )!;
   }
 
   Color _dynamicIconColor(NutrisiItem item) {
-    if (item.isOver) return Colors.white;
-    final alpha = (0.35 + 0.65 * item.percentage).clamp(0.0, 1.0);
-    return item.iconColor.withValues(alpha: alpha);
+    final intensity = item.percentage.clamp(0.0, 1.0);
+
+    return Color.lerp(
+      item.iconColor.withValues(alpha: 0.35),
+      item.iconColor,
+      intensity,
+    )!;
   }
 
   Widget _buildMiniBattery(NutrisiItem item) {
-    final bool isCompleted = item.percentage >= 1.0;
-    final double displayPct = item.percentage;
+    final allowOver = item.name != 'Air';
+
+    final state = nutritionState(
+      item.consumed,
+      item.target,
+      allowOverConsume: allowOver,
+    );
+
+    final bool isWarning = state == NutritionState.warning;
+    final bool isDanger = state == NutritionState.danger;
+
+    final displayPct = item.percentage.clamp(0.0, 1.0);
 
     final Color dynBorder = _dynamicBorderColor(item);
-    final Color dynFill   = _dynamicFillColor(item);
-    final Color dynIcon   = _dynamicIconColor(item);
+    final Color dynFill = _dynamicFillColor(item);
+    final Color dynIcon = _dynamicIconColor(item);
 
     return SizedBox(
       width: 46,
@@ -774,7 +920,6 @@ class _DashboardBodyState extends State<DashboardBody> {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // ── Kepala baterai ───────────────────────────────────────────
           Positioned(
             top: 0,
             child: Container(
@@ -785,15 +930,10 @@ class _DashboardBodyState extends State<DashboardBody> {
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(3),
                 ),
-                boxShadow: item.isOver
-                    ? [BoxShadow(color: dynBorder.withValues(alpha: 0.4), blurRadius: 3)]
-                    : isCompleted
-                        ? [BoxShadow(color: dynBorder.withValues(alpha: 0.3), blurRadius: 2)]
-                        : [],
               ),
             ),
           ),
-          // ── Badan baterai ────────────────────────────────────────────
+
           Positioned(
             top: 5,
             child: Container(
@@ -802,21 +942,28 @@ class _DashboardBodyState extends State<DashboardBody> {
               decoration: BoxDecoration(
                 color: item.bgColor,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: dynBorder, width: 2.5),
-                boxShadow: item.isOver
-                    ? [BoxShadow(color: const Color(0xFFE53935).withValues(alpha: 0.25), blurRadius: 6, spreadRadius: 1)]
-                    : isCompleted
-                        ? [BoxShadow(color: dynBorder.withValues(alpha: 0.2), blurRadius: 4, spreadRadius: 1)]
-                        : [],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(
-                  (item.isOver || isCompleted) ? 6 : 8,
+
+                border: Border.all(
+                  color: dynBorder,
+                  width: isWarning || isDanger ? 2.5 : 2,
                 ),
+
+                boxShadow: isDanger
+                    ? [
+                        BoxShadow(
+                          color: _dangerRed().withValues(alpha: 0.20),
+                          blurRadius: 6,
+                          spreadRadius: 1,
+                        ),
+                      ]
+                    : [],
+              ),
+
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
                 child: Stack(
                   alignment: Alignment.bottomCenter,
                   children: [
-                    // ── Fill bar dinamis ─────────────────────────────
                     FractionallySizedBox(
                       heightFactor: displayPct,
                       alignment: Alignment.bottomCenter,
@@ -829,13 +976,19 @@ class _DashboardBodyState extends State<DashboardBody> {
                         ),
                       ),
                     ),
-                    // ── Ikon tengah ──────────────────────────────────
+
                     Center(
-                      child: item.isOver
-                          ? const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 20)
-                          : isCompleted
-                              ? Icon(Icons.check, color: dynIcon, size: 24)
-                              : Icon(item.icon, color: dynIcon, size: 20),
+                      child: isDanger
+                          ? const Icon(
+                              Icons.warning_amber_rounded,
+                              color: Colors.white,
+                              size: 18,
+                            )
+                          : Icon(
+                              item.icon,
+                              color: dynIcon,
+                              size: 20,
+                            ),
                     ),
                   ],
                 ),
