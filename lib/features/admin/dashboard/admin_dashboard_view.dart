@@ -46,100 +46,129 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
     final submissions = context.watch<SubmissionController>().all;
     controller.loadFromSubmissionController(submissions);
 
+    final double topPadding = MediaQuery.of(context).padding.top;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF9FBF9),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.only(
-            left: 24,
-            right: 24,
-            top: 16,
-            bottom: 32,
+      body: Column(
+        children: [
+          
+          Container(
+            height: topPadding,
+            width: double.infinity,
+            color: const Color(0xFF2E7D32), 
           ),
-          child: Obx(() {
-            final filteredSubmissions =
-                controller.allSubmissions
-                    .where(
-                      (item) =>
-                          item['date'].year ==
-                              controller.selectedDate.value.year &&
-                          item['date'].month ==
-                              controller.selectedDate.value.month &&
-                          item['date'].day == controller.selectedDate.value.day,
-                    )
-                    .toList();
+          
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: 32),
+              child: Obx(() {
+                final filteredSubmissions =
+                    controller.allSubmissions
+                        .where(
+                          (item) =>
+                              item['date'].year ==
+                                  controller.selectedDate.value.year &&
+                              item['date'].month ==
+                                  controller.selectedDate.value.month &&
+                              item['date'].day == controller.selectedDate.value.day,
+                        )
+                        .toList();
 
-            final totalPages =
-                (filteredSubmissions.length / controller.itemsPerPage).ceil();
+                final totalPages =
+                    (filteredSubmissions.length / controller.itemsPerPage).ceil();
 
-            List<Map<String, dynamic>> displayedSubmissions;
-            if (controller.isPaginatedView.value) {
-              int start =
-                  controller.currentPage.value * controller.itemsPerPage;
-              int end = start + controller.itemsPerPage;
-              displayedSubmissions = filteredSubmissions.sublist(
-                start,
-                end > filteredSubmissions.length
-                    ? filteredSubmissions.length
-                    : end,
-              );
-            } else {
-              displayedSubmissions =
-                  filteredSubmissions.take(controller.itemsPerPage).toList();
-            }
+                List<Map<String, dynamic>> displayedSubmissions;
+                if (controller.isPaginatedView.value) {
+                  int start =
+                      controller.currentPage.value * controller.itemsPerPage;
+                  int end = start + controller.itemsPerPage;
+                  displayedSubmissions = filteredSubmissions.sublist(
+                    start,
+                    end > filteredSubmissions.length
+                        ? filteredSubmissions.length
+                        : end,
+                  );
+                } else {
+                  displayedSubmissions =
+                      filteredSubmissions.take(controller.itemsPerPage).toList();
+                }
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(),
-                const SizedBox(height: 24),
-                _buildGreetingCard(),
-                const SizedBox(height: 24),
-                _buildDateSelector(),
-                const SizedBox(height: 24),
-                _buildStatsGrid(context),
-                const SizedBox(height: 24),
-                _buildRecentSubmissionsHeader(filteredSubmissions.length),
-                const SizedBox(height: 12),
-                _buildSubmissionsList(context, displayedSubmissions),
-                if (controller.isPaginatedView.value && totalPages > 1)
-                  _buildPaginationControls(totalPages),
-              ],
-            );
-          }),
-        ),
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(), 
+                    
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 24),
+                          _buildGreetingCard(),
+                          const SizedBox(height: 24),
+                          _buildDateSelector(),
+                          const SizedBox(height: 24),
+                          _buildStatsGrid(context),
+                          const SizedBox(height: 24),
+                          _buildRecentSubmissionsHeader(filteredSubmissions.length),
+                          const SizedBox(height: 12),
+                          _buildSubmissionsList(context, displayedSubmissions),
+                          if (controller.isPaginatedView.value && totalPages > 1)
+                            _buildPaginationControls(totalPages),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              }),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Text(
-              'NutriTrack',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-                color: Colors.black,
-                letterSpacing: -0.5,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.only(left: 24, right: 24, top: 16, bottom: 24),
+      decoration: const BoxDecoration(
+        color: Color(0xFF2E7D32), 
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(22),
+          bottomRight: Radius.circular(22),
+         ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              Text(
+                'NutriTrack',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  letterSpacing: -0.5,
+                ),
               ),
-            ),
-            Text(
-              'Admin Panel',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey,
-                fontWeight: FontWeight.w500,
+              SizedBox(height: 4),
+              Text(
+                'Admin Panel',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            ),
-          ],
-        ),
-        _buildNotificationIcon(),
-      ],
+            ],
+          ),
+          _buildNotificationIcon(),
+        ],
+      ),
     );
   }
 
@@ -150,13 +179,13 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: Colors.white,
+            
+            color: Colors.white.withValues(alpha: 0.15),
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.grey.shade200),
           ),
           child: const Icon(
             Icons.notifications_outlined,
-            color: Colors.black54,
+            color: Colors.white,
             size: 22,
           ),
         ),
@@ -167,9 +196,10 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
             width: 8,
             height: 8,
             decoration: BoxDecoration(
-              color: Colors.red,
+              color: Colors.orange,
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 1.5),
+              border: Border.all(color: const Color(0xFF2E7D32), width: 1.5),
+            
             ),
           ),
         ),
@@ -199,7 +229,7 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Halo, Admin! 👋',
+                'Halo, Admin!',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
