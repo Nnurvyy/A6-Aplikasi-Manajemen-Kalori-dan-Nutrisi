@@ -456,6 +456,7 @@ class _DashboardBodyState extends State<DashboardBody> {
   // ─── KALORI CARD ──────────────────────────────────────────────────────────
   Widget _buildKaloriCard() {
     final pct = _controller.kaloriPercentage;
+    final isOver = _controller.kaloriConsumed > _controller.kaloriTarget;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: Container(
@@ -463,10 +464,14 @@ class _DashboardBodyState extends State<DashboardBody> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFC8E6C9), width: 1.5),
+          border: Border.all(
+            color: isOver ? const Color(0xFFEF9A9A) : const Color(0xFFC8E6C9),
+            width: 1.5,
+          ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF4CAF50).withValues(alpha: 0.10),
+              color: (isOver ? const Color(0xFFE53935) : const Color(0xFF4CAF50))
+                  .withValues(alpha: 0.10),
               blurRadius: 12,
               offset: const Offset(0, 2),
             ),
@@ -476,19 +481,48 @@ class _DashboardBodyState extends State<DashboardBody> {
           children: [
             _buildBatteryBar(pct),
             const SizedBox(height: 14),
-            const Text(
-              'Kalori',
+            Text(
+              isOver ? 'Kalori Tercapai' : 'Kalori',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF2E7D32),
+                color: isOver ? const Color(0xFFE53935) : const Color(0xFF2E7D32),
               ),
             ),
             const SizedBox(height: 4),
             Text(
               '${_controller.kaloriConsumed.toInt()} / ${_controller.kaloriTarget.toInt()} kkal',
-              style: const TextStyle(fontSize: 13, color: Color(0xFF5A7A5A)),
+              style: TextStyle(
+                fontSize: 13,
+                color: isOver ? const Color(0xFFE57373) : const Color(0xFF5A7A5A),
+              ),
             ),
+            if (isOver) ...[
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFEBEE),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.warning_amber_rounded,
+                        color: Color(0xFFE53935), size: 14),
+                    const SizedBox(width: 5),
+                    Text(
+                      'Melebihi target ${(_controller.kaloriConsumed - _controller.kaloriTarget).toInt()} kkal',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFFE53935),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -496,8 +530,18 @@ class _DashboardBodyState extends State<DashboardBody> {
   }
 
   Widget _buildBatteryBar(double percentage) {
+    final double rawPct = _controller.kaloriConsumed / _controller.kaloriTarget;
     final bool isCompleted = percentage >= 1.0;
+    final bool isOver = rawPct > 1.0;
     final displayPercentage = percentage > 1.0 ? 1.0 : percentage;
+
+    final List<Color> fillColors = isOver
+        ? [const Color(0xFFEF5350), const Color(0xFFB71C1C)]
+        : [const Color(0xFF4CAF50), const Color(0xFF2E7D32)];
+
+    final Color borderColor = isOver
+        ? const Color(0xFFE53935)
+        : const Color(0xFF2E7D32);
 
     return IntrinsicHeight(
       child: Padding(
@@ -510,17 +554,10 @@ class _DashboardBodyState extends State<DashboardBody> {
               decoration: BoxDecoration(
                 color: const Color(0xFFE8F5E9),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFF2E7D32), width: 2),
-                boxShadow:
-                    isCompleted
-                        ? [
-                          BoxShadow(
-                            color: const Color(0xFF2E7D32).withValues(alpha: 0.3),
-                            blurRadius: 10,
-                            spreadRadius: 2,
-                          ),
-                        ]
-                        : [],
+                border: Border.all(color: borderColor, width: 2),
+                boxShadow: isCompleted
+                    ? [BoxShadow(color: borderColor.withValues(alpha: 0.3), blurRadius: 10, spreadRadius: 2)]
+                    : [],
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(isCompleted ? 11 : 12),
@@ -532,8 +569,8 @@ class _DashboardBodyState extends State<DashboardBody> {
                         alignment: Alignment.centerLeft,
                         child: Container(
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
+                            gradient: LinearGradient(
+                              colors: fillColors,
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
@@ -552,17 +589,21 @@ class _DashboardBodyState extends State<DashboardBody> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              isCompleted
-                                  ? Icons.check_circle_rounded
-                                  : Icons.local_fire_department,
-                              color: isCompleted ? Colors.white : Colors.white,
+                              isOver
+                                  ? Icons.warning_amber_rounded
+                                  : isCompleted
+                                      ? Icons.check_circle_rounded
+                                      : Icons.local_fire_department,
+                              color: Colors.white,
                               size: 24,
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              isCompleted
-                                  ? 'Target Tercapai!'
-                                  : '${(percentage * 100).toInt()}%',
+                              isOver
+                                  ? 'Kalori Tercapai!'
+                                  : isCompleted
+                                      ? 'Target Tercapai!'
+                                      : '${(percentage * 100).toInt()}%',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 18,
@@ -583,17 +624,11 @@ class _DashboardBodyState extends State<DashboardBody> {
             width: 8,
             height: 48,
             decoration: BoxDecoration(
-              color: const Color(0xFF2E7D32),
+              color: borderColor,
               borderRadius: BorderRadius.circular(4),
-              boxShadow:
-                  isCompleted
-                      ? [
-                        BoxShadow(
-                          color: const Color(0xFF2E7D32).withValues(alpha: 0.3),
-                          blurRadius: 4,
-                        ),
-                      ]
-                      : [],
+              boxShadow: isCompleted
+                  ? [BoxShadow(color: borderColor.withValues(alpha: 0.3), blurRadius: 4)]
+                  : [],
             ),
           ),
         ],
