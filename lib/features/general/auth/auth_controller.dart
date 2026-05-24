@@ -29,6 +29,30 @@ class AuthController extends ChangeNotifier {
     return HiveService.settings.get(key) != null;
   }
 
+  /// True apabila sudah pernah ada anak yang didaftarkan.
+  /// Dipakai navbar untuk mengaktifkan shortcut double-tap profil.
+  bool get hasRegisteredChild => hasMonitoredUser;
+
+  /// Aktifkan mode pantau dari data yang sudah tersimpan di Hive,
+  /// tanpa perlu scan QR ulang. Dipanggil saat double-tap ikon profil.
+  void startMonitoringExisting() {
+    if (_monitoredUser != null) {
+      _isMonitoringActive = true;
+      notifyListeners();
+    } else {
+      final key = 'monitored_user_id_${_currentUser?.id}';
+      final monitoredId = HiveService.settings.get(key) as String?;
+      if (monitoredId != null) {
+        final saved = HiveService.users.get(monitoredId);
+        if (saved != null) {
+          _monitoredUser = saved;
+          _isMonitoringActive = true;
+          notifyListeners();
+        }
+      }
+    }
+  }
+
   Future<bool> startMonitoring(String uid) async {
     _setLoading(true);
     _errorMessage = null;
