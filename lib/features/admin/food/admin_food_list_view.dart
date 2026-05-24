@@ -47,7 +47,7 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
   void _navigateToDetail(FoodModel food) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => FoodDetailView(food: food)),
+      MaterialPageRoute(builder: (context) => FoodDetailView(food: food, isReadOnly: true)),
     );
   }
 

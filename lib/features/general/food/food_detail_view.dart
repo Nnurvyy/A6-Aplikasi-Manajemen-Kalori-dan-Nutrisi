@@ -16,8 +16,9 @@ class FoodDetailView extends StatefulWidget {
   final FoodModel food;
   final LogModel? initialLog;
   final bool isManual;
+  final bool isReadOnly;
 
-  const FoodDetailView({super.key, required this.food, this.initialLog, this.isManual = false});
+  const FoodDetailView({super.key, required this.food, this.initialLog, this.isManual = false, this.isReadOnly = false});
 
   @override
   State<FoodDetailView> createState() => _FoodDetailViewState();
@@ -142,12 +143,15 @@ class _FoodDetailViewState extends State<FoodDetailView> {
               onPressed: () => Navigator.pop(context),
             ),
             actions: [
-              if (widget.initialLog != null)
+              
+              if (widget.initialLog != null && !widget.isReadOnly)
+
                 IconButton(
                   icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
                   onPressed: () => _deleteLog(context),
                 ),
-              if (userId != null)
+              
+              if (userId != null && !widget.isReadOnly)
                 IconButton(
                   icon: Icon(
                     isSaved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
@@ -171,7 +175,7 @@ class _FoodDetailViewState extends State<FoodDetailView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildTitleAndMetadata(isDark),
+                  _buildTitleAndMetadata(isDark, totalGrams),
                   const SizedBox(height: 32),
                   _buildMainCalorieCard(nutrition['calories']!, isDark),
                   const SizedBox(height: 24),
@@ -179,33 +183,42 @@ class _FoodDetailViewState extends State<FoodDetailView> {
                   const SizedBox(height: 40),
 
                   // ─── Ingredient Sliders ───
-                  Text(
-                    'Porsi Masing-masing Bahan',
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                  
+                  
+                  if (!widget.isReadOnly || _ingredientWeights.length > 1) ...[
+                    Text(
+                      widget.isReadOnly ? 'Informasi Detail Bahan' : 'Porsi Masing-masing Bahan',
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  ...List.generate(_ingredientWeights.length, (idx) {
-                    final ing = _ingredientWeights[idx];
-                    return _buildIngredientSlider(idx, ing, isDark);
-                  }),
+                    const SizedBox(height: 16),
+                    ...List.generate(_ingredientWeights.length, (idx) {
+                      final ing = _ingredientWeights[idx];
+                      return _buildIngredientSlider(idx, ing, isDark);
+                    }),
+                  ],
 
+                  
+                if (!widget.isReadOnly) ...[
                   const SizedBox(height: 24),
                   _buildQuantityStepper(isDark),
-                  
+                ],
+
                   if (widget.food.description != null) _buildDescription(isDark),
 
-                  const SizedBox(height: 120),
+                  SizedBox(height: widget.isReadOnly ? 40 : 120),
                 ],
               ),
             ),
           ),
         ],
       ),
-      bottomSheet: _buildBottomBar(auth, nutrition, totalGrams, isDark),
+      
+      
+      bottomSheet: widget.isReadOnly ? null : _buildBottomBar(auth, nutrition, totalGrams, isDark),
     );
   }
 
@@ -244,32 +257,36 @@ class _FoodDetailViewState extends State<FoodDetailView> {
               ),
             ],
           ),
-          SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              activeTrackColor: AppColors.primary,
-              inactiveTrackColor: AppColors.primary.withValues(alpha: 0.1),
-              thumbColor: AppColors.primary,
-              overlayColor: AppColors.primary.withValues(alpha: 0.2),
-              trackHeight: 4,
+
+          if (!widget.isReadOnly) ...[
+            SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                activeTrackColor: AppColors.primary,
+                inactiveTrackColor: AppColors.primary.withValues(alpha: 0.1),
+                thumbColor: AppColors.primary,
+                overlayColor: AppColors.primary.withValues(alpha: 0.2),
+                trackHeight: 4,
+              ),
+              child: Slider(
+                value: (ing['grams'] as double).clamp(0, 2000),
+                min: 0,
+                max: 1000,
+                divisions: 200,
+                onChanged: (val) => _updateIngredientNutrition(index, val),
+              ),
             ),
-            child: Slider(
-              value: (ing['grams'] as double).clamp(0, 2000),
-              min: 0,
-              max: 1000,
-              divisions: 200,
-              onChanged: (val) => _updateIngredientNutrition(index, val),
+
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _smallNutriLabel('${(ing['calories'] as double).round()} kkal', Colors.orange),
+                _smallNutriLabel('P ${(ing['protein'] as double).round()}g', Colors.red),
+                _smallNutriLabel('K ${(ing['carbs'] as double).round()}g', Colors.amber),
+                _smallNutriLabel('L ${(ing['fat'] as double).round()}g', Colors.blue),
+              ],
             ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _smallNutriLabel('${(ing['calories'] as double).round()} kkal', Colors.orange),
-              _smallNutriLabel('P ${(ing['protein'] as double).round()}g', Colors.red),
-              _smallNutriLabel('K ${(ing['carbs'] as double).round()}g', Colors.amber),
-              _smallNutriLabel('L ${(ing['fat'] as double).round()}g', Colors.blue),
-            ],
-          ),
+          ],
         ],
       ),
     );
@@ -302,7 +319,7 @@ class _FoodDetailViewState extends State<FoodDetailView> {
           );
   }
 
-  Widget _buildTitleAndMetadata(bool isDark) {
+  Widget _buildTitleAndMetadata(bool isDark, double totalGrams) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -318,7 +335,10 @@ class _FoodDetailViewState extends State<FoodDetailView> {
         Row(
           children: [
             Text(
-              widget.food.category,
+              widget.isReadOnly
+              ? '${widget.food.category ?? '-'} • 1 Porsi (${totalGrams.round()} gram)'
+              : (widget.food.category ?? '-'),
+              
               style: GoogleFonts.poppins(
                 fontSize: 12,
                 color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,

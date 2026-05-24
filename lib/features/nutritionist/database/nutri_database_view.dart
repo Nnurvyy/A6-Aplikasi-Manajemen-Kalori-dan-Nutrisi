@@ -55,7 +55,7 @@ class _NutritionistFoodDatabaseViewState extends State<NutritionistFoodDatabaseV
   void _navigateToDetail(FoodModel food) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => FoodDetailView(food: food)),
+      MaterialPageRoute(builder: (context) => FoodDetailView(food: food, isReadOnly: true)),
     );
   }
 
