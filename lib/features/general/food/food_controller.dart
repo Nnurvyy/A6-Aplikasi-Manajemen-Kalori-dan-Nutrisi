@@ -15,25 +15,33 @@ class FoodController extends ChangeNotifier {
   String _selectedCategory = 'Semua';
   bool _isLoading = false;
 
-
   List<LogModel> getUserLogs(String userId) {
     return HiveService.logs.values
         .cast<LogModel>()
         .where((log) => log.userId == userId)
         .toList();
   }
+
   List<FoodModel> get foods => _filtered;
   List<FoodModel> get allApproved =>
       _allFoods.where((f) => f.isApproved && (f.userId == null)).toList();
-  
+
   List<FoodModel> get manualFoods =>
       _allFoods.where((f) => f.id.startsWith('manual_')).toList();
+
   String get searchQuery => _searchQuery;
   String get selectedCategory => _selectedCategory;
   bool get isLoading => _isLoading;
 
   static const List<String> categories = [
-    'Semua', 'Makanan Pokok', 'Lauk', 'Sayuran', 'Buah', 'Minuman', 'Snack', 'Lainnya'
+    'Semua',
+    'Makanan Pokok',
+    'Lauk',
+    'Sayuran',
+    'Buah',
+    'Minuman',
+    'Snack',
+    'Lainnya',
   ];
 
   FoodController() {
@@ -41,9 +49,11 @@ class FoodController extends ChangeNotifier {
   }
 
   void loadFromLocal({String? userId}) {
-    _allFoods = HiveService.foods.values.cast<FoodModel>()
-        .where((f) => f.userId == null || f.userId == userId)
-        .toList();
+    _allFoods =
+        HiveService.foods.values
+            .cast<FoodModel>()
+            .where((f) => f.userId == null || f.userId == userId)
+            .toList();
     _applyFilter();
   }
 
@@ -52,11 +62,13 @@ class FoodController extends ChangeNotifier {
     notifyListeners();
     try {
       // 1. Fetch Approved/Global foods
-      final approvedSnapshot = await _db.collection('foods')
-          .where('isApproved', isEqualTo: true)
-          .where('userId', isNull: true)
-          .get();
-      
+      final approvedSnapshot =
+          await _db
+              .collection('foods')
+              .where('isApproved', isEqualTo: true)
+              .where('userId', isNull: true)
+              .get();
+
       for (var doc in approvedSnapshot.docs) {
         final food = FoodModel.fromFirestore(doc.data(), doc.id);
         await HiveService.foods.put(food.id, food);
@@ -64,19 +76,21 @@ class FoodController extends ChangeNotifier {
 
       // 2. Fetch User-specific foods if userId provided
       if (userId != null) {
-        final userSnapshot = await _db.collection('foods')
-            .where('userId', isEqualTo: userId)
-            .get();
-            
+        final userSnapshot =
+            await _db
+                .collection('foods')
+                .where('userId', isEqualTo: userId)
+                .get();
+
         for (var doc in userSnapshot.docs) {
           final food = FoodModel.fromFirestore(doc.data(), doc.id);
           await HiveService.foods.put(food.id, food);
         }
       }
-      
-      loadFromLocal(userId: userId); 
 
-      // Juga sinkronkan pending logs (upload)
+      loadFromLocal(userId: userId);
+
+      // Sinkronkan pending logs
       await FoodLogSyncService.syncPendingLogs();
     } catch (e) {
       debugPrint("Sync Error: $e");
@@ -86,16 +100,16 @@ class FoodController extends ChangeNotifier {
     }
   }
 
-
   double totalCaloriesToday(String userId) {
     return getUserLogs(userId).fold(0, (total, item) => total + item.calories);
   }
 
   void loadFoods({bool approvedOnly = true, String? userId}) {
     var all = HiveService.foods.values.cast<FoodModel>().toList();
-    
-    // Ensure Air Putih exists and remove duplicates
-    final waterList = all.where((f) => f.name.toLowerCase().trim() == 'air putih').toList();
+
+    // Pastikan Air Putih ada dan tidak duplikat
+    final waterList =
+        all.where((f) => f.name.toLowerCase().trim() == 'air putih').toList();
     if (waterList.isEmpty) {
       final water = FoodModel(
         id: 'default_water',
@@ -105,18 +119,18 @@ class FoodController extends ChangeNotifier {
         protein: 0,
         carbs: 0,
         fat: 0,
-        defaultServingSize: 250, // 1 gelas
+        defaultServingSize: 250,
         isApproved: true,
         createdAt: DateTime.now(),
       );
       HiveService.foods.put(water.id, water);
       all.add(water);
     } else if (waterList.length > 1) {
-      // Remove duplicates, keep only one (prefer default_water)
-      final toKeep = waterList.any((f) => f.id == 'default_water') 
-          ? waterList.firstWhere((f) => f.id == 'default_water')
-          : waterList.first;
-      
+      final toKeep =
+          waterList.any((f) => f.id == 'default_water')
+              ? waterList.firstWhere((f) => f.id == 'default_water')
+              : waterList.first;
+
       for (var f in waterList) {
         if (f.id != toKeep.id) {
           HiveService.foods.delete(f.id);
@@ -125,10 +139,15 @@ class FoodController extends ChangeNotifier {
       }
     }
 
-    _allFoods = all
-        .where((f) => (!approvedOnly || f.isApproved) && (f.userId == null || f.userId == userId))
-        .toList()
-      ..sort((a, b) => a.name.compareTo(b.name));
+    _allFoods =
+        all
+            .where(
+              (f) =>
+                  (!approvedOnly || f.isApproved) &&
+                  (f.userId == null || f.userId == userId),
+            )
+            .toList()
+          ..sort((a, b) => a.name.compareTo(b.name));
     _applyFilter();
   }
 
@@ -161,33 +180,39 @@ class FoodController extends ChangeNotifier {
       list = list.where((f) => f.category == _selectedCategory).toList();
     }
     if (_searchQuery.isNotEmpty) {
-      list = list
-          .where((f) =>
-              f.name.toLowerCase().contains(_searchQuery.toLowerCase()))
-          .toList();
+      list =
+          list
+              .where(
+                (f) =>
+                    f.name.toLowerCase().contains(_searchQuery.toLowerCase()),
+              )
+              .toList();
     }
     _filtered = list;
     notifyListeners();
   }
 
-
   Future<void> addFood(FoodModel food) async {
-    food.isSynced = false; 
+    food.isSynced = false;
     await HiveService.foods.put(food.id, food);
-    
-    _searchQuery = ''; 
+
+    _searchQuery = '';
 
     loadFromLocal(userId: food.userId);
 
-    _db.collection('foods').doc(food.id).set(food.toFirestore()).then((_) async {
-      food.isSynced = true;
-      await HiveService.foods.put(food.id, food);
-      loadFromLocal(userId: food.userId);
-      debugPrint("Berhasil sinkron ke Firebase!");
-    }).catchError((error) {
-      debugPrint("Gagal sinkron ke Firebase: $error");
-    });
-
+    _db
+        .collection('foods')
+        .doc(food.id)
+        .set(food.toFirestore())
+        .then((_) async {
+          food.isSynced = true;
+          await HiveService.foods.put(food.id, food);
+          loadFromLocal(userId: food.userId);
+          debugPrint("Berhasil sinkron ke Firebase!");
+        })
+        .catchError((error) {
+          debugPrint("Gagal sinkron ke Firebase: $error");
+        });
   }
 
   Future<void> updateFood(FoodModel food) async {
@@ -196,18 +221,21 @@ class FoodController extends ChangeNotifier {
 
     loadFromLocal(userId: food.userId);
 
-    
-    _db.collection('foods').doc(food.id).set(food.toFirestore(), SetOptions(merge: true)).then((_) async {
-      food.isSynced = true;
-      await HiveService.foods.put(food.id, food);
-      loadFromLocal(userId: food.userId);
-    }).catchError((e) {
-      debugPrint("Cloud Update Error: $e");
-    });
+    _db
+        .collection('foods')
+        .doc(food.id)
+        .set(food.toFirestore(), SetOptions(merge: true))
+        .then((_) async {
+          food.isSynced = true;
+          await HiveService.foods.put(food.id, food);
+          loadFromLocal(userId: food.userId);
+        })
+        .catchError((e) {
+          debugPrint("Cloud Update Error: $e");
+        });
   }
 
   Future<void> deleteFood(String id) async {
-  
     final foodToDelete = findById(id);
     final currentUserId = foodToDelete?.userId;
 
@@ -219,7 +247,6 @@ class FoodController extends ChangeNotifier {
       debugPrint("Cloud Delete Error: $e");
     });
   }
-
 
   FoodModel? findById(String id) => HiveService.foods.get(id);
 
@@ -271,32 +298,32 @@ class FoodController extends ChangeNotifier {
       quantity: quantity,
     );
 
-    
     await HiveService.logs.put(newLog.id, newLog);
 
     notifyListeners();
 
     FoodLogSyncService.saveLog(newLog, onSynced: () => notifyListeners());
 
-    return true; 
+    return true;
   }
 
   Future<void> updateLog(LogModel log) async {
-    log.syncStatus = 'pending'; 
+    log.syncStatus = 'pending';
     await HiveService.logs.put(log.id, log);
     notifyListeners();
-    
+
     FoodLogSyncService.saveLog(log, onSynced: () => notifyListeners());
   }
 
   Future<void> deleteManualFood(String userId, String foodName) async {
-    final keysToDelete = HiveService.logs.keys.where((key) {
-      final log = HiveService.logs.get(key);
-      return log is LogModel && 
-             log.userId == userId && 
-             log.foodName.toLowerCase() == foodName.toLowerCase() && 
-             log.isManual;
-    }).toList();
+    final keysToDelete =
+        HiveService.logs.keys.where((key) {
+          final log = HiveService.logs.get(key);
+          return log is LogModel &&
+              log.userId == userId &&
+              log.foodName.toLowerCase() == foodName.toLowerCase() &&
+              log.isManual;
+        }).toList();
 
     for (var key in keysToDelete) {
       await HiveService.logs.delete(key);
@@ -304,14 +331,19 @@ class FoodController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> updateManualFood(String userId, String oldName, LogModel updatedTemplate) async {
-    final keysToUpdate = HiveService.logs.keys.where((key) {
-      final log = HiveService.logs.get(key);
-      return log is LogModel && 
-             log.userId == userId && 
-             log.foodName.toLowerCase() == oldName.toLowerCase() && 
-             log.isManual;
-    }).toList();
+  Future<void> updateManualFood(
+    String userId,
+    String oldName,
+    LogModel updatedTemplate,
+  ) async {
+    final keysToUpdate =
+        HiveService.logs.keys.where((key) {
+          final log = HiveService.logs.get(key);
+          return log is LogModel &&
+              log.userId == userId &&
+              log.foodName.toLowerCase() == oldName.toLowerCase() &&
+              log.isManual;
+        }).toList();
 
     for (var key in keysToUpdate) {
       final oldLog = HiveService.logs.get(key) as LogModel;
@@ -332,7 +364,6 @@ class FoodController extends ChangeNotifier {
   }
 
   Future<void> updateSpecificLog(LogModel updatedLog) async {
-    
     await HiveService.logs.put(updatedLog.id, updatedLog);
 
     if (await FoodLogSyncService.isOnline()) {
@@ -350,8 +381,11 @@ class FoodController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> deleteLog(String logId, {BuildContext? context, String? foodName}) async {
-    
+  Future<void> deleteLog(
+    String logId, {
+    BuildContext? context,
+    String? foodName,
+  }) async {
     await HiveService.logs.delete(logId);
 
     notifyListeners();
@@ -364,10 +398,12 @@ class FoodController extends ChangeNotifier {
       final now = DateTime.now();
       debugPrint("Syncing logs from Firebase for user $userId...");
       int totalSynced = 0;
-      // Sync last 2 months to be safe
       for (int i = 0; i < 2; i++) {
         final monthDate = DateTime(now.year, now.month - i, 1);
-        final remoteLogs = await FoodLogFirestoreService.getLogsByMonth(userId, monthDate);
+        final remoteLogs = await FoodLogFirestoreService.getLogsByMonth(
+          userId,
+          monthDate,
+        );
         totalSynced += remoteLogs.length;
         for (final log in remoteLogs) {
           await HiveService.logs.put(log.id, log);

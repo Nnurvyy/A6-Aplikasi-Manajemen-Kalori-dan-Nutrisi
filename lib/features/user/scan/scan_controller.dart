@@ -115,13 +115,13 @@ class ScanController extends ChangeNotifier {
     for (var det in _detections) {
       final String tag = det['tag'];
 
-      // ⭐ 1. Priority: komposisi manual user
+      // ⭐ 1. Priority: komposisi manual user (hanya milik user ini)
       final manualFood = HiveService.foods.values
           .cast<FoodModel>()
           .where(
             (f) =>
                 f.isManualIngredient &&
-                (f.userId == null || f.userId == _currentUserId),
+                f.userId == _currentUserId, // Fix: hanya milik user ini
           )
           .firstWhere(
             (f) => f.name.toLowerCase() == tag.toLowerCase(),
