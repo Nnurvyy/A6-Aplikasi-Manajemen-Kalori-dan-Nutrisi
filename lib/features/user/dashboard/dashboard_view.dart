@@ -841,20 +841,9 @@ class _DashboardBodyState extends State<DashboardBody> {
   // ─────────────────────────────────────────────────────────────
 
   Color _dynamicFillColor(NutrisiItem item) {
-    final allowOver = item.name != 'Air';
-
-    final state = nutritionState(
-      item.consumed,
-      item.target,
-      allowOverConsume: allowOver,
-    );
-
     final intensity = item.percentage.clamp(0.0, 1.0);
 
-    if (state == NutritionState.danger) {
-      return _dangerRed();
-    }
-
+    // Fill selalu menggunakan warna asli nutrisi — tidak berubah merah saat over
     return Color.lerp(
       item.bgColor,
       item.fillColor,
@@ -863,24 +852,9 @@ class _DashboardBodyState extends State<DashboardBody> {
   }
 
   Color _dynamicBorderColor(NutrisiItem item) {
-    final allowOver = item.name != 'Air';
-
-    final state = nutritionState(
-      item.consumed,
-      item.target,
-      allowOverConsume: allowOver,
-    );
-
     final intensity = item.percentage.clamp(0.0, 1.0);
 
-    if (state == NutritionState.danger) {
-      return _dangerRed();
-    }
-
-    if (state == NutritionState.warning) {
-      return const Color(0xFF7A8D7B);
-    }
-
+    // Border selalu menggunakan warna asli nutrisi — tidak berubah merah saat over
     return Color.lerp(
       item.borderColor.withValues(alpha: 0.35),
       item.borderColor,
@@ -899,19 +873,10 @@ class _DashboardBodyState extends State<DashboardBody> {
   }
 
   Widget _buildMiniBattery(NutrisiItem item) {
-    final allowOver = item.name != 'Air';
-
-    final state = nutritionState(
-      item.consumed,
-      item.target,
-      allowOverConsume: allowOver,
-    );
-
-    final bool isWarning = state == NutritionState.warning;
-    final bool isDanger = state == NutritionState.danger;
+    // Icon warning muncul saat consumed > 110% dari target
+    final bool showWarningIcon = item.rawPercentage > 1.10;
 
     final displayPct = item.percentage.clamp(0.0, 1.0);
-
     final Color dynBorder = _dynamicBorderColor(item);
     final Color dynFill = _dynamicFillColor(item);
     final Color dynIcon = _dynamicIconColor(item);
@@ -947,18 +912,10 @@ class _DashboardBodyState extends State<DashboardBody> {
 
                 border: Border.all(
                   color: dynBorder,
-                  width: isWarning || isDanger ? 2.5 : 2,
+                  width: 2,
                 ),
 
-                boxShadow: isDanger
-                    ? [
-                        BoxShadow(
-                          color: _dangerRed().withValues(alpha: 0.20),
-                          blurRadius: 6,
-                          spreadRadius: 1,
-                        ),
-                      ]
-                    : [],
+                boxShadow: [],
               ),
 
               child: ClipRRect(
@@ -980,11 +937,11 @@ class _DashboardBodyState extends State<DashboardBody> {
                     ),
 
                     Center(
-                      child: isDanger
+                      child: showWarningIcon
                           ? const Icon(
                               Icons.warning_amber_rounded,
                               color: Colors.white,
-                              size: 18,
+                              size: 20,
                             )
                           : Icon(
                               item.icon,
