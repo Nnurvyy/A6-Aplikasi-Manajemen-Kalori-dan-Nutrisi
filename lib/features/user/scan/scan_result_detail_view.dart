@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
+import 'dart:typed_data';
 import '../../../helpers/app_colors.dart';
 import '../../general/food/models/food_model.dart';
 import '../../general/auth/auth_controller.dart';
@@ -10,10 +11,12 @@ import '../../general/widgets/nt_button.dart';
 import 'package:intl/intl.dart';
 import '../../general/food/watchlist_controller.dart';
 import '../../../helpers/date_controller.dart';
+import '../../../services/offline_storage_service.dart';
 
 class ScanResultDetailView extends StatefulWidget {
   final FoodModel food;
   final File? imageFile;
+  final Uint8List? processedImageBytes;
 
   final int? initialQuantity;
 
@@ -21,6 +24,7 @@ class ScanResultDetailView extends StatefulWidget {
     super.key,
     required this.food,
     this.imageFile,
+    this.processedImageBytes,
     this.initialQuantity,
   });
 
@@ -320,12 +324,20 @@ class _ScanResultDetailViewState extends State<ScanResultDetailView> {
             const SizedBox(width: 16),
             Expanded(
               child: NtButton(
-                label: 'Simpan ke Log',
+                label: 'Simpan',
                 onPressed: () async {
                   final userId = context.read<AuthController>().currentUser?.id;
                   if (userId == null) return;
                   
                   final foodCtrl = context.read<FoodController>();
+
+                  // Simpan image ke offline storage
+                  String? localFileName;
+                  if (widget.processedImageBytes != null) {
+                    localFileName = await OfflineStorageService.saveLocalImage(widget.processedImageBytes!);
+                  } else if (widget.imageFile != null) {
+                    localFileName = await OfflineStorageService.saveLocalImage(await widget.imageFile!.readAsBytes());
+                  }
 
                   bool success = await foodCtrl.addFoodToDailyLog(
                     userId: userId,
@@ -338,10 +350,19 @@ class _ScanResultDetailViewState extends State<ScanResultDetailView> {
                     mealType: '',
                     dateConsumed: context.read<DateController>().selectedDate,
                     servingSize: _currentGrams * _quantity,
+                    imageUrl: localFileName,
                   );
 
                   if (mounted) {
                     if (success) {
+                      // Upload ke Cloudinary di background
+                      if (localFileName != null) {
+                        final logs = foodCtrl.getUserLogs(userId);
+                        if (logs.isNotEmpty) {
+                          OfflineStorageService.uploadAndSyncToFirebase(localFileName, userId, logs.last);
+                        }
+                      }
+
                       Navigator.pop(context); // Close detail
                       Navigator.pop(context); // Close scan view
                       ScaffoldMessenger.of(context).showSnackBar(

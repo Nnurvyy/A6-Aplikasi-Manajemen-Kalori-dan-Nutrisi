@@ -5,6 +5,7 @@ import './models/watchlist_model.dart';
 import './food_detail_view.dart';
 import '../auth/auth_controller.dart';
 import 'dart:io';
+import '../../../services/offline_storage_service.dart';
 
 class WatchlistView extends StatefulWidget {
   const WatchlistView({super.key});
@@ -236,19 +237,31 @@ class _WatchlistViewState extends State<WatchlistView> {
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: food.imageUrl != null
-                  ? (food.imageUrl!.startsWith('http')
-                      ? Image.network(
-                          food.imageUrl!,
-                          width: 50, height: 50,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _buildAvatar(food.name, accentColor),
-                        )
-                      : Image.file(
-                          File(food.imageUrl!),
-                          width: 50, height: 50,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _buildAvatar(food.name, accentColor),
-                        ))
+                  ? FutureBuilder<File?>(
+                      future: OfflineStorageService.getImageFile(food.imageUrl!),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return Container(
+                            color: accentColor.withValues(alpha: 0.1),
+                            child: const Center(
+                              child: SizedBox(
+                                width: 20, height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            ),
+                          );
+                        }
+                        if (snapshot.hasData && snapshot.data != null) {
+                          return Image.file(
+                            snapshot.data!,
+                            width: 50, height: 50,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _buildAvatar(food.name, accentColor),
+                          );
+                        }
+                        return _buildAvatar(food.name, accentColor);
+                      },
+                    )
                   : _buildAvatar(food.name, accentColor),
             ),
             const SizedBox(width: 14),

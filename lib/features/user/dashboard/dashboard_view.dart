@@ -8,6 +8,8 @@ import './dashboard_controller.dart';
 import '../../general/food/food_controller.dart';
 import '../../general/food/models/log_model.dart';
 import '../../../helpers/date_controller.dart';
+import '../../../helpers/app_colors.dart';
+import '../../../services/offline_storage_service.dart';
 
 import '../../general/food/food_detail_view.dart';
 import '../../general/food/models/food_model.dart';
@@ -1054,24 +1056,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                   color: accentColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child:
-                    item.imageUrl != null
-                        ? (item.imageUrl!.startsWith('http')
-                            ? Image.network(
-                              item.imageUrl!,
-                              fit: BoxFit.cover,
-                              errorBuilder:
-                                  (_, __, ___) =>
-                                      _buildHistoryAvatar(item, accentColor),
-                            )
-                            : Image.file(
-                              File(item.imageUrl!),
-                              fit: BoxFit.cover,
-                              errorBuilder:
-                                  (_, __, ___) =>
-                                      _buildHistoryAvatar(item, accentColor),
-                            ))
-                        : _buildHistoryAvatar(item, accentColor),
+                child: _buildHistoryAvatar(item, accentColor),
               ),
             ),
             const SizedBox(width: 12),
@@ -1229,15 +1214,37 @@ class _DashboardBodyState extends State<DashboardBody> {
 
 
   Widget _buildHistoryAvatar(LogModel item, Color accentColor) {
-    if (item.imageUrl != null && File(item.imageUrl!).existsSync()) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Image.file(File(item.imageUrl!), fit: BoxFit.cover),
+    if (item.imageUrl != null && item.imageUrl!.isNotEmpty) {
+      return FutureBuilder<File?>(
+        future: OfflineStorageService.getImageFile(item.imageUrl),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: SizedBox(
+                width: 16, height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.grey),
+              )
+            );
+          }
+          if (snapshot.hasData && snapshot.data != null) {
+            return Image.file(snapshot.data!, fit: BoxFit.cover, width: 46, height: 46);
+          }
+          return Center(
+            child: Text(
+              item.foodName.isNotEmpty ? item.foodName[0].toUpperCase() : '?',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: accentColor,
+              ),
+            ),
+          );
+        },
       );
     }
     return Center(
       child: Text(
-        item.foodName[0].toUpperCase(),
+        item.foodName.isNotEmpty ? item.foodName[0].toUpperCase() : '?',
         style: TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.w800,

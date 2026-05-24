@@ -374,7 +374,7 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
                   _sectionCard(
                     icon: Icons.kitchen_rounded,
                     title: 'Komposisi Bahan (Opsional)',
-                    subtitle: 'Tambah bahan untuk menghitung nutrisi otomatis',
+                    subtitle: 'Tambah bahan untuk menghitung nutrisi',
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [

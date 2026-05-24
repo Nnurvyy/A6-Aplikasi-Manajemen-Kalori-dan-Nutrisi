@@ -37,28 +37,37 @@ class _ScanFoodViewState extends State<ScanFoodView> {
           // ─── Image Display & Painter ───
           if (ctrl.selectedImage != null)
             Positioned.fill(
-              child: Center(
-                child: FittedBox(
-                  fit: BoxFit.contain,
-                  child: SizedBox(
-                    width: ctrl.uiImage?.width.toDouble() ?? 640,
-                    height: ctrl.uiImage?.height.toDouble() ?? 640,
-                    child: Stack(
-                      children: [
-                        Image.file(ctrl.selectedImage!),
-                        if (ctrl.hasResult)
-                          CustomPaint(
-                            size: Size(
-                              ctrl.uiImage?.width.toDouble() ?? 640,
-                              ctrl.uiImage?.height.toDouble() ?? 640,
+              child: Container(
+                width: double.infinity,
+                height: double.infinity,
+                color: Colors.black,
+                child: Center(
+                  child: FittedBox(
+                    fit: BoxFit.contain,
+                    child: SizedBox(
+                      width: ctrl.uiImage?.width.toDouble() ?? 640,
+                      height: ctrl.uiImage?.height.toDouble() ?? 640,
+                      child: Stack(
+                        children: [
+                          if (ctrl.processedImageBytes != null)
+                            Image.memory(ctrl.processedImageBytes!, fit: BoxFit.contain)
+                          else
+                            Image.file(ctrl.selectedImage!, fit: BoxFit.contain),
+                          
+                          if (ctrl.hasResult)
+                            CustomPaint(
+                              size: Size(
+                                ctrl.uiImage?.width.toDouble() ?? 640,
+                                ctrl.uiImage?.height.toDouble() ?? 640,
+                              ),
+                              painter: YoloPainter(
+                                detections: ctrl.detections,
+                                imageHeight: ctrl.uiImage?.height ?? 640,
+                                imageWidth: ctrl.uiImage?.width ?? 640,
+                              ),
                             ),
-                            painter: YoloPainter(
-                              detections: ctrl.detections,
-                              imageHeight: ctrl.uiImage?.height ?? 640,
-                              imageWidth: ctrl.uiImage?.width ?? 640,
-                            ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -148,6 +157,7 @@ class _ScanFoodViewState extends State<ScanFoodView> {
                             builder: (_) => ScanResultDetailView(
                               food: unique.first,
                               imageFile: ctrl.selectedImage,
+                              processedImageBytes: ctrl.processedImageBytes,
                               initialQuantity: ctrl.getFoodCount(unique.first.id),
                             ),
                           ),
@@ -264,6 +274,7 @@ class _ScanFoodViewState extends State<ScanFoodView> {
                     builder: (_) => ScanResultDetailView(
                       food: f,
                       imageFile: ctrl.selectedImage,
+                      processedImageBytes: ctrl.processedImageBytes,
                       initialQuantity: count,
                     ),
                   ),

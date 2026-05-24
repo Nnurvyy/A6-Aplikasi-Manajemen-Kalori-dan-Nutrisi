@@ -27,7 +27,6 @@ class _RegisterViewState extends State<RegisterView> {
 
   // Step 2 – Profil
   String _gender = 'Laki-laki';
-  final _ageCtrl = TextEditingController();
   final _weightCtrl = TextEditingController();
   final _heightCtrl = TextEditingController();
   String _activityLevel = 'Sedikit aktif atau tidak berolahraga';
@@ -59,7 +58,6 @@ class _RegisterViewState extends State<RegisterView> {
     _nameCtrl.dispose();
     _passCtrl.dispose();
     _confirmCtrl.dispose();
-    _ageCtrl.dispose();
     _weightCtrl.dispose();
     _heightCtrl.dispose();
     super.dispose();
@@ -92,6 +90,12 @@ class _RegisterViewState extends State<RegisterView> {
   }
 
   Future<void> _register() async {
+    final today = DateTime.now();
+    int calculatedAge = today.year - _selectedYear;
+    if (today.month < _selectedMonth || (today.month == _selectedMonth && today.day < _selectedDay)) {
+      calculatedAge--;
+    }
+
     final auth = context.read<AuthController>();
     final ok = await auth.register(
       name: _nameCtrl.text.trim(),
@@ -99,7 +103,7 @@ class _RegisterViewState extends State<RegisterView> {
       password: _passCtrl.text,
       weight: double.tryParse(_weightCtrl.text) ?? 60,
       height: double.tryParse(_heightCtrl.text) ?? 160,
-      age: int.tryParse(_ageCtrl.text) ?? 20,
+      age: calculatedAge,
       gender: _gender,
       activityLevel: _activityLevel,
       birthDate: DateTime(_selectedYear, _selectedMonth, _selectedDay),
@@ -342,18 +346,6 @@ class _RegisterViewState extends State<RegisterView> {
               children: [
                 Expanded(
                   child: NtTextField(
-                    label: 'Usia (tahun)',
-                    hint: '20',
-                    controller: _ageCtrl,
-                    keyboardType: TextInputType.number,
-                    prefixIcon: Icons.cake_outlined,
-                    validator: (v) =>
-                        v == null || v.isEmpty ? 'Wajib diisi' : null,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: NtTextField(
                     label: 'BB (kg)',
                     hint: '60',
                     controller: _weightCtrl,
@@ -363,17 +355,19 @@ class _RegisterViewState extends State<RegisterView> {
                         v == null || v.isEmpty ? 'Wajib diisi' : null,
                   ),
                 ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: NtTextField(
+                    label: 'TB (cm)',
+                    hint: '165',
+                    controller: _heightCtrl,
+                    keyboardType: TextInputType.number,
+                    prefixIcon: Icons.height_rounded,
+                    validator: (v) =>
+                        v == null || v.isEmpty ? 'Wajib diisi' : null,
+                  ),
+                ),
               ],
-            ),
-            const SizedBox(height: 14),
-            NtTextField(
-              label: 'TB (cm)',
-              hint: '165',
-              controller: _heightCtrl,
-              keyboardType: TextInputType.number,
-              prefixIcon: Icons.height_rounded,
-              validator: (v) =>
-                  v == null || v.isEmpty ? 'Tinggi badan wajib diisi' : null,
             ),
             const SizedBox(height: 14),
             Text('Tambahan Aktivitas (Olahraga)',

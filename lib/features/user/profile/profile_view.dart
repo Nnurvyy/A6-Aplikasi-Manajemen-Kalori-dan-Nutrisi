@@ -1317,13 +1317,58 @@ class _ProfileViewState extends State<ProfileView> {
                     GestureDetector(
                       onTap: () async {
                         final authCtrl = context.read<AuthController>();
-                        await authCtrl.logout();
-                        if (!mounted) return;
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(builder: (_) => const LoginView()),
-                          (route) => false,
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            title: const Row(
+                              children: [
+                                Icon(Icons.logout_rounded, color: Color(0xFFE53935)),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Konfirmasi Logout',
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                                ),
+                              ],
+                            ),
+                            content: const Text('Anda yakin ingin keluar dari akun?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: const Text(
+                                  'Batal',
+                                  style: TextStyle(color: Color(0xFF5A7A5A)),
+                                ),
+                              ),
+                              ElevatedButton(
+                                onPressed: () => Navigator.pop(ctx, true),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFE53935),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Keluar',
+                                  style: TextStyle(fontWeight: FontWeight.w700),
+                                ),
+                              ),
+                            ],
+                          ),
                         );
+                        
+                        if (confirm == true) {
+                          await authCtrl.logout();
+                          if (!mounted) return;
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(builder: (_) => const LoginView()),
+                            (route) => false,
+                          );
+                        }
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(

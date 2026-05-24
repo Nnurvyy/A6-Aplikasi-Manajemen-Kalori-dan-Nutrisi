@@ -10,6 +10,7 @@ import '../../general/auth/auth_controller.dart';
 import './manual_ingredient_input_page.dart';
 import 'dart:io';
 import 'dart:convert';
+import '../../../services/offline_storage_service.dart';
 
 class PilihMakananManual extends StatefulWidget {
   const PilihMakananManual({super.key});
@@ -269,20 +270,33 @@ class _PilihMakananManualState extends State<PilihMakananManual> with SingleTick
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: food.imageUrl != null 
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: food.imageUrl!.startsWith('http')
-                                    ? Image.network(food.imageUrl!, fit: BoxFit.cover)
-                                    : Image.file(
-                                        File(food.imageUrl!),
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) => Center(
-                                          child: Text(
-                                            food.name.isNotEmpty ? food.name[0].toUpperCase() : '?',
-                                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: accentColor),
-                                          ),
+                            ? FutureBuilder<File?>(
+                                future: OfflineStorageService.getImageFile(food.imageUrl!),
+                                builder: (context, snapshot) {
+                                  if (snapshot.connectionState == ConnectionState.waiting) {
+                                    return Container(
+                                      color: accentColor.withValues(alpha: 0.1),
+                                      child: const Center(
+                                        child: SizedBox(
+                                          width: 20, height: 20,
+                                          child: CircularProgressIndicator(strokeWidth: 2),
                                         ),
                                       ),
+                                    );
+                                  }
+                                  if (snapshot.hasData && snapshot.data != null) {
+                                    return ClipRRect(
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Image.file(snapshot.data!, fit: BoxFit.cover, width: 50, height: 50),
+                                    );
+                                  }
+                                  return Center(
+                                    child: Text(
+                                      food.name.isNotEmpty ? food.name[0].toUpperCase() : '?',
+                                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: accentColor),
+                                    ),
+                                  );
+                                },
                               )
                             : Center(
                                 child: Text(

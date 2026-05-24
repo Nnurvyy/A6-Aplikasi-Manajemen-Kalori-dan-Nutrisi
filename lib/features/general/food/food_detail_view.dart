@@ -11,6 +11,7 @@ import './food_controller.dart';
 import './watchlist_controller.dart';
 import '../../../helpers/date_controller.dart';
 import 'dart:io';
+import '../../../services/offline_storage_service.dart';
 
 class FoodDetailView extends StatefulWidget {
   final FoodModel food;
@@ -290,16 +291,42 @@ class _FoodDetailViewState extends State<FoodDetailView> {
   }
 
   Widget _buildHeaderImage() {
-    return widget.food.imageUrl != null
-        ? (widget.food.imageUrl!.startsWith('http')
-            ? Image.network(widget.food.imageUrl!, fit: BoxFit.cover)
-            : Image.file(File(widget.food.imageUrl!), fit: BoxFit.cover))
-        : Container(
-            decoration: const BoxDecoration(gradient: AppColors.headerGradient),
+    if (widget.food.imageUrl == null) {
+      return Container(
+        decoration: const BoxDecoration(gradient: AppColors.headerGradient),
+        child: Center(
+          child: Icon(Icons.fastfood_rounded, size: 80, color: Colors.white.withValues(alpha: 0.5)),
+        ),
+      );
+    }
+    
+
+
+    return FutureBuilder<File?>(
+      future: OfflineStorageService.getImageFile(widget.food.imageUrl!),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Container(
+            color: AppColors.primary.withValues(alpha: 0.1),
+            child: const Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (snapshot.hasData && snapshot.data != null) {
+          return Container(
+            color: Colors.black, // Dark background to prevent weird gaps
             child: Center(
-              child: Icon(Icons.fastfood_rounded, size: 80, color: Colors.white.withValues(alpha: 0.5)),
+              child: Image.file(snapshot.data!, fit: BoxFit.contain),
             ),
           );
+        }
+        return Container(
+          decoration: const BoxDecoration(gradient: AppColors.headerGradient),
+          child: Center(
+            child: Icon(Icons.fastfood_rounded, size: 80, color: Colors.white.withValues(alpha: 0.5)),
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildTitleAndMetadata(bool isDark) {

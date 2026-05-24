@@ -18,7 +18,8 @@ import '../general/food/watchlist_view.dart';
 import '../general/food/food_detail_view.dart';
 import './progress/progress_view.dart';
 import '../general/food/food_controller.dart';
-import './scan/nutrition_scanner_view.dart'; // IMPORT NUTRITION SCANNER
+import './scan/scan_nutritional_information_view.dart';
+import './scan/scan_nutritional_information_controller.dart';
 import './notification/notification_controller.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -251,7 +252,14 @@ class _UserMainViewState extends State<UserMainView>
         Navigator.of(context).push(_upRoute(const PilihMakananManual()));
         break;
       case 'scan_nutrition':
-        Navigator.of(context).push(_upRoute(const NutritionScannerView()));
+        Navigator.of(context).push(
+          _upRoute(
+            ChangeNotifierProvider(
+              create: (_) => ScanNutritionalInformationController(),
+              child: const ScanNutritionalInformationView(),
+            ),
+          ),
+        );
         break;
     }
   }
@@ -985,22 +993,6 @@ class ParentProfilePlaceholder extends StatelessWidget {
                             bg: const Color(0xFFE8F5E9),
                             onTap: () {
                               auth.stopMonitoring();
-                            },
-                          ),
-                          const Divider(height: 1, color: Color(0xFFE8F5E9)),
-                          _buildActionTile(
-                            icon: Icons.logout_rounded,
-                            label: 'Keluar (Logout)',
-                            color: Colors.red[600]!,
-                            bg: Colors.red[50]!,
-                            onTap: () async {
-                              await auth.logout();
-                              // Assuming login view routing is handled by stream or we need to push
-                              Navigator.pushNamedAndRemoveUntil(
-                                context,
-                                '/',
-                                (r) => false,
-                              );
                             },
                           ),
                         ],
