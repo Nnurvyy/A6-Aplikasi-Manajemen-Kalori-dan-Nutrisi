@@ -18,6 +18,7 @@ class ScanController extends ChangeNotifier {
   List<Map<String, dynamic>> _detections = [];
   List<FoodModel> _mappedFoods = [];
   ui.Image? _uiImage;
+  String? _currentUserId; // ⭐ tambah ini
 
   bool get isScanning => _isScanning;
   bool get hasResult => _hasResult;
@@ -26,7 +27,31 @@ class ScanController extends ChangeNotifier {
   List<FoodModel> get mappedFoods => _mappedFoods;
   ui.Image? get uiImage => _uiImage;
 
-  double get totalCalories => _mappedFoods.fold(0, (sum, f) => sum + (f.calories * f.defaultServingSize / 100));
+  // ⭐ Total nutrisi lengkap
+  double get totalCalories => _mappedFoods.fold(
+    0,
+    (sum, f) =>
+        sum + (f.nutritionForAmount(f.defaultServingSize)['calories'] ?? 0),
+  );
+  double get totalProtein => _mappedFoods.fold(
+    0,
+    (sum, f) =>
+        sum + (f.nutritionForAmount(f.defaultServingSize)['protein'] ?? 0),
+  );
+  double get totalCarbs => _mappedFoods.fold(
+    0,
+    (sum, f) =>
+        sum + (f.nutritionForAmount(f.defaultServingSize)['carbs'] ?? 0),
+  );
+  double get totalFat => _mappedFoods.fold(
+    0,
+    (sum, f) => sum + (f.nutritionForAmount(f.defaultServingSize)['fat'] ?? 0),
+  );
+
+  // ⭐ Set user id
+  void setUserId(String userId) {
+    _currentUserId = userId;
+  }
 
   List<FoodModel> get uniqueMappedFoods {
     final Map<String, FoodModel> unique = {};
@@ -63,13 +88,10 @@ class ScanController extends ChangeNotifier {
 
     try {
       final Uint8List bytes = await _selectedImage!.readAsBytes();
-      
-      // Decode image to get dimensions
       final ui.Codec codec = await ui.instantiateImageCodec(bytes);
       final ui.FrameInfo frameInfo = await codec.getNextFrame();
       _uiImage = frameInfo.image;
 
-      // Run inference
       final results = await _scanService.detect(
         bytes,
         _uiImage!.height,
@@ -78,7 +100,6 @@ class ScanController extends ChangeNotifier {
 
       _detections = results;
       _mapResultsToFoods();
-      
       _hasResult = _mappedFoods.isNotEmpty;
     } catch (e) {
       debugPrint("Error processing image: $e");
@@ -90,23 +111,56 @@ class ScanController extends ChangeNotifier {
 
   void _mapResultsToFoods() {
     _mappedFoods = [];
+
     for (var det in _detections) {
       final String tag = det['tag'];
-      // Cari di Hive dengan nama yang sesuai
-      final food = HiveService.foods.values.firstWhere(
-        (f) => f.name.toLowerCase() == tag.toLowerCase(),
-        orElse: () => FoodModel(
-          id: 'unknown',
-          name: tag,
-          category: 'Unknown',
-          calories: 0,
-          protein: 0,
-          carbs: 0,
-          fat: 0,
-          isApproved: false,
-          createdAt: DateTime.now(),
-        ),
+
+      // ⭐ 1. Priority: komposisi manual user
+      final manualFood = HiveService.foods.values
+          .cast<FoodModel>()
+          .where(
+            (f) =>
+                f.isManualIngredient &&
+                (f.userId == null || f.userId == _currentUserId),
+          )
+          .firstWhere(
+            (f) => f.name.toLowerCase() == tag.toLowerCase(),
+            orElse:
+                () => FoodModel(
+                  id: 'unknown',
+                  name: tag,
+                  category: 'Unknown',
+                  calories: 0,
+                  protein: 0,
+                  carbs: 0,
+                  fat: 0,
+                  isApproved: false,
+                  createdAt: DateTime.now(),
+                ),
+          );
+
+      if (manualFood.id != 'unknown') {
+        _mappedFoods.add(manualFood);
+        continue;
+      }
+
+      // ⭐ 2. Fallback: database makanan default
+      final food = HiveService.foods.values.cast<FoodModel>().firstWhere(
+        (f) => f.name.toLowerCase() == tag.toLowerCase() && f.isApproved,
+        orElse:
+            () => FoodModel(
+              id: 'unknown',
+              name: tag,
+              category: 'Unknown',
+              calories: 0,
+              protein: 0,
+              carbs: 0,
+              fat: 0,
+              isApproved: false,
+              createdAt: DateTime.now(),
+            ),
       );
+
       if (food.id != 'unknown') {
         _mappedFoods.add(food);
       }
@@ -121,5 +175,4 @@ class ScanController extends ChangeNotifier {
     _uiImage = null;
     notifyListeners();
   }
-
 }

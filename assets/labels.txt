@@ -1,4 +1,5 @@
 Apel
+Ayam Geprek
 Ayam Krispi
 Bakwan Jagung
 Bihun goreng
@@ -26,5 +27,6 @@ Tahu Goreng
 Telur Balado
 Telur Ceplok
 Telur Dadar
+Telur Gulung
 Telur Rebus
 Tempe Goreng
