@@ -467,9 +467,12 @@ class _UserMainViewState extends State<UserMainView>
         user!.profileImageUrl!.isNotEmpty;
     final hasProfileImg = hasLocal || hasNetwork;
 
-    final canDoubleTap = item.label == 'Profile' &&
+    final canDoubleTapToMonitor = item.label == 'Profile' &&
         !auth.isMonitoring &&
         auth.hasRegisteredChild;
+
+    final canDoubleTapToStopMonitor = item.label == 'Anda' &&
+        auth.isMonitoring;
 
     Widget iconWidget;
     if (hasProfileImg) {
@@ -522,14 +525,22 @@ class _UserMainViewState extends State<UserMainView>
           HapticFeedback.selectionClick();
           setState(() => _currentIndex = index);
         },
-        onDoubleTap: canDoubleTap
+        onDoubleTap: (canDoubleTapToMonitor || canDoubleTapToStopMonitor)
             ? () {
                 HapticFeedback.heavyImpact();
-                auth.startMonitoringExisting();
+                if (canDoubleTapToMonitor) {
+                  auth.startMonitoringExisting();
+                } else if (canDoubleTapToStopMonitor) {
+                  auth.stopMonitoring();
+                }
               }
             : null,
         child: Tooltip(
-          message: canDoubleTap ? 'Double-tap untuk Kontrol Orang Tua' : '',
+          message: canDoubleTapToMonitor
+              ? 'Double-tap untuk Kontrol Orang Tua'
+              : canDoubleTapToStopMonitor
+                  ? 'Double-tap untuk Kembali ke Akun Anda'
+                  : '',
           preferBelow: false,
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
