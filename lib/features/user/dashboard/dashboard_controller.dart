@@ -30,7 +30,14 @@ class NutrisiItem {
     required this.iconColor,
   });
 
+  /// Persentase untuk rendering bar (0.0 – 1.0, tidak melebihi 1.0)
   double get percentage => (consumed / target).clamp(0.0, 1.0);
+
+  /// Persentase aktual tanpa clamp — untuk mendeteksi over-target
+  double get rawPercentage => target > 0 ? consumed / target : 0.0;
+
+  /// True apabila konsumsi melebihi target
+  bool get isOver => consumed > target;
 }
 
 // ─── FOOD HISTORY MODEL ───────────────────────────────────────────────────────

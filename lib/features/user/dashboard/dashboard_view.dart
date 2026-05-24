@@ -25,6 +25,38 @@ class DashboardBody extends StatefulWidget {
   State<DashboardBody> createState() => _DashboardBodyState();
 }
 
+enum NutritionState {
+  normal,
+  warning,
+  danger,
+}
+
+  // ─────────────────────────────────────────────────────────────
+  // GLOBAL HANDLER
+  // ─────────────────────────────────────────────────────────────
+
+  NutritionState nutritionState(
+    double consumed,
+    double target, {
+    bool allowOverConsume = true,
+  }) {
+    final ratio = consumed / target;
+
+    if (!allowOverConsume) {
+      return NutritionState.normal;
+    }
+
+    if (ratio <= 1.10) {
+      return NutritionState.normal;
+    }
+
+    if (ratio <= 1.25) {
+      return NutritionState.warning;
+    }
+
+    return NutritionState.danger;
+  }
+
 class _DashboardBodyState extends State<DashboardBody> {
   final DashboardController _controller = DashboardController();
   int _riwayatPage = 0;
@@ -455,9 +487,32 @@ class _DashboardBodyState extends State<DashboardBody> {
     );
   }
 
-  // ─── KALORI CARD ──────────────────────────────────────────────────────────
+  
+
+  double nutritionRatio(double consumed, double target) {
+    return consumed / target;
+  }
+
+  Color _dangerRed() {
+    return const Color(0xFFD96C6C);
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // KALORI CARD
+  // ─────────────────────────────────────────────────────────────
+
   Widget _buildKaloriCard() {
-    final pct = _controller.kaloriPercentage;
+    final consumed = _controller.kaloriConsumed;
+    final target = _controller.kaloriTarget;
+
+    final ratio = nutritionRatio(consumed, target);
+    final state = nutritionState(consumed, target);
+
+    final bool isWarning = state == NutritionState.warning;
+    final bool isDanger = state == NutritionState.danger;
+
+    final displayPct = ratio.clamp(0.0, 1.0);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: Container(
@@ -465,19 +520,33 @@ class _DashboardBodyState extends State<DashboardBody> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFC8E6C9), width: 1.5),
+
+          border: Border.all(
+            color: isDanger
+                ? _dangerRed()
+                : isWarning
+                    ? const Color(0xFF7A8D7B)
+                    : const Color(0xFFC8E6C9),
+            width: isWarning || isDanger ? 2 : 1.5,
+          ),
+
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF4CAF50).withValues(alpha: 0.10),
-              blurRadius: 12,
+              color: isDanger
+                  ? _dangerRed().withValues(alpha: 0.12)
+                  : Colors.black.withValues(alpha: 0.05),
+              blurRadius: 8,
               offset: const Offset(0, 2),
             ),
           ],
         ),
+
         child: Column(
           children: [
-            _buildBatteryBar(pct),
+            _buildBatteryBar(displayPct, ratio, state),
+
             const SizedBox(height: 14),
+
             const Text(
               'Kalori',
               style: TextStyle(
@@ -486,20 +555,86 @@ class _DashboardBodyState extends State<DashboardBody> {
                 color: Color(0xFF2E7D32),
               ),
             ),
+
             const SizedBox(height: 4),
+
             Text(
-              '${_controller.kaloriConsumed.toInt()} / ${_controller.kaloriTarget.toInt()} kkal',
-              style: const TextStyle(fontSize: 13, color: Color(0xFF5A7A5A)),
+              '${consumed.toInt()} / ${target.toInt()} kkal',
+              style: const TextStyle(
+                fontSize: 13,
+                color: Color(0xFF5A7A5A),
+              ),
             ),
+
+            if (ratio > 1.10) ...[
+              const SizedBox(height: 8),
+
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFEBEE),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  'Melebihi target sejumlah ${(consumed - target).toInt()} kkal',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: isDanger
+                        ? _dangerRed()
+                        : const Color(0xFFB85C5C),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBatteryBar(double percentage) {
-    final bool isCompleted = percentage >= 1.0;
-    final displayPercentage = percentage > 1.0 ? 1.0 : percentage;
+  // ─────────────────────────────────────────────────────────────
+  // MAIN BATTERY BAR
+  // ─────────────────────────────────────────────────────────────
+
+  Widget _buildBatteryBar(
+    double displayPercentage,
+    double rawRatio,
+    NutritionState state,
+  ) {
+    final bool isWarning = state == NutritionState.warning;
+    final bool isDanger = state == NutritionState.danger;
+
+    final fillIntensity = displayPercentage.clamp(0.0, 1.0);
+
+    final Color fillStart = isDanger
+        ? const Color(0xFFD96C6C)
+        : Color.lerp(
+            const Color(0xFFA5D6A7),
+            const Color(0xFF4CAF50),
+            fillIntensity,
+          )!;
+
+    final Color fillEnd = isDanger
+        ? const Color(0xFFB85C5C)
+        : Color.lerp(
+            const Color(0xFF81C784),
+            const Color(0xFF2E7D32),
+            fillIntensity,
+          )!;
+
+    final Color borderColor = isDanger
+        ? _dangerRed()
+        : isWarning
+            ? const Color(0xFF7A8D7B)
+            : Color.lerp(
+                const Color(0xFFA5D6A7),
+                const Color(0xFF2E7D32),
+                fillIntensity,
+              )!;
 
     return IntrinsicHeight(
       child: Padding(
@@ -507,100 +642,97 @@ class _DashboardBodyState extends State<DashboardBody> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFFE8F5E9),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFF2E7D32), width: 2),
-                boxShadow:
-                    isCompleted
-                        ? [
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(14),
+
+                  border: Border.all(
+                    color: borderColor,
+                    width: isWarning || isDanger ? 2 : 1.5,
+                  ),
+
+                  boxShadow: isDanger
+                      ? [
                           BoxShadow(
-                            color: const Color(0xFF2E7D32).withValues(alpha: 0.3),
-                            blurRadius: 10,
-                            spreadRadius: 2,
+                            color: borderColor.withValues(alpha: 0.15),
+                            blurRadius: 6,
+                            spreadRadius: 1,
                           ),
                         ]
-                        : [],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(isCompleted ? 11 : 12),
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: FractionallySizedBox(
-                        widthFactor: displayPercentage,
-                        alignment: Alignment.centerLeft,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(12),
-                              bottomLeft: Radius.circular(12),
+                      : [],
+                ),
+
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: FractionallySizedBox(
+                          widthFactor: displayPercentage,
+                          alignment: Alignment.centerLeft,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [fillStart, fillEnd],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(12),
+                                bottomLeft: Radius.circular(12),
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 34),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              isCompleted
-                                  ? Icons.check_circle_rounded
-                                  : Icons.local_fire_department,
-                              color: isCompleted ? Colors.white : Colors.white,
-                              size: 24,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              isCompleted
-                                  ? 'Target Tercapai!'
-                                  : '${(percentage * 100).toInt()}%',
-                              style: const TextStyle(
+
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 34),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.local_fire_department,
                                 color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
+                                size: 24,
                               ),
-                            ),
-                          ],
+
+                              const SizedBox(width: 6),
+
+                              Text(
+                                '${(rawRatio * 100).toInt()}%',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(width: 6),
-          Container(
-            width: 8,
-            height: 48,
-            decoration: BoxDecoration(
-              color: const Color(0xFF2E7D32),
-              borderRadius: BorderRadius.circular(4),
-              boxShadow:
-                  isCompleted
-                      ? [
-                        BoxShadow(
-                          color: const Color(0xFF2E7D32).withValues(alpha: 0.3),
-                          blurRadius: 4,
-                        ),
-                      ]
-                      : [],
+
+            const SizedBox(width: 6),
+
+            Container(
+              width: 8,
+              height: 48,
+              decoration: BoxDecoration(
+                color: borderColor,
+                borderRadius: BorderRadius.circular(4),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
     );
   }
 
@@ -697,9 +829,92 @@ class _DashboardBodyState extends State<DashboardBody> {
     );
   }
 
+  // ─── HELPER: warna dinamis berdasarkan persentase ────────────────────────
+  //
+  // 0%   → sangat pudar
+  // 50%  → sedang
+  // 100% → penuh
+  // >100% → bergeser ke merah (over-target)
+
+  // ─────────────────────────────────────────────────────────────
+  // DYNAMIC COLORS
+  // ─────────────────────────────────────────────────────────────
+
+  Color _dynamicFillColor(NutrisiItem item) {
+    final allowOver = item.name != 'Air';
+
+    final state = nutritionState(
+      item.consumed,
+      item.target,
+      allowOverConsume: allowOver,
+    );
+
+    final intensity = item.percentage.clamp(0.0, 1.0);
+
+    if (state == NutritionState.danger) {
+      return _dangerRed();
+    }
+
+    return Color.lerp(
+      item.bgColor,
+      item.fillColor,
+      intensity,
+    )!;
+  }
+
+  Color _dynamicBorderColor(NutrisiItem item) {
+    final allowOver = item.name != 'Air';
+
+    final state = nutritionState(
+      item.consumed,
+      item.target,
+      allowOverConsume: allowOver,
+    );
+
+    final intensity = item.percentage.clamp(0.0, 1.0);
+
+    if (state == NutritionState.danger) {
+      return _dangerRed();
+    }
+
+    if (state == NutritionState.warning) {
+      return const Color(0xFF7A8D7B);
+    }
+
+    return Color.lerp(
+      item.borderColor.withValues(alpha: 0.35),
+      item.borderColor,
+      intensity,
+    )!;
+  }
+
+  Color _dynamicIconColor(NutrisiItem item) {
+    final intensity = item.percentage.clamp(0.0, 1.0);
+
+    return Color.lerp(
+      item.iconColor.withValues(alpha: 0.35),
+      item.iconColor,
+      intensity,
+    )!;
+  }
+
   Widget _buildMiniBattery(NutrisiItem item) {
-    final bool isCompleted = item.percentage >= 1.0;
-    final double displayPct = item.percentage > 1.0 ? 1.0 : item.percentage;
+    final allowOver = item.name != 'Air';
+
+    final state = nutritionState(
+      item.consumed,
+      item.target,
+      allowOverConsume: allowOver,
+    );
+
+    final bool isWarning = state == NutritionState.warning;
+    final bool isDanger = state == NutritionState.danger;
+
+    final displayPct = item.percentage.clamp(0.0, 1.0);
+
+    final Color dynBorder = _dynamicBorderColor(item);
+    final Color dynFill = _dynamicFillColor(item);
+    final Color dynIcon = _dynamicIconColor(item);
 
     return SizedBox(
       width: 46,
@@ -713,22 +928,14 @@ class _DashboardBodyState extends State<DashboardBody> {
               width: 14,
               height: 5,
               decoration: BoxDecoration(
-                color: item.borderColor,
+                color: dynBorder,
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(3),
                 ),
-                boxShadow:
-                    isCompleted
-                        ? [
-                          BoxShadow(
-                            color: item.borderColor.withValues(alpha: 0.3),
-                            blurRadius: 2,
-                          ),
-                        ]
-                        : [],
               ),
             ),
           ),
+
           Positioned(
             top: 5,
             child: Container(
@@ -737,20 +944,25 @@ class _DashboardBodyState extends State<DashboardBody> {
               decoration: BoxDecoration(
                 color: item.bgColor,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: item.borderColor, width: 2.5),
-                boxShadow:
-                    isCompleted
-                        ? [
-                          BoxShadow(
-                            color: item.borderColor.withValues(alpha: 0.2),
-                            blurRadius: 4,
-                            spreadRadius: 1,
-                          ),
-                        ]
-                        : [],
+
+                border: Border.all(
+                  color: dynBorder,
+                  width: isWarning || isDanger ? 2.5 : 2,
+                ),
+
+                boxShadow: isDanger
+                    ? [
+                        BoxShadow(
+                          color: _dangerRed().withValues(alpha: 0.20),
+                          blurRadius: 6,
+                          spreadRadius: 1,
+                        ),
+                      ]
+                    : [],
               ),
+
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(isCompleted ? 6 : 8),
+                borderRadius: BorderRadius.circular(8),
                 child: Stack(
                   alignment: Alignment.bottomCenter,
                   children: [
@@ -759,25 +971,27 @@ class _DashboardBodyState extends State<DashboardBody> {
                       alignment: Alignment.bottomCenter,
                       child: Container(
                         decoration: BoxDecoration(
-                          color: item.fillColor,
+                          color: dynFill,
                           borderRadius: const BorderRadius.vertical(
                             bottom: Radius.circular(8),
                           ),
                         ),
                       ),
                     ),
-                    if (isCompleted)
-                      Center(
-                        child: Icon(
-                          Icons.check,
-                          color: item.iconColor,
-                          size: 24,
-                        ),
-                      )
-                    else
-                      Center(
-                        child: Icon(item.icon, color: item.iconColor, size: 20),
-                      ),
+
+                    Center(
+                      child: isDanger
+                          ? const Icon(
+                              Icons.warning_amber_rounded,
+                              color: Colors.white,
+                              size: 18,
+                            )
+                          : Icon(
+                              item.icon,
+                              color: dynIcon,
+                              size: 20,
+                            ),
+                    ),
                   ],
                 ),
               ),
@@ -1278,4 +1492,3 @@ class _DashboardBodyState extends State<DashboardBody> {
 
 // Alias agar import lama tetap compile
 typedef DashboardView = DashboardBody;
-
