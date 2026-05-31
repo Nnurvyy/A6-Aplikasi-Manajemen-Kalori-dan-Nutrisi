@@ -1,3 +1,4 @@
+import 'dart:math' as dart_math;
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
@@ -774,10 +775,10 @@ class _DashboardBodyState extends State<DashboardBody> {
         physics: const NeverScrollableScrollPhysics(),
         itemCount: items.length,
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2, // 🔥 2x2
+          crossAxisCount: 2,
           crossAxisSpacing: 10,
           mainAxisSpacing: 10,
-          childAspectRatio: 1.1, // biar proporsional
+          childAspectRatio: 1.1,
         ),
         itemBuilder: (context, index) {
           return _buildNutriCard(items[index]);
@@ -873,8 +874,11 @@ class _DashboardBodyState extends State<DashboardBody> {
   }
 
   Widget _buildMiniBattery(NutrisiItem item) {
-    // Icon warning muncul saat consumed > 110% dari target
-    final bool showWarningIcon = item.rawPercentage > 1.10;
+    final bool isOver = item.rawPercentage > 1.10;
+
+    if (isOver) {
+      return _WaterSpillBattery(item: item);
+    }
 
     final displayPct = item.percentage.clamp(0.0, 1.0);
     final Color dynBorder = _dynamicBorderColor(item);
@@ -909,15 +913,12 @@ class _DashboardBodyState extends State<DashboardBody> {
               decoration: BoxDecoration(
                 color: item.bgColor,
                 borderRadius: BorderRadius.circular(10),
-
                 border: Border.all(
                   color: dynBorder,
                   width: 2,
                 ),
-
                 boxShadow: [],
               ),
-
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Stack(
@@ -935,19 +936,12 @@ class _DashboardBodyState extends State<DashboardBody> {
                         ),
                       ),
                     ),
-
                     Center(
-                      child: showWarningIcon
-                          ? const Icon(
-                              Icons.warning_amber_rounded,
-                              color: Colors.white,
-                              size: 20,
-                            )
-                          : Icon(
-                              item.icon,
-                              color: dynIcon,
-                              size: 20,
-                            ),
+                      child: Icon(
+                        item.icon,
+                        color: dynIcon,
+                        size: 20,
+                      ),
                     ),
                   ],
                 ),
@@ -1449,3 +1443,162 @@ class _DashboardBodyState extends State<DashboardBody> {
 
 // Alias agar import lama tetap compile
 typedef DashboardView = DashboardBody;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WATER SPILL BATTERY  — ditampilkan saat nutrisi melebihi target (>110 %)
+// Animasi: gelombang air yang meluap keluar dari baterai
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _WaterSpillBattery extends StatefulWidget {
+  final NutrisiItem item;
+  const _WaterSpillBattery({required this.item});
+
+  @override
+  State<_WaterSpillBattery> createState() => _WaterSpillBatteryState();
+}
+
+class _WaterSpillBatteryState extends State<_WaterSpillBattery>
+    with TickerProviderStateMixin {
+  late AnimationController _waveCtrl;
+
+  late Animation<double> _wavePhase;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Continuous wave inside battery
+    _waveCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1600),
+    )..repeat();
+    _wavePhase = Tween<double>(begin: 0.0, end: 2 * dart_math.pi).animate(
+      CurvedAnimation(parent: _waveCtrl, curve: Curves.linear),
+    );
+  }
+
+  @override
+  void dispose() {
+    _waveCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Color spillColor = widget.item.fillColor.withValues(alpha: 0.85);
+    final Color borderColor = widget.item.borderColor;
+
+    return AnimatedBuilder(
+      animation: Listenable.merge([_waveCtrl]),
+      builder: (_, __) {
+        return SizedBox(
+          width: 52,
+          height: 54,
+          child: Stack(
+            alignment: Alignment.topCenter,
+            children: [
+              // ── Battery tip ───────────────────────────────────
+              Positioned(
+                top: 0,
+                child: Container(
+                  width: 14,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: borderColor,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(3),
+                    ),
+                  ),
+                ),
+              ),
+
+              // ── Battery body ──────────────────────────────────
+              Positioned(
+                top: 5,
+                child: Container(
+                  width: 46,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: widget.item.bgColor,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: borderColor, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: spillColor.withValues(alpha: 0.35),
+                        blurRadius: 8,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: CustomPaint(
+                      painter: _WavePainter(
+                        phase: _wavePhase.value,
+                        fillColor: spillColor,
+                        // Full (over) → wave at top
+                        waterLevel: 0.92,
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.warning_amber_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// CustomPainter that draws a sine-wave water surface inside the battery
+class _WavePainter extends CustomPainter {
+  final double phase;
+  final Color fillColor;
+  final double waterLevel; // 0.0 = empty, 1.0 = full
+
+  _WavePainter({
+    required this.phase,
+    required this.fillColor,
+    required this.waterLevel,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = fillColor
+      ..style = PaintingStyle.fill;
+
+    final path = Path();
+    final double yBase = size.height * (1.0 - waterLevel);
+    const double amplitude = 3.5;
+    const double frequency = 2.0;
+
+    path.moveTo(0, size.height);
+    path.lineTo(0, yBase);
+
+    for (double x = 0; x <= size.width; x++) {
+      final double y = yBase +
+          amplitude *
+              dart_math.sin(
+                  (x / size.width * frequency * 2 * dart_math.pi) + phase);
+      path.lineTo(x, y);
+    }
+
+    path.lineTo(size.width, size.height);
+    path.close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(_WavePainter old) =>
+      old.phase != phase || old.waterLevel != waterLevel;
+}
