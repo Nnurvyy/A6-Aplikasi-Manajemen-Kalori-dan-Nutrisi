@@ -17,6 +17,8 @@ import '../../general/food/models/food_model.dart';
 import '../../../services/hive_service.dart';
 import 'dart:io';
 
+import 'package:percent_indicator/circular_percent_indicator.dart';
+
 /// Widget murni isi dashboard — TANPA Scaffold/BottomNav sendiri.
 /// Dibungkus oleh UserMainView yang sudah punya satu BottomAppBar.
 class DashboardBody extends StatefulWidget {
@@ -514,17 +516,19 @@ class _DashboardBodyState extends State<DashboardBody> {
 
     final displayPct = ratio.clamp(0.0, 1.0);
 
+    final difference = target - consumed;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 20,vertical: 24),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
 
           border: Border.all(
             color: isDanger
-                ? _dangerRed()
+                ? const Color.fromARGB(255, 230, 200, 200)
                 : isWarning
                     ? const Color(0xFF7A8D7B)
                     : const Color(0xFFC8E6C9),
@@ -542,56 +546,68 @@ class _DashboardBodyState extends State<DashboardBody> {
           ],
         ),
 
-        child: Column(
-          children: [
-            _buildBatteryBar(displayPct, ratio, state),
+        child: SizedBox(
+          width: double.infinity,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _buildCalorieRing(displayPct, ratio, state),
 
-            const SizedBox(height: 14),
+              const SizedBox(height: 18),
 
-            const Text(
-              'Kalori',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF2E7D32),
-              ),
-            ),
-
-            const SizedBox(height: 4),
-
-            Text(
-              '${consumed.toInt()} / ${target.toInt()} kkal',
-              style: const TextStyle(
-                fontSize: 13,
-                color: Color(0xFF5A7A5A),
-              ),
-            ),
-
-            if (ratio > 1.10) ...[
-              const SizedBox(height: 8),
-
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 5,
+              const Text(
+                'Kalori',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF2E7D32),
                 ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFEBEE),
-                  borderRadius: BorderRadius.circular(20),
+              ),
+
+              const SizedBox(height: 6),
+
+              Text(
+                ratio < 1
+                    ? '${difference.toInt()} kkal dibutuhkan'
+                    : ratio <= 1.10
+                        ? 'Target tercapai (${consumed.toInt()} / ${target.toInt()} kkal)'
+                        : '${consumed.toInt()} / ${target.toInt()} kkal',
+
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: ratio < 1
+                      ? const Color(0xFF5A7A5A)
+                      : ratio <= 1.10
+                          ? const Color(0xFF2E7D32)
+                          : const Color(0xFFD96C6C),
                 ),
-                child: Text(
-                  'Melebihi target sejumlah ${(consumed - target).toInt()} kkal',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: isDanger
-                        ? _dangerRed()
-                        : const Color(0xFFB85C5C),
+              ),
+
+              if (ratio > 1.0) ...[
+                const SizedBox(height: 12),
+
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFEBEE),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '+${(consumed - target).toInt()} kkal',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: _dangerRed(),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -601,7 +617,7 @@ class _DashboardBodyState extends State<DashboardBody> {
   // MAIN BATTERY BAR
   // ─────────────────────────────────────────────────────────────
 
-  Widget _buildBatteryBar(
+  Widget _buildCalorieRing(
     double displayPercentage,
     double rawRatio,
     NutritionState state,
@@ -609,130 +625,65 @@ class _DashboardBodyState extends State<DashboardBody> {
     final bool isWarning = state == NutritionState.warning;
     final bool isDanger = state == NutritionState.danger;
 
-    final fillIntensity = displayPercentage.clamp(0.0, 1.0);
+    final progress = displayPercentage.clamp(0.0, 1.0);
 
-    final Color fillStart = isDanger
-        ? const Color(0xFFD96C6C)
-        : Color.lerp(
-            const Color(0xFFA5D6A7),
-            const Color(0xFF4CAF50),
-            fillIntensity,
-          )!;
-
-    final Color fillEnd = isDanger
-        ? const Color(0xFFB85C5C)
-        : Color.lerp(
-            const Color(0xFF81C784),
-            const Color(0xFF2E7D32),
-            fillIntensity,
-          )!;
-
-    final Color borderColor = isDanger
-        ? _dangerRed()
+    final Color progressColor = isDanger
+        ? const Color(0xFFE53935)
         : isWarning
-            ? const Color(0xFF7A8D7B)
-            : Color.lerp(
-                const Color(0xFFA5D6A7),
-                const Color(0xFF2E7D32),
-                fillIntensity,
-              )!;
+            ? const Color(0xFFFFA000)
+            : const Color(0xFF2E7D32);
 
-    return IntrinsicHeight(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 25),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE8F5E9),
-                  borderRadius: BorderRadius.circular(14),
+    return CircularPercentIndicator(
+      radius: 82,
+      lineWidth: 16,
+      percent: progress,
+      circularStrokeCap: CircularStrokeCap.round,
+      animation: true,
+      animateFromLastPercent: true,
+      backgroundColor: isDanger
+        ? const Color(0xFFFFEBEE)
+        : isWarning
+            ? const Color(0xFFFFF8E1)
+            : const Color(0xFFE8F5E9),
+      progressColor: progressColor,
 
-                  border: Border.all(
-                    color: borderColor,
-                    width: isWarning || isDanger ? 2 : 1.5,
-                  ),
+      center: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isDanger
+                ? Icons.report_problem_rounded
+                : isWarning
+                    ? Icons.warning_amber_rounded
+                    : Icons.local_fire_department,
+            color: progressColor,
+            size: 36,
+          ),
 
-                  boxShadow: isDanger
-                      ? [
-                          BoxShadow(
-                            color: borderColor.withValues(alpha: 0.15),
-                            blurRadius: 6,
-                            spreadRadius: 1,
-                          ),
-                        ]
-                      : [],
-                ),
+          const SizedBox(height: 4),
 
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: FractionallySizedBox(
-                          widthFactor: displayPercentage,
-                          alignment: Alignment.centerLeft,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [fillStart, fillEnd],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(12),
-                                bottomLeft: Radius.circular(12),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 34),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.local_fire_department,
-                                color: Colors.white,
-                                size: 24,
-                              ),
-
-                              const SizedBox(width: 6),
-
-                              Text(
-                                '${(rawRatio * 100).toInt()}%',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+          Text(
+            '${(rawRatio * 100).toInt()}%',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: progressColor,
             ),
+          ),
 
-            const SizedBox(width: 6),
-
-            Container(
-              width: 8,
-              height: 48,
-              decoration: BoxDecoration(
-                color: borderColor,
-                borderRadius: BorderRadius.circular(4),
-              ),
+          Text(
+            isDanger
+                ? 'Melebihi Target'
+                : isWarning
+                    ? 'Melebihi Target'
+                    : 'Normal',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: progressColor,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -1015,7 +966,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE8F5E9),
+                  color: const Color(0xFFF1F8F1),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Icon(
@@ -1387,7 +1338,7 @@ class _DashboardBodyState extends State<DashboardBody> {
             return const Center(
               child: SizedBox(
                 width: 16, height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.grey),
+                child: CircularProgressIndicator(strokeWidth: 22, color: Colors.grey),
               )
             );
           }
