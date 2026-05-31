@@ -7,6 +7,10 @@ import './models/food_model.dart';
 import './food_detail_view.dart';
 import '../auth/auth_controller.dart';
 import 'dart:io';
+import './watchlist_controller.dart';
+import './models/log_model.dart';
+import '../../../helpers/date_controller.dart';
+import '../../../services/hive_service.dart';
 
 class FoodListView extends StatefulWidget {
   final String? initialSearch;
@@ -21,6 +25,9 @@ class _FoodListViewState extends State<FoodListView> {
   final _searchCtrl = TextEditingController();
   int _currentPage = 0;
   static const int _itemsPerPage = 10;
+
+  bool _isMultiSelectMode = false;
+  final Set<FoodModel> _selectedFoods = {};
 
   static const List<String> _filterCategories = [
     'Semua', 'Makanan Pokok', 'Lauk', 'Sayuran', 'Buah', 'Minuman', 'Snack', 'Lainnya'
@@ -64,13 +71,38 @@ class _FoodListViewState extends State<FoodListView> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      
       appBar: AppBar(
-        title: const Text('Database Makanan'),
+        title: Text(_isMultiSelectMode ? '${_selectedFoods.length} Dipilih' : 'Database Makanan'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (_isMultiSelectMode) {
+              setState(() {
+                _isMultiSelectMode = false;
+                _selectedFoods.clear(); 
+              });
+            } else {
+              Navigator.pop(context);
+            }
+          },
         ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _isMultiSelectMode = !_isMultiSelectMode;
+                if (!_isMultiSelectMode) _selectedFoods.clear();
+              });
+            },
+            child: Text(
+              _isMultiSelectMode ? 'Batal' : 'Pilih',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+          )
+        ],
       ),
+      
       body: Column(
         children: [
           // ─── Search bar ───
@@ -247,6 +279,37 @@ class _FoodListViewState extends State<FoodListView> {
           ),
         ],
       ),
+
+      bottomNavigationBar: _isMultiSelectMode && _selectedFoods.isNotEmpty
+          ? Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkCard : Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, -4),
+                  )
+                ],
+              ),
+              child: SafeArea(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () => _showCheckoutBottomSheet(),
+                  child: Text(
+                    'Lanjut (${_selectedFoods.length} Makanan)',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                ),
+              ),
+            )
+          : null,
+
     );
   }
 
@@ -343,19 +406,50 @@ class _FoodListViewState extends State<FoodListView> {
   }
 
   Widget _foodCard(BuildContext context, FoodModel food, bool isDark) {
-    return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => FoodDetailView(food: food)),
-      ),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkCard : Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-              color: isDark ? AppColors.darkBorder : AppColors.lightDivider),
+        final isSelected = _selectedFoods.contains(food); 
+
+        return GestureDetector(
+          onLongPress: () {
+            if (!_isMultiSelectMode) {
+              setState(() {
+                _isMultiSelectMode = true;
+                _selectedFoods.add(food);
+              });
+            }
+          },
+          onTap: () {
+            if (_isMultiSelectMode) {
+              
+              setState(() {
+                if (isSelected) {
+                  _selectedFoods.remove(food);
+                } else {
+                  _selectedFoods.add(food);
+                }
+              });
+            } else {
+              
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => FoodDetailView(food: food)),
+              );
+            }
+          },
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: isSelected 
+                  ? AppColors.primary.withValues(alpha: 0.1) 
+                  : (isDark ? AppColors.darkCard : Colors.white),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                  color: isSelected 
+                      ? AppColors.primary 
+                      : (isDark ? AppColors.darkBorder : AppColors.lightDivider),
+                  width: isSelected ? 1.5 : 1.0, 
+              ),
+              
           boxShadow: isDark
               ? []
               : [
@@ -450,6 +544,16 @@ class _FoodListViewState extends State<FoodListView> {
                     )),
               ],
             ),
+
+            if (_isMultiSelectMode) ...[
+              const SizedBox(width: 12),
+              Icon(
+                isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                color: isSelected ? AppColors.primary : Colors.grey.shade400,
+                size: 26,
+              ),
+            ],
+
           ],
         ),
       ),
@@ -481,6 +585,170 @@ class _FoodListViewState extends State<FoodListView> {
       ),
       child: Text(text,
           style: GoogleFonts.poppins(fontSize: 9, color: color, fontWeight: FontWeight.w600)),
+    );
+  }
+
+  void _showCheckoutBottomSheet() {
+    final menuNameCtrl = TextEditingController();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: isDark ? AppColors.darkBackground : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24, // Biar nggak ketutup keyboard
+            left: 24, right: 24, top: 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+              ),
+              const SizedBox(height: 24),
+              Text('Simpan Paket Makanan', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Text('${_selectedFoods.length} makanan terpilih', style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+              const SizedBox(height: 16),
+              
+              // Input Text Nama Menu
+              TextField(
+                controller: menuNameCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Nama Menu (Misal: Makan Pagi, Bekal)',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon: const Icon(Icons.restaurant_menu_rounded),
+                ),
+              ),
+              const SizedBox(height: 24),
+              
+              // Tombol Pilihan Simpan
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.bookmark_border_rounded),
+                      label: const Text('Watchlist'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () {
+                        _saveToWatchlist(menuNameCtrl.text);
+                        Navigator.pop(ctx);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.history_rounded),
+                      label: const Text('Riwayat'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () {
+                        if (menuNameCtrl.text.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Isi nama menunya dulu ya!')));
+                          return;
+                        }
+                        _saveToHistory(menuNameCtrl.text);
+                        Navigator.pop(ctx);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _saveToWatchlist(String menuName) async {
+    final auth = context.read<AuthController>();
+    final watchlistCtrl = context.read<WatchlistController>();
+    final userId = auth.currentUser?.id ?? '';
+    
+    if (userId.isEmpty) return;
+
+    for (var food in _selectedFoods) {
+      if (!watchlistCtrl.isInWatchlist(userId, food.id)) {
+        await watchlistCtrl.toggleWatchlist(userId, food); 
+      }
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _isMultiSelectMode = false;
+      _selectedFoods.clear();
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Berhasil ditambahkan ke Watchlist!'), backgroundColor: Colors.green),
+    );
+  }
+
+  void _saveToHistory(String menuName) async {
+    final auth = context.read<AuthController>();
+    final dateCtrl = context.read<DateController>(); 
+    
+    final userId = auth.currentUser?.id ?? auth.currentUser?.id ?? '';
+    if (userId.isEmpty) return;
+
+    final selectedDate = dateCtrl.selectedDate;
+
+    for (var food in _selectedFoods) {
+      
+      final uniqueId = 'log_${DateTime.now().millisecondsSinceEpoch}_${food.id}';
+      
+      final log = LogModel(
+        id: uniqueId,
+        userId: userId,
+        foodName: food.name,
+        category: food.category,
+        calories: food.calories,
+        protein: food.protein,
+        carbs: food.carbs,
+        fat: food.fat,
+        servingSize: food.defaultServingSize,
+        imageUrl: food.imageUrl,
+        quantity: 1, 
+        ingredientsJson: food.ingredientsJson,
+        consumedAt: selectedDate,
+        mealType: menuName, 
+        syncStatus: 'pending',
+      );
+
+      await HiveService.logs.put(log.id, log);
+      
+      await Future.delayed(const Duration(milliseconds: 2)); 
+    }
+
+    if (!mounted) return;
+    
+    setState(() {
+      _isMultiSelectMode = false;
+      _selectedFoods.clear();
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Menu "$menuName" berhasil ditambahkan ke Riwayat!'), 
+        backgroundColor: Colors.green,
+      ),
     );
   }
 }
