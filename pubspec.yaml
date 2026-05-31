@@ -73,6 +73,7 @@ flutter:
     - assets/
     - assets/nutritrack.tflite
     - assets/labels.txt
+    - assets/icon/
 
 flutter_launcher_icons:
   android: true
