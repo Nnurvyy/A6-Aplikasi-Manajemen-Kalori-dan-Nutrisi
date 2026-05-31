@@ -8,7 +8,11 @@ class AdminDashboardController extends GetxController {
   
   final today = DateTime.now().obs;
   final selectedDate = DateTime.now().obs;
-  final weekDates = <DateTime>[].obs;
+  
+  final viewMonth = DateTime.now().month.obs;
+  final viewYear = DateTime.now().year.obs;
+  final weekDates = <DateTime>[].obs; 
+  final monthDates = <DateTime>[].obs;
 
   final isPaginatedView = false.obs;
   final currentPage = 0.obs;
@@ -21,18 +25,54 @@ class AdminDashboardController extends GetxController {
   void onInit() {
     super.onInit();
     _initDates();
+    _generateMonthDates();
     fetchTotalUsers();
   }
 
   void _initDates() {
     DateTime now = DateTime.now();
-    DateTime normalizedToday = DateTime(now.year, now.month, now.day);
-    today.value = normalizedToday;
-    selectedDate.value = normalizedToday;
+    today.value = DateTime(now.year, now.month, now.day);
+    selectedDate.value = today.value;
+    
+    int totalDaysInMonth = DateTime(now.year, now.month + 1, 0).day;
+
     weekDates.value = List.generate(
-      7,
-      (index) => normalizedToday.add(Duration(days: index - 3)),
+      totalDaysInMonth,
+      (index) => DateTime(now.year, now.month, index + 1),
     );
+  }
+
+  void _generateMonthDates() {
+    final lastDay = DateTime(viewYear.value, viewMonth.value + 1, 0).day;
+    monthDates.value = List.generate(
+      lastDay,
+      (index) => DateTime(viewYear.value, viewMonth.value, index + 1),
+    );
+  }
+
+  void setMonthYear(int year, int month) {
+    viewYear.value = year;
+    viewMonth.value = month;
+    _generateMonthDates();
+    
+    weekDates.value = List.generate(
+      monthDates.length,
+      (index) => DateTime(year, month, index + 1),
+    );
+    
+    final now = DateTime.now();
+    if (year == now.year && month == now.month) {
+      changeDate(DateTime(now.year, now.month, now.day));
+    } else {
+      changeDate(DateTime(year, month, 1)); 
+    }
+  }
+
+  bool hasSubmissionsOn(DateTime date) {
+    return allSubmissions.any((s) {
+      final sDate = s['date'] as DateTime;
+      return sDate.year == date.year && sDate.month == date.month && sDate.day == date.day;
+    });
   }
 
   void loadFromSubmissionController(List<SubmissionModel> submissions) {
@@ -85,10 +125,9 @@ class AdminDashboardController extends GetxController {
           .where('role', isEqualTo: 'user')
           .get();
           
-      // Masukkan jumlah dokumen user ke variabel observable
       totalUsersCount.value = snapshot.docs.length; 
     } catch (e) {
-      print("Gagal mengambil total pengguna dari Firebase: $e");
+      debugPrint("Gagal mengambil total pengguna dari Firebase: $e");
     }
   }
 
@@ -99,9 +138,6 @@ class AdminDashboardController extends GetxController {
       allSubmissions.where((item) => item['status'] == 'Menunggu').length;
   int get totalDitolak =>
       allSubmissions.where((item) => item['status'] == 'Ditolak').length;
-  // int get totalPengguna =>
-  //     allSubmissions.map((item) => item['author']).toSet().length;
-
   int get totalPengguna => totalUsersCount.value;
 
   List<Map<String, dynamic>> getSubmissionsByStatus(String status) =>
