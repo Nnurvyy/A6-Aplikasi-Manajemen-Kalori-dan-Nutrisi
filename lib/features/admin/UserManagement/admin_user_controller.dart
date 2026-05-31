@@ -27,12 +27,34 @@ class AdminUserController extends ChangeNotifier {
   }
 
   // ─── LOAD DATA ───
-  void loadUsers(String currentAdminId) {
-    _allUsers = HiveService.users.values
-        .where((u) => u.role == 'user' && u.id != currentAdminId)
-        .toList()
-      ..sort((a, b) => a.name.compareTo(b.name));
+  Future <void> loadUsers(String currentAdminId) async {
+    
+    try {
+      final snapshot = await _db
+          .collection('users')
+          .where('role', isEqualTo: 'user')
+          .get();
+
+      _allUsers = snapshot.docs.map((doc) {
+        
+        final data = doc.data();
+        
+        data['id'] = doc.id; 
+        data['isSynced'] = true;
+        
+        return UserModel.fromMap(data);
+      }).where((u) => u.id != currentAdminId).toList()
+        ..sort((a, b) => a.name.compareTo(b.name));
+
+      for (var user in _allUsers) {
+        await HiveService.users.put(user.id, user);
+      }
+
     applyFilter();
+
+    } catch (e) {
+      debugPrint("Gagal mengambil data user dari Firebase: $e");
+    }
   }
 
   // ─── SEARCH & PAGINATION ───

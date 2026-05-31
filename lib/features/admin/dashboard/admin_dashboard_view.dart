@@ -46,189 +46,170 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
     final submissions = context.watch<SubmissionController>().all;
     controller.loadFromSubmissionController(submissions);
 
+    final double topPadding = MediaQuery.of(context).padding.top;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF9FBF9),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.only(
-            left: 24,
-            right: 24,
-            top: 16,
-            bottom: 32,
+      body: Column(
+        children: [
+          
+          Container(
+            height: topPadding,
+            width: double.infinity,
+            color: const Color(0xFF2E7D32), 
           ),
-          child: Obx(() {
-            final filteredSubmissions =
-                controller.allSubmissions
-                    .where(
-                      (item) =>
-                          item['date'].year ==
-                              controller.selectedDate.value.year &&
-                          item['date'].month ==
-                              controller.selectedDate.value.month &&
-                          item['date'].day == controller.selectedDate.value.day,
-                    )
-                    .toList();
+          
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: 32),
+              child: Obx(() {
+                final filteredSubmissions =
+                    controller.allSubmissions
+                        .where(
+                          (item) =>
+                              item['date'].year ==
+                                  controller.selectedDate.value.year &&
+                              item['date'].month ==
+                                  controller.selectedDate.value.month &&
+                              item['date'].day == controller.selectedDate.value.day,
+                        )
+                        .toList();
 
-            final totalPages =
-                (filteredSubmissions.length / controller.itemsPerPage).ceil();
+                final totalPages =
+                    (filteredSubmissions.length / controller.itemsPerPage).ceil();
 
-            List<Map<String, dynamic>> displayedSubmissions;
-            if (controller.isPaginatedView.value) {
-              int start =
-                  controller.currentPage.value * controller.itemsPerPage;
-              int end = start + controller.itemsPerPage;
-              displayedSubmissions = filteredSubmissions.sublist(
-                start,
-                end > filteredSubmissions.length
-                    ? filteredSubmissions.length
-                    : end,
-              );
-            } else {
-              displayedSubmissions =
-                  filteredSubmissions.take(controller.itemsPerPage).toList();
-            }
+                List<Map<String, dynamic>> displayedSubmissions;
+                if (controller.isPaginatedView.value) {
+                  int start =
+                      controller.currentPage.value * controller.itemsPerPage;
+                  int end = start + controller.itemsPerPage;
+                  displayedSubmissions = filteredSubmissions.sublist(
+                    start,
+                    end > filteredSubmissions.length
+                        ? filteredSubmissions.length
+                        : end,
+                  );
+                } else {
+                  displayedSubmissions =
+                      filteredSubmissions.take(controller.itemsPerPage).toList();
+                }
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(),
-                const SizedBox(height: 24),
-                _buildGreetingCard(),
-                const SizedBox(height: 24),
-                _buildDateSelector(),
-                const SizedBox(height: 24),
-                _buildStatsGrid(context),
-                const SizedBox(height: 24),
-                _buildRecentSubmissionsHeader(filteredSubmissions.length),
-                const SizedBox(height: 12),
-                _buildSubmissionsList(context, displayedSubmissions),
-                if (controller.isPaginatedView.value && totalPages > 1)
-                  _buildPaginationControls(totalPages),
-              ],
-            );
-          }),
-        ),
-      ),
-    );
-  }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(context), 
+                    
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
 
-  Widget _buildHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Text(
-              'NutriTrack',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-                color: Colors.black,
-                letterSpacing: -0.5,
-              ),
+                          const SizedBox(height: 24),
+                          _buildDateSelector(),
+                          const SizedBox(height: 24),
+                          _buildStatsGrid(context),
+                          const SizedBox(height: 24),
+                          _buildRecentSubmissionsHeader(filteredSubmissions.length),
+                          const SizedBox(height: 12),
+                          _buildSubmissionsList(context, displayedSubmissions),
+                          if (controller.isPaginatedView.value && totalPages > 1)
+                            _buildPaginationControls(totalPages),
+                          
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              }),
             ),
-            Text(
-              'Admin Panel',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-        _buildNotificationIcon(),
-      ],
-    );
-  }
-
-  Widget _buildNotificationIcon() {
-    return Stack(
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.grey.shade200),
-          ),
-          child: const Icon(
-            Icons.notifications_outlined,
-            color: Colors.black54,
-            size: 22,
-          ),
-        ),
-        Positioned(
-          top: 8,
-          right: 10,
-          child: Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: Colors.red,
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 1.5),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildGreetingCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.shade100),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.only(left: 24, right: 24, top: 24, bottom: 32),
+      decoration: const BoxDecoration(
+        color: Color(0xFF2E7D32),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(24),
+          bottomRight: Radius.circular(24),
+        ),
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                'Halo, Admin! 👋',
+                'NutriTrack',
                 style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  letterSpacing: -0.5,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
-                'Berikut ringkasan sistem hari ini.',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                'Admin Panel',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white.withValues(alpha: 0.9),
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ],
           ),
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: Colors.green.shade50,
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.green.shade100),
-            ),
-            child: const Center(
-              child: Text(
-                'A',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2E7D32),
+          
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => _showMonthYearPicker(context),
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2), 
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
                 ),
+                child: Obx(() {
+                  DateTime date = controller.selectedDate.value;
+
+                  List<String> days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+                  List<String> months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                  String displayDateStr = '${days[date.weekday - 1]}, ${date.day} ${months[date.month - 1]}';
+
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.calendar_month_rounded, color: Colors.white, size: 14),
+                      const SizedBox(width: 6),
+                      Text(
+                        displayDateStr,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Icon(
+                        Icons.keyboard_arrow_down_rounded, 
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                    ],
+                  );
+                }),
               ),
             ),
           ),
@@ -238,96 +219,7 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
   }
 
   Widget _buildDateSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Icon(
-              Icons.calendar_today,
-              size: 16,
-              color: Color(0xFF2E7D32),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              _formatDisplayDate(controller.selectedDate.value),
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children:
-              controller.weekDates.map((date) {
-                bool isSelected =
-                    date.day == controller.selectedDate.value.day &&
-                    date.month == controller.selectedDate.value.month;
-                bool hasData = controller.allSubmissions.any(
-                  (s) =>
-                      s['date'].day == date.day &&
-                      s['date'].month == date.month,
-                );
-
-                return GestureDetector(
-                  onTap: () => controller.changeDate(date),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    width: 44,
-                    height: 68,
-                    decoration: BoxDecoration(
-                      color:
-                          isSelected
-                              ? const Color(0xFF2E7D32)
-                              : Colors.transparent,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          _formatDayShort(date),
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color:
-                                isSelected
-                                    ? Colors.green.shade100
-                                    : Colors.grey.shade400,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${date.day}',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: isSelected ? Colors.white : Colors.black87,
-                          ),
-                        ),
-                        if (hasData && !isSelected) ...[
-                          const SizedBox(height: 4),
-                          Container(
-                            width: 4,
-                            height: 4,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF2E7D32),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
-        ),
-      ],
-    );
+    return AdminDateSelector(controller: controller);
   }
 
   Widget _buildStatsGrid(BuildContext context) {
@@ -592,6 +484,105 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
     );
   }
 
+  void _showMonthYearPicker(BuildContext context) {
+    int tempMonth = controller.selectedDate.value.month;
+    int tempYear = controller.selectedDate.value.year;
+    
+    List<String> monthNames = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text(
+            'Pilih Bulan & Tahun',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          content: StatefulBuilder(
+            builder: (context, setDialogState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Dropdown Pilih Bulan
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: tempMonth,
+                        isExpanded: true,
+                        items: List.generate(12, (index) {
+                          return DropdownMenuItem(
+                            value: index + 1,
+                            child: Text(monthNames[index]),
+                          );
+                        }),
+                        onChanged: (val) {
+                          if (val != null) setDialogState(() => tempMonth = val);
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: tempYear,
+                        isExpanded: true,
+                        items: List.generate(10, (index) {
+                          int year = DateTime.now().year - 5 + index;
+                          return DropdownMenuItem(
+                            value: year,
+                            child: Text('$year'),
+                          );
+                        }),
+                        onChanged: (val) {
+                          if (val != null) setDialogState(() => tempYear = val);
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+          actionsAlignment: MainAxisAlignment.spaceEvenly,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2E7D32),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: () {
+                controller.setMonthYear(tempYear, tempMonth);
+                Navigator.pop(context);
+              },
+              child: const Text('Pilih', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _showStatusListBottomSheet(
     BuildContext context,
     String title,
@@ -806,3 +797,138 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
 
 }
 
+class AdminDateSelector extends StatefulWidget {
+  final AdminDashboardController controller;
+  const AdminDateSelector({super.key, required this.controller});
+
+  @override
+  State<AdminDateSelector> createState() => _AdminDateSelectorState();
+}
+
+class _AdminDateSelectorState extends State<AdminDateSelector> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToToday();
+    });
+  }
+
+  void _scrollToToday() {
+    if (!_scrollController.hasClients || widget.controller.weekDates.isEmpty) return;
+    
+    final now = DateTime.now();
+    int todayIndex = widget.controller.weekDates.indexWhere((date) => 
+      date.day == now.day && date.month == now.month && date.year == now.year
+    );
+    
+    if (todayIndex != -1) {
+      double offset = (todayIndex * 56.0) - (MediaQuery.of(context).size.width / 2) + 28.0;
+      if (offset < 0) offset = 0;
+      _scrollController.jumpTo(offset);
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  String _formatDayShort(DateTime date) {
+    List<String> days = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+    return days[date.weekday - 1];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 80,
+      child: Obx(() {
+        if (widget.controller.weekDates.isEmpty) return const SizedBox();
+        
+        final now = DateTime.now();
+        
+        return ListView.builder(
+          controller: _scrollController,
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          itemCount: widget.controller.weekDates.length,
+          itemBuilder: (context, index) {
+            final date = widget.controller.weekDates[index];
+            
+            bool isSelected = date.day == widget.controller.selectedDate.value.day &&
+                              date.month == widget.controller.selectedDate.value.month &&
+                              date.year == widget.controller.selectedDate.value.year;
+
+            bool isToday = date.day == now.day &&
+                           date.month == now.month &&
+                           date.year == now.year;
+
+            // Indikator Titik
+            bool hasData = widget.controller.allSubmissions.any((s) => 
+              s['date'].day == date.day && 
+              s['date'].month == date.month && 
+              s['date'].year == date.year
+            );
+
+            return GestureDetector(
+              onTap: () => widget.controller.changeDate(date),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                width: 48,
+                margin: const EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(
+                  color: isSelected ? const Color(0xFF2E7D32) : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isSelected 
+                        ? const Color(0xFF2E7D32) 
+                        : (isToday ? const Color(0xFF2E7D32).withValues(alpha: 0.5) : Colors.grey.shade200),
+                    width: 1.5,
+                  ),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _formatDayShort(date),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: isSelected ? Colors.white70 : Colors.grey.shade500,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${date.day}',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isSelected ? Colors.white : (isToday ? const Color(0xFF2E7D32) : Colors.black87),
+                      ),
+                    ),
+                    if (hasData) ...[
+                      const SizedBox(height: 4),
+                      Container(
+                        width: 4,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: isSelected ? Colors.white : const Color(0xFFE57373),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      }),
+    );
+  }
+}
