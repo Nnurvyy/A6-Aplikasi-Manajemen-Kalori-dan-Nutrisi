@@ -1,3 +1,4 @@
+import 'dart:math' as dart_math;
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
@@ -15,6 +16,8 @@ import '../../general/food/food_detail_view.dart';
 import '../../general/food/models/food_model.dart';
 import '../../../services/hive_service.dart';
 import 'dart:io';
+
+import 'package:percent_indicator/circular_percent_indicator.dart';
 
 /// Widget murni isi dashboard — TANPA Scaffold/BottomNav sendiri.
 /// Dibungkus oleh UserMainView yang sudah punya satu BottomAppBar.
@@ -513,17 +516,19 @@ class _DashboardBodyState extends State<DashboardBody> {
 
     final displayPct = ratio.clamp(0.0, 1.0);
 
+    final difference = target - consumed;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 20,vertical: 24),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
 
           border: Border.all(
             color: isDanger
-                ? _dangerRed()
+                ? const Color.fromARGB(255, 230, 200, 200)
                 : isWarning
                     ? const Color(0xFF7A8D7B)
                     : const Color(0xFFC8E6C9),
@@ -541,56 +546,68 @@ class _DashboardBodyState extends State<DashboardBody> {
           ],
         ),
 
-        child: Column(
-          children: [
-            _buildBatteryBar(displayPct, ratio, state),
+        child: SizedBox(
+          width: double.infinity,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _buildCalorieRing(displayPct, ratio, state),
 
-            const SizedBox(height: 14),
+              const SizedBox(height: 18),
 
-            const Text(
-              'Kalori',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF2E7D32),
-              ),
-            ),
-
-            const SizedBox(height: 4),
-
-            Text(
-              '${consumed.toInt()} / ${target.toInt()} kkal',
-              style: const TextStyle(
-                fontSize: 13,
-                color: Color(0xFF5A7A5A),
-              ),
-            ),
-
-            if (ratio > 1.10) ...[
-              const SizedBox(height: 8),
-
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 5,
+              const Text(
+                'Kalori',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF2E7D32),
                 ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFEBEE),
-                  borderRadius: BorderRadius.circular(20),
+              ),
+
+              const SizedBox(height: 6),
+
+              Text(
+                ratio < 1
+                    ? '${difference.toInt()} kkal dibutuhkan'
+                    : ratio <= 1.10
+                        ? 'Target tercapai (${consumed.toInt()} / ${target.toInt()} kkal)'
+                        : '${consumed.toInt()} / ${target.toInt()} kkal',
+
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: ratio < 1
+                      ? const Color(0xFF5A7A5A)
+                      : ratio <= 1.10
+                          ? const Color(0xFF2E7D32)
+                          : const Color(0xFFD96C6C),
                 ),
-                child: Text(
-                  'Melebihi target sejumlah ${(consumed - target).toInt()} kkal',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: isDanger
-                        ? _dangerRed()
-                        : const Color(0xFFB85C5C),
+              ),
+
+              if (ratio > 1.0) ...[
+                const SizedBox(height: 12),
+
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFEBEE),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '+${(consumed - target).toInt()} kkal',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: _dangerRed(),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -600,7 +617,7 @@ class _DashboardBodyState extends State<DashboardBody> {
   // MAIN BATTERY BAR
   // ─────────────────────────────────────────────────────────────
 
-  Widget _buildBatteryBar(
+  Widget _buildCalorieRing(
     double displayPercentage,
     double rawRatio,
     NutritionState state,
@@ -608,130 +625,65 @@ class _DashboardBodyState extends State<DashboardBody> {
     final bool isWarning = state == NutritionState.warning;
     final bool isDanger = state == NutritionState.danger;
 
-    final fillIntensity = displayPercentage.clamp(0.0, 1.0);
+    final progress = displayPercentage.clamp(0.0, 1.0);
 
-    final Color fillStart = isDanger
-        ? const Color(0xFFD96C6C)
-        : Color.lerp(
-            const Color(0xFFA5D6A7),
-            const Color(0xFF4CAF50),
-            fillIntensity,
-          )!;
-
-    final Color fillEnd = isDanger
-        ? const Color(0xFFB85C5C)
-        : Color.lerp(
-            const Color(0xFF81C784),
-            const Color(0xFF2E7D32),
-            fillIntensity,
-          )!;
-
-    final Color borderColor = isDanger
-        ? _dangerRed()
+    final Color progressColor = isDanger
+        ? const Color(0xFFE53935)
         : isWarning
-            ? const Color(0xFF7A8D7B)
-            : Color.lerp(
-                const Color(0xFFA5D6A7),
-                const Color(0xFF2E7D32),
-                fillIntensity,
-              )!;
+            ? const Color(0xFFFFA000)
+            : const Color(0xFF2E7D32);
 
-    return IntrinsicHeight(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 25),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE8F5E9),
-                  borderRadius: BorderRadius.circular(14),
+    return CircularPercentIndicator(
+      radius: 82,
+      lineWidth: 16,
+      percent: progress,
+      circularStrokeCap: CircularStrokeCap.round,
+      animation: true,
+      animateFromLastPercent: true,
+      backgroundColor: isDanger
+        ? const Color(0xFFFFEBEE)
+        : isWarning
+            ? const Color(0xFFFFF8E1)
+            : const Color(0xFFE8F5E9),
+      progressColor: progressColor,
 
-                  border: Border.all(
-                    color: borderColor,
-                    width: isWarning || isDanger ? 2 : 1.5,
-                  ),
+      center: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isDanger
+                ? Icons.report_problem_rounded
+                : isWarning
+                    ? Icons.warning_amber_rounded
+                    : Icons.local_fire_department,
+            color: progressColor,
+            size: 36,
+          ),
 
-                  boxShadow: isDanger
-                      ? [
-                          BoxShadow(
-                            color: borderColor.withValues(alpha: 0.15),
-                            blurRadius: 6,
-                            spreadRadius: 1,
-                          ),
-                        ]
-                      : [],
-                ),
+          const SizedBox(height: 4),
 
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: FractionallySizedBox(
-                          widthFactor: displayPercentage,
-                          alignment: Alignment.centerLeft,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [fillStart, fillEnd],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(12),
-                                bottomLeft: Radius.circular(12),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 34),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.local_fire_department,
-                                color: Colors.white,
-                                size: 24,
-                              ),
-
-                              const SizedBox(width: 6),
-
-                              Text(
-                                '${(rawRatio * 100).toInt()}%',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+          Text(
+            '${(rawRatio * 100).toInt()}%',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: progressColor,
             ),
+          ),
 
-            const SizedBox(width: 6),
-
-            Container(
-              width: 8,
-              height: 48,
-              decoration: BoxDecoration(
-                color: borderColor,
-                borderRadius: BorderRadius.circular(4),
-              ),
+          Text(
+            isDanger
+                ? 'Melebihi Target'
+                : isWarning
+                    ? 'Melebihi Target'
+                    : 'Normal',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: progressColor,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -774,10 +726,10 @@ class _DashboardBodyState extends State<DashboardBody> {
         physics: const NeverScrollableScrollPhysics(),
         itemCount: items.length,
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2, // 🔥 2x2
+          crossAxisCount: 2,
           crossAxisSpacing: 10,
           mainAxisSpacing: 10,
-          childAspectRatio: 1.1, // biar proporsional
+          childAspectRatio: 1.1,
         ),
         itemBuilder: (context, index) {
           return _buildNutriCard(items[index]);
@@ -873,8 +825,11 @@ class _DashboardBodyState extends State<DashboardBody> {
   }
 
   Widget _buildMiniBattery(NutrisiItem item) {
-    // Icon warning muncul saat consumed > 110% dari target
-    final bool showWarningIcon = item.rawPercentage > 1.10;
+    final bool isOver = item.rawPercentage > 1.10;
+
+    if (isOver) {
+      return _WaterSpillBattery(item: item);
+    }
 
     final displayPct = item.percentage.clamp(0.0, 1.0);
     final Color dynBorder = _dynamicBorderColor(item);
@@ -909,15 +864,12 @@ class _DashboardBodyState extends State<DashboardBody> {
               decoration: BoxDecoration(
                 color: item.bgColor,
                 borderRadius: BorderRadius.circular(10),
-
                 border: Border.all(
                   color: dynBorder,
                   width: 2,
                 ),
-
                 boxShadow: [],
               ),
-
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Stack(
@@ -935,19 +887,12 @@ class _DashboardBodyState extends State<DashboardBody> {
                         ),
                       ),
                     ),
-
                     Center(
-                      child: showWarningIcon
-                          ? const Icon(
-                              Icons.warning_amber_rounded,
-                              color: Colors.white,
-                              size: 20,
-                            )
-                          : Icon(
-                              item.icon,
-                              color: dynIcon,
-                              size: 20,
-                            ),
+                      child: Icon(
+                        item.icon,
+                        color: dynIcon,
+                        size: 20,
+                      ),
                     ),
                   ],
                 ),
@@ -1021,7 +966,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE8F5E9),
+                  color: const Color(0xFFF1F8F1),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Icon(
@@ -1393,7 +1338,7 @@ class _DashboardBodyState extends State<DashboardBody> {
             return const Center(
               child: SizedBox(
                 width: 16, height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.grey),
+                child: CircularProgressIndicator(strokeWidth: 22, color: Colors.grey),
               )
             );
           }
@@ -1449,3 +1394,162 @@ class _DashboardBodyState extends State<DashboardBody> {
 
 // Alias agar import lama tetap compile
 typedef DashboardView = DashboardBody;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WATER SPILL BATTERY  — ditampilkan saat nutrisi melebihi target (>110 %)
+// Animasi: gelombang air yang meluap keluar dari baterai
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _WaterSpillBattery extends StatefulWidget {
+  final NutrisiItem item;
+  const _WaterSpillBattery({required this.item});
+
+  @override
+  State<_WaterSpillBattery> createState() => _WaterSpillBatteryState();
+}
+
+class _WaterSpillBatteryState extends State<_WaterSpillBattery>
+    with TickerProviderStateMixin {
+  late AnimationController _waveCtrl;
+
+  late Animation<double> _wavePhase;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Continuous wave inside battery
+    _waveCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1600),
+    )..repeat();
+    _wavePhase = Tween<double>(begin: 0.0, end: 2 * dart_math.pi).animate(
+      CurvedAnimation(parent: _waveCtrl, curve: Curves.linear),
+    );
+  }
+
+  @override
+  void dispose() {
+    _waveCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Color spillColor = widget.item.fillColor.withValues(alpha: 0.85);
+    final Color borderColor = widget.item.borderColor;
+
+    return AnimatedBuilder(
+      animation: Listenable.merge([_waveCtrl]),
+      builder: (_, __) {
+        return SizedBox(
+          width: 52,
+          height: 54,
+          child: Stack(
+            alignment: Alignment.topCenter,
+            children: [
+              // ── Battery tip ───────────────────────────────────
+              Positioned(
+                top: 0,
+                child: Container(
+                  width: 14,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: borderColor,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(3),
+                    ),
+                  ),
+                ),
+              ),
+
+              // ── Battery body ──────────────────────────────────
+              Positioned(
+                top: 5,
+                child: Container(
+                  width: 46,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: widget.item.bgColor,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: borderColor, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: spillColor.withValues(alpha: 0.35),
+                        blurRadius: 8,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: CustomPaint(
+                      painter: _WavePainter(
+                        phase: _wavePhase.value,
+                        fillColor: spillColor,
+                        // Full (over) → wave at top
+                        waterLevel: 0.92,
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.warning_amber_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// CustomPainter that draws a sine-wave water surface inside the battery
+class _WavePainter extends CustomPainter {
+  final double phase;
+  final Color fillColor;
+  final double waterLevel; // 0.0 = empty, 1.0 = full
+
+  _WavePainter({
+    required this.phase,
+    required this.fillColor,
+    required this.waterLevel,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = fillColor
+      ..style = PaintingStyle.fill;
+
+    final path = Path();
+    final double yBase = size.height * (1.0 - waterLevel);
+    const double amplitude = 3.5;
+    const double frequency = 2.0;
+
+    path.moveTo(0, size.height);
+    path.lineTo(0, yBase);
+
+    for (double x = 0; x <= size.width; x++) {
+      final double y = yBase +
+          amplitude *
+              dart_math.sin(
+                  (x / size.width * frequency * 2 * dart_math.pi) + phase);
+      path.lineTo(x, y);
+    }
+
+    path.lineTo(size.width, size.height);
+    path.close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(_WavePainter old) =>
+      old.phase != phase || old.waterLevel != waterLevel;
+}
