@@ -78,31 +78,46 @@ class _LoginViewState extends State<LoginView> {
     final auth = context.watch<AuthController>();
     return Scaffold(
       backgroundColor: AppColors.primaryDark,
+      resizeToAvoidBottomInset: true,
       body: Column(
         children: [
-          // ─── Header green gradient ───
-          Expanded(
-            flex: 2,
-            child: Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                gradient: AppColors.headerGradient,
-              ),
-              child: SafeArea(
+          // ─── Header green gradient — tinggi tetap, tidak ikut mengecil saat keyboard muncul ───
+          Container(
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: AppColors.headerGradient,
+            ),
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 28),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
-                      width: 72,
-                      height: 72,
+                      width: 80,
+                      height: 80,
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.eco_rounded,
-                        size: 40,
                         color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.15),
+                            blurRadius: 16,
+                            spreadRadius: 1,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.all(14),
+                      child: Image.asset(
+                        'assets/icon/app_icon_no_bg.png',
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.eco_rounded,
+                          size: 36,
+                          color: Color(0xFF2E7D32),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -242,4 +257,3 @@ class _LoginViewState extends State<LoginView> {
     );
   }
 }
-
