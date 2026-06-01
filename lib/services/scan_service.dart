@@ -13,9 +13,9 @@ class ScanService {
     if (_isLoaded) return;
     _vision = FlutterVision();
     await _vision.loadYoloModel(
-      modelPath: 'assets/nutritrack.tflite',
+      modelPath: 'assets/nutritrack_v11.tflite',
       labels: 'assets/labels.txt',
-      modelVersion: 'yolov8',
+      modelVersion: 'yolov11',
       numThreads: 2,
       useGpu: false,
     );
@@ -33,8 +33,8 @@ class ScanService {
       imageHeight: height,
       imageWidth: width,
       iouThreshold: 0.4,
-      confThreshold: 0.4,
-      classThreshold: 0.4,
+      confThreshold: 0.5,
+      classThreshold: 0.5,
     );
   }
 

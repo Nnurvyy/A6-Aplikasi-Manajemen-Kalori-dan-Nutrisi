@@ -4,29 +4,83 @@ Ayam Krispi
 Bakwan Jagung
 Bihun goreng
 Bubur
+Burger
 Cah Kangkung
+Cakwe
+Cap Cay Kuah
+Cilok
+Cimol
+Coffee
+Donat
 Durian
 Gado-gado
+Hot dogs
+Ikan Goreng
 Jeruk
 Kentang Goreng
 Kue Borwnies
+Mango
+Martabak Telur
 Mie Ayam
 Mie Bakso
+Mie Goreng
+Mie Kuah
 Nasi Goreng
 Nasi Putih
 Nugget Ayam
+Opor Ayam
+Pempek
 Pepes Ikan
 Pisang
 Pisang Pasir
+Pukis
+Rawon
 Rendang
 Roti Putih
+Salad
+Sandwich
 Sate ayam
 Semangka
+Siomay
+Sosis
 Soto Ayam
+Spaghetti
+Tahu Bacem
+Tahu Bejek
+Tahu Gejrot
 Tahu Goreng
+Tahu krispy
+Telur
 Telur Balado
 Telur Ceplok
 Telur Dadar
 Telur Gulung
 Telur Rebus
 Tempe Goreng
+Tumis Kangkung
+ayam bakar
+ayam goreng
+bakso
+batagor
+capcay
+croissant
+dadar_gulung
+dragon-fruit
+es pisang ijo
+kerupuk
+martabak manis
+milk
+pempek
+pizza
+sambal
+seblak
+steak
+tempe goreng
+tempe-orek
+terong balado
+terong-balado
+toast
+tongseng
+tumis kangkung
+udang
+wonton ayam
