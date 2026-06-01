@@ -78,17 +78,19 @@ class _LoginViewState extends State<LoginView> {
     final auth = context.watch<AuthController>();
     return Scaffold(
       backgroundColor: AppColors.primaryDark,
+      resizeToAvoidBottomInset: true,
       body: Column(
         children: [
-          // ─── Header green gradient ───
-          Expanded(
-            flex: 2,
-            child: Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                gradient: AppColors.headerGradient,
-              ),
-              child: SafeArea(
+          // ─── Header green gradient — tinggi tetap, tidak ikut mengecil saat keyboard muncul ───
+          Container(
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: AppColors.headerGradient,
+            ),
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 28),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
