@@ -6,6 +6,7 @@ import './food_detail_view.dart';
 import '../auth/auth_controller.dart';
 import 'dart:io';
 import '../../../services/offline_storage_service.dart';
+import './models/food_combination_model.dart'; 
 
 class WatchlistView extends StatefulWidget {
   const WatchlistView({super.key});
@@ -14,7 +15,10 @@ class WatchlistView extends StatefulWidget {
   State<WatchlistView> createState() => _WatchlistViewState();
 }
 
-class _WatchlistViewState extends State<WatchlistView> {
+class _WatchlistViewState extends State<WatchlistView> with SingleTickerProviderStateMixin {
+
+  late TabController _tabController;
+
   static const Color _bg = Color(0xFFF4F6F0);
   static const Color _surface = Colors.white;
   static const Color _textDark = Color(0xFF1B2A1B);
@@ -24,9 +28,31 @@ class _WatchlistViewState extends State<WatchlistView> {
   int _currentPage = 0;
 
   @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = context.read<AuthController>();
+      final user = auth.currentUser;
+      if (user != null) {
+        context.read<WatchlistController>().loadCombinations(user.id);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final watchlist = context.watch<WatchlistController>();
     final items = watchlist.items;
+    final combinations = watchlist.combinations; 
+    final userId = context.watch<AuthController>().currentUser?.id ?? '';
 
     final totalPages = items.isEmpty ? 1 : (items.length / _itemsPerPage).ceil();
     final safeCurrentPage = _currentPage.clamp(0, totalPages - 1);
@@ -73,70 +99,89 @@ class _WatchlistViewState extends State<WatchlistView> {
               ),
             ),
         ],
+
+        bottom: TabBar(
+          controller: _tabController,
+          labelColor: _textDark, 
+          indicatorColor: const Color(0xFF4CAF50), 
+          tabs: const [
+            Tab(text: 'Satuan'),
+            Tab(text: 'Kombinasi Menu'),
+          ],
       ),
-      body: items.isEmpty
-          ? RefreshIndicator(
-              onRefresh: () async {
-                final auth = context.read<AuthController>();
-                final user = auth.currentUser;
-                if (user != null) {
-                  context.read<WatchlistController>().loadWatchlist(user.id);
-                }
-                await Future.delayed(const Duration(seconds: 1)); // Give it some time
-              },
-              color: const Color(0xFF2E7D32),
-              backgroundColor: Colors.white,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: SizedBox(
-                  height: MediaQuery.of(context).size.height - 100,
-                  child: _buildEmptyState(),
+
+      ),
+      body: TabBarView(
+      controller: _tabController,
+      children: [
+        items.isEmpty
+            ? RefreshIndicator(
+                onRefresh: () async {
+                  final auth = context.read<AuthController>();
+                  final user = auth.currentUser;
+                  if (user != null) {
+                    context.read<WatchlistController>().loadWatchlist(user.id);
+                  }
+                  await Future.delayed(const Duration(seconds: 1)); 
+                },
+                color: const Color(0xFF2E7D32),
+                backgroundColor: Colors.white,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: SizedBox(
+                    height: MediaQuery.of(context).size.height - 100,
+                    child: _buildEmptyState(),
+                  ),
                 ),
-              ),
-            )
-          : Column(
-              children: [
-                // Info bar
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
-                  child: Row(
-                    children: [
-                      Text(
-                        '${items.length} makanan tersimpan',
-                        style: const TextStyle(fontSize: 12, color: _textMuted, fontWeight: FontWeight.w600),
-                      ),
-                      const Spacer(),
-                      if (totalPages > 1)
+              )
+            : Column(
+                children: [
+                  
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
+                    child: Row(
+                      children: [
                         Text(
-                          'Hal. ${safeCurrentPage + 1}/$totalPages',
-                          style: const TextStyle(fontSize: 12, color: _textMuted),
+                          '${items.length} makanan tersimpan',
+                          style: const TextStyle(fontSize: 12, color: _textMuted, fontWeight: FontWeight.w600),
                         ),
-                    ],
+                        const Spacer(),
+                        if (totalPages > 1)
+                          Text(
+                            'Hal. ${safeCurrentPage + 1}/$totalPages',
+                            style: const TextStyle(fontSize: 12, color: _textMuted),
+                          ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: () async {
+                        final auth = context.read<AuthController>();
+                        final user = auth.currentUser;
+                        if (user != null) {
+                          context.read<WatchlistController>().loadWatchlist(user.id);
+                        }
+                        await Future.delayed(const Duration(seconds: 1));
+                      },
+                      color: const Color(0xFF2E7D32),
+                      backgroundColor: Colors.white,
+                      child: ListView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+                      itemCount: pageItems.length,
+                      itemBuilder: (context, index) => _buildWatchlistCard(context, pageItems[index]),
+                    ),
                   ),
                 ),
-                Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: () async {
-                      final auth = context.read<AuthController>();
-                      final user = auth.currentUser;
-                      if (user != null) {
-                        context.read<WatchlistController>().loadWatchlist(user.id);
-                      }
-                      await Future.delayed(const Duration(seconds: 1));
-                    },
-                    color: const Color(0xFF2E7D32),
-                    backgroundColor: Colors.white,
-                    child: ListView.builder(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-                    itemCount: pageItems.length,
-                    itemBuilder: (context, index) => _buildWatchlistCard(context, pageItems[index]),
-                  ),
-                ),
-              ),
-              if (totalPages > 1) _buildPagination(safeCurrentPage, totalPages),
-            ],
-          ),
+                if (totalPages > 1) _buildPagination(safeCurrentPage, totalPages),
+              ],
+            ),
+
+            _buildCombinationTab(context, combinations, userId),
+
+        ],
+      ),
     );
   }
 
@@ -414,6 +459,191 @@ class _WatchlistViewState extends State<WatchlistView> {
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildCombinationTab(BuildContext context, List<FoodCombinationModel> combos, String userId) {
+    if (combos.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: () async => context.read<WatchlistController>().loadCombinations(userId),
+        color: const Color(0xFF2E7D32),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height - 200,
+            child: _buildEmptyState(),
+          ),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async => context.read<WatchlistController>().loadCombinations(userId),
+      color: const Color(0xFF2E7D32),
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        itemCount: combos.length,
+        itemBuilder: (context, index) {
+          final combo = combos[index];
+
+      
+          double totalCal = combo.foods.fold(0, (sum, f) => sum + f.calories);
+          double totalProtein = combo.foods.fold(0, (sum, f) => sum + f.protein);
+          double totalCarbs = combo.foods.fold(0, (sum, f) => sum + f.carbs);
+          double totalFat = combo.foods.fold(0, (sum, f) => sum + f.fat);
+
+          return Card(
+            color: _surface,
+            margin: const EdgeInsets.only(bottom: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            elevation: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                combo.title,
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _textDark),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            
+                            Icon(
+                              combo.isSynced == true ? Icons.cloud_done_rounded : Icons.cloud_upload_rounded,
+                              size: 16,
+                              color: combo.isSynced == true 
+                                  ? Colors.blue.withValues(alpha: 0.8) 
+                                  : Colors.orange.withValues(alpha: 0.8),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_sweep_rounded, color: Colors.redAccent),
+                        tooltip: 'Hapus Semua Kombinasi',
+                        onPressed: () => context.read<WatchlistController>().deleteCombination(combo.id),
+                      ),
+                    ],
+                  ),
+
+                  const Divider(height: 20),
+
+                  ...combo.foods.map((food) => Card(
+                        elevation: 0,
+                        color: _bg.withValues(alpha: 0.5), 
+                        margin: const EdgeInsets.symmetric(vertical: 4),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(8),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => FoodDetailView(food: food),
+                              ),
+                            );
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                
+                                  decoration: BoxDecoration(
+                                    
+                                    color: _categoryColor(food.category),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    food.name,
+                                    style: const TextStyle(
+                                      fontSize: 14, 
+                                      fontWeight: FontWeight.w500,
+                                      color: _textDark
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  '${food.calories.toStringAsFixed(0)} kkal',
+                                  style: const TextStyle(fontSize: 13, color: _textMuted),
+                                ),
+                                const SizedBox(width: 8),
+                                
+                                IconButton(
+                                  icon: const Icon(Icons.remove_circle_outline, size: 18, color: Colors.orange),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  onPressed: () => context.read<WatchlistController>().removeFoodFromCombination(combo.id, food.id),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      )),
+
+                  const Divider(height: 24),
+
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Total Nutrisi Kombinasi:',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: _textMuted),
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _buildNutrientInfo('Kalori', '${totalCal.toStringAsFixed(0)} kkal'),
+                            _buildNutrientInfo('Protein', '${totalProtein.toStringAsFixed(1)}g'),
+                            _buildNutrientInfo('Karbo', '${totalCarbs.toStringAsFixed(1)}g'),
+                            _buildNutrientInfo('Lemak', '${totalFat.toStringAsFixed(1)}g'),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildNutrientInfo(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 11, color: _textMuted)),
+        Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: _textDark)),
+      ],
     );
   }
 }

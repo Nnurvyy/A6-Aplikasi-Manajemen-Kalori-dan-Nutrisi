@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../features/general/food/models/watchlist_model.dart';
 
 class WatchlistFirestoreService {
@@ -14,13 +15,28 @@ class WatchlistFirestoreService {
   }
 
   static Future<List<WatchlistModel>> getUserWatchlist(String userId) async {
-    final snapshot = await _db
-        .collection(_collection)
-        .where('userId', isEqualTo: userId)
-        .get();
+    try {
+      final snapshot = await _db
+          .collection(_collection)
+          .where('userId', isEqualTo: userId)
+          .get();
 
-    return snapshot.docs
-        .map((doc) => WatchlistModel.fromMap(doc.data()))
-        .toList();
+      List<WatchlistModel> list = [];
+      
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        
+        if (data['isCombination'] == true || doc.id.contains('combo_')) {
+          continue; 
+        }
+
+        list.add(WatchlistModel.fromMap(data));
+      }
+
+      return list;
+    } catch (e) {
+      debugPrint("Error getUserWatchlist: $e");
+      return [];
+    }
   }
 }

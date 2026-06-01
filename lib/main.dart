@@ -10,6 +10,7 @@ import './features/general/auth/models/user_model.dart';
 import './features/general/food/models/food_model.dart';
 import './features/general/food/models/log_model.dart';
 import './features/general/food/models/watchlist_model.dart';
+import './features/general/food/models/food_combination_model.dart';
 import './features/general/food/watchlist_controller.dart';
 import './features/user/progress/models/weight_log_model.dart';
 import './features/general/submission/submission_controller.dart';
@@ -69,6 +70,7 @@ void main() async {
   Hive.registerAdapter(WeightLogModelAdapter());
   Hive.registerAdapter(PendingSubmissionModelAdapter());
   Hive.registerAdapter(NotificationSettingModelAdapter());
+  Hive.registerAdapter(FoodCombinationModelAdapter());
 
   await HiveService.initBoxes();
   await SeedHelper.seedIfEmpty();
