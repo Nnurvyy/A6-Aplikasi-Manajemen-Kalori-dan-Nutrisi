@@ -683,13 +683,7 @@ class _FoodListViewState extends State<FoodListView> {
     
     if (userId.isEmpty) return;
 
-    for (var food in _selectedFoods) {
-      if (!watchlistCtrl.isInWatchlist(userId, food.id)) {
-        await watchlistCtrl.toggleWatchlist(userId, food); 
-      }
-    }
-
-    if (!mounted) return;
+    final foodsCopy = _selectedFoods.toList();
 
     setState(() {
       _isMultiSelectMode = false;
@@ -697,8 +691,13 @@ class _FoodListViewState extends State<FoodListView> {
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Berhasil ditambahkan ke Watchlist!'), backgroundColor: Colors.green),
+      const SnackBar(
+        content: Text('Berhasil ditambahkan ke Watchlist!'), 
+        backgroundColor: Colors.green
+      ),
     );
+
+    await watchlistCtrl.addCombination(userId, menuName, foodsCopy);
   }
 
   void _saveToHistory(String menuName) async {
