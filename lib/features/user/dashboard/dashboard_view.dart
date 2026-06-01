@@ -1149,10 +1149,11 @@ class _DashboardBodyState extends State<DashboardBody> {
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
+
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE0E0E0), width: 1.5),
+          border: Border.all(color: accentColor, width: 1),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
@@ -1161,6 +1162,7 @@ class _DashboardBodyState extends State<DashboardBody> {
             ),
           ],
         ),
+        
         child: Row(
           children: [
             ClipRRect(
