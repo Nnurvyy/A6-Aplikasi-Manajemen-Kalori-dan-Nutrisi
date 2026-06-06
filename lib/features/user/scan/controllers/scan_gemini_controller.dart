@@ -49,7 +49,12 @@ class ScanGeminiController extends ChangeNotifier {
   }
 
   Future<void> pickImage(ImageSource source) async {
-    final XFile? file = await _picker.pickImage(source: source);
+    final XFile? file = await _picker.pickImage(
+      source: source,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 85,
+    );
     if (file == null) return;
 
     _selectedImage = File(file.path);
