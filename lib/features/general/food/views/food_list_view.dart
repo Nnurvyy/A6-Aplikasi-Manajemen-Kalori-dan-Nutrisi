@@ -740,6 +740,7 @@ class _FoodListViewState extends State<FoodListView> {
   void _showCheckoutBottomSheet() {
     final menuNameCtrl = TextEditingController();
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    String? errorText;
 
     showModalBottomSheet(
       context: context,
@@ -749,89 +750,111 @@ class _FoodListViewState extends State<FoodListView> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24, // Biar nggak ketutup keyboard
-            left: 24, right: 24, top: 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setStateSheet) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 24, // Biar nggak ketutup keyboard
+                left: 24, right: 24, top: 24,
               ),
-              const SizedBox(height: 24),
-              Text('Simpan Paket Makanan', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              Text('${_selectedFoods.length} makanan terpilih', style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
-              const SizedBox(height: 16),
-              
-              // Input Text Nama Menu
-              TextField(
-                controller: menuNameCtrl,
-                decoration: InputDecoration(
-                  labelText: 'Nama Menu (Misal: Makan Pagi, Bekal)',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  prefixIcon: const Icon(Icons.restaurant_menu_rounded),
-                ),
-              ),
-              const SizedBox(height: 24),
-              
-              // Tombol Pilihan Simpan
-              Row(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      icon: const Icon(Icons.bookmark_border_rounded),
-                      label: const Text('Watchlist'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      onPressed: () {
-                        _saveToWatchlist(menuNameCtrl.text);
-                        Navigator.pop(ctx);
-                      },
+                  Center(
+                    child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+                  ),
+                  const SizedBox(height: 24),
+                  Text('Simpan Paket Makanan', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Text('${_selectedFoods.length} makanan terpilih', style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+                  const SizedBox(height: 16),
+                  
+                  // Input Text Nama Menu
+                  TextField(
+                    controller: menuNameCtrl,
+                    onChanged: (val) {
+                      if (errorText != null && val.trim().isNotEmpty) {
+                        setStateSheet(() {
+                          errorText = null;
+                        });
+                      }
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'Nama Menu (Misal: Makan Pagi, Bekal)',
+                      errorText: errorText,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      prefixIcon: const Icon(Icons.restaurant_menu_rounded),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.history_rounded),
-                      label: const Text('Riwayat'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  const SizedBox(height: 24),
+                  
+                  // Tombol Pilihan Simpan
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.bookmark_added_rounded),
+                          label: const Text('Simpan & Riwayat'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          onPressed: () {
+                            if (menuNameCtrl.text.trim().isEmpty) {
+                              setStateSheet(() {
+                                errorText = 'Nama menu tidak boleh kosong ya!';
+                              });
+                              return;
+                            }
+                            _saveToWatchlistAndHistory(menuNameCtrl.text);
+                            Navigator.pop(ctx);
+                          },
+                        ),
                       ),
-                      onPressed: () {
-                        if (menuNameCtrl.text.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Isi nama menunya dulu ya!')));
-                          return;
-                        }
-                        _saveToHistory(menuNameCtrl.text);
-                        Navigator.pop(ctx);
-                      },
-                    ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.history_rounded),
+                          label: const Text('Hanya Riwayat'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          onPressed: () {
+                            if (menuNameCtrl.text.trim().isEmpty) {
+                              setStateSheet(() {
+                                errorText = 'Nama menu tidak boleh kosong ya!';
+                              });
+                              return;
+                            }
+                            _saveToHistory(menuNameCtrl.text);
+                            Navigator.pop(ctx);
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
   }
 
-  void _saveToWatchlist(String menuName) async {
+  void _saveToWatchlistAndHistory(String menuName) async {
     final auth = context.read<AuthController>();
     final watchlistCtrl = context.read<WatchlistController>();
+    final dateCtrl = context.read<DateController>();
     final userId = auth.currentUser?.id ?? '';
     
     if (userId.isEmpty) return;
 
+    final selectedDate = dateCtrl.selectedDate;
     final foodsCopy = _selectedFoods.toList();
 
     setState(() {
@@ -839,29 +862,54 @@ class _FoodListViewState extends State<FoodListView> {
       _selectedFoods.clear();
     });
 
+    // 1. Simpan ke Watchlist
+    await watchlistCtrl.addCombination(userId, menuName, foodsCopy);
+
+    // 2. Simpan ke Riwayat/Log
+    for (var food in foodsCopy) {
+      final uniqueId = 'log_${DateTime.now().millisecondsSinceEpoch}_${food.id}';
+      final log = LogModel(
+        id: uniqueId,
+        userId: userId,
+        foodName: food.name,
+        category: food.category,
+        calories: food.calories,
+        protein: food.protein,
+        carbs: food.carbs,
+        fat: food.fat,
+        servingSize: food.defaultServingSize,
+        imageUrl: food.imageUrl,
+        quantity: 1, 
+        ingredientsJson: food.ingredientsJson,
+        consumedAt: selectedDate,
+        mealType: menuName, 
+        syncStatus: 'pending',
+      );
+      await HiveService.logs.put(log.id, log);
+      await Future.delayed(const Duration(milliseconds: 2)); 
+    }
+
+    if (!mounted) return;
+    
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Berhasil ditambahkan ke Watchlist!'), 
-        backgroundColor: Colors.green
+      SnackBar(
+        content: Text('Menu "$menuName" berhasil disimpan ke Watchlist & Riwayat!'), 
+        backgroundColor: Colors.green,
       ),
     );
-
-    await watchlistCtrl.addCombination(userId, menuName, foodsCopy);
   }
 
   void _saveToHistory(String menuName) async {
     final auth = context.read<AuthController>();
     final dateCtrl = context.read<DateController>(); 
     
-    final userId = auth.currentUser?.id ?? auth.currentUser?.id ?? '';
+    final userId = auth.currentUser?.id ?? '';
     if (userId.isEmpty) return;
 
     final selectedDate = dateCtrl.selectedDate;
 
     for (var food in _selectedFoods) {
-      
       final uniqueId = 'log_${DateTime.now().millisecondsSinceEpoch}_${food.id}';
-      
       final log = LogModel(
         id: uniqueId,
         userId: userId,
@@ -881,7 +929,6 @@ class _FoodListViewState extends State<FoodListView> {
       );
 
       await HiveService.logs.put(log.id, log);
-      
       await Future.delayed(const Duration(milliseconds: 2)); 
     }
 
