@@ -1118,35 +1118,43 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
                   onTap: () => onPageChanged(safePage - 1),
                 ),
                 const SizedBox(width: 6),
-                ...List.generate(totalPages, (idx) {
-                  final active = idx == safePage;
-                  return GestureDetector(
-                    onTap: () => onPageChanged(idx),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      margin: const EdgeInsets.symmetric(horizontal: 3),
-                      width: active ? 34 : 30,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: active ? _green : const Color(0xFFF4FAF6),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: active ? _green : const Color(0xFFD5EDE0),
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          '${idx + 1}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: active ? Colors.white : _muted,
+                Expanded(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: List.generate(totalPages, (idx) {
+                        final active = idx == safePage;
+                        return GestureDetector(
+                          onTap: () => onPageChanged(idx),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            margin: const EdgeInsets.symmetric(horizontal: 3),
+                            width: active ? 34 : 30,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: active ? _green : const Color(0xFFF4FAF6),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: active ? _green : const Color(0xFFD5EDE0),
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                '${idx + 1}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: active ? Colors.white : _muted,
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
+                        );
+                      }),
                     ),
-                  );
-                }),
+                  ),
+                ),
                 const SizedBox(width: 6),
                 _pageBtn(
                   icon: Icons.chevron_right_rounded,

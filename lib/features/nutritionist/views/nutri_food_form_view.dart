@@ -526,6 +526,7 @@ class _NutriFoodFormViewState extends State<NutriFoodFormView> {
                               ],
                             ),
                             child: ListView.separated(
+                              padding: EdgeInsets.zero,
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
                               itemCount: _ingredients.length,
