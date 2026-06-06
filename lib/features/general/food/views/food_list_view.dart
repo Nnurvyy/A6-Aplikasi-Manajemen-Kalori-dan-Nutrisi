@@ -590,9 +590,7 @@ class _FoodListViewState extends State<FoodListView> {
           border: Border.all(
             color: isSelected
                 ? AppColors.primary
-                : (food.id.startsWith('ai_')
-                    ? Colors.amber.withValues(alpha: 0.5)
-                    : (isDark ? AppColors.darkBorder : AppColors.lightDivider)),
+                : _catColor(food.category),
             width: isSelected ? 1.5 : 1.0,
           ),
           boxShadow: isDark

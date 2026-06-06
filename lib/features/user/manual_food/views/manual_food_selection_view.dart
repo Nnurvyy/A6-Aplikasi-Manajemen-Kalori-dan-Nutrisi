@@ -242,6 +242,7 @@ class _PilihMakananManualState extends State<PilihMakananManual> with SingleTick
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: accentColor, width: 1),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
