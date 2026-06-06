@@ -32,6 +32,14 @@ class _ProfileViewState extends State<ProfileView> {
   static const _greenLight = Color(0xFF4CAF50);
   static const _bg = Color(0xFFF1F8F1);
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AuthController>().fetchMonitors();
+    });
+  }
+
   final List<String> _activityLevels = [
     'Sedikit aktif atau tidak berolahraga',
     'Olahraga ringan (1-3 hari/minggu)',

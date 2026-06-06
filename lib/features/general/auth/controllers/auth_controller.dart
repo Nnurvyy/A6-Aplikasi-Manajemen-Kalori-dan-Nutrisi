@@ -271,6 +271,7 @@ class AuthController extends ChangeNotifier {
     
     notifyListeners();
     fetchMonitors();
+    syncMonitoringRelationshipsToFirestore();
   }
 
   Future<void> _fetchUserProfile(String uid) async {
@@ -328,6 +329,7 @@ class AuthController extends ChangeNotifier {
     }
     notifyListeners();
     fetchMonitors();
+    syncMonitoringRelationshipsToFirestore();
   }
 
   Future<void> fetchMonitors() async {
@@ -347,11 +349,19 @@ class AuthController extends ChangeNotifier {
 
     // 2. Dapatkan parent IDs dari Hive settings lokal (untuk sinkronisasi offline/lokal)
     for (var key in HiveService.settings.keys) {
-      if (key is String && key.startsWith('monitored_user_ids_')) {
-        final parentId = key.replaceFirst('monitored_user_ids_', '');
-        final ids = (HiveService.settings.get(key) as List?)?.cast<String>() ?? [];
-        if (ids.contains(myId)) {
-          parentIds.add(parentId);
+      if (key is String) {
+        if (key.startsWith('monitored_user_ids_')) {
+          final parentId = key.replaceFirst('monitored_user_ids_', '');
+          final ids = (HiveService.settings.get(key) as List?)?.cast<String>() ?? [];
+          if (ids.contains(myId)) {
+            parentIds.add(parentId);
+          }
+        } else if (key.startsWith('monitored_user_id_')) {
+          final parentId = key.replaceFirst('monitored_user_id_', '');
+          final val = HiveService.settings.get(key);
+          if (val == myId) {
+            parentIds.add(parentId);
+          }
         }
       }
     }
@@ -377,6 +387,33 @@ class AuthController extends ChangeNotifier {
 
     _monitors = loadedMonitors;
     notifyListeners();
+  }
+
+  Future<void> syncMonitoringRelationshipsToFirestore() async {
+    if (_currentUser == null) return;
+    final parentId = _currentUser!.id;
+    
+    final newKey = 'monitored_user_ids_${_currentUser!.id}';
+    final List<String> ids = (HiveService.settings.get(newKey) as List<dynamic>?)?.cast<String>() ?? [];
+    
+    for (var childId in ids) {
+      try {
+        final childDocRef = _firestore.collection('users').doc(childId);
+        await _firestore.runTransaction((transaction) async {
+          final snapshot = await transaction.get(childDocRef);
+          if (snapshot.exists) {
+            final data = snapshot.data() ?? {};
+            final List<dynamic> currentMonitors = data['monitoredBy'] ?? [];
+            if (!currentMonitors.contains(parentId)) {
+              currentMonitors.add(parentId);
+              transaction.update(childDocRef, {'monitoredBy': currentMonitors});
+            }
+          }
+        });
+      } catch (e) {
+        debugPrint("Gagal sinkronisasi parent ke child $childId: $e");
+      }
+    }
   }
 
   Future<bool> login(String email, String password) async {
