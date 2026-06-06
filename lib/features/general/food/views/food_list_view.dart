@@ -200,9 +200,7 @@ class _FoodListViewState extends State<FoodListView> {
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
             ),
-          ),
-
-          // ─── Filters ───
+              // ─── Filters ───
           Container(
             color: isDark ? AppColors.darkSurface : Colors.white,
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
@@ -210,92 +208,119 @@ class _FoodListViewState extends State<FoodListView> {
               children: [
                 // Kategori Dropdown
                 Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.darkBackground : const Color(0xFFF4F6F0),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isDark ? AppColors.darkBorder : const Color(0xFFC8E6C9),
-                      ),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: ctrl.selectedCategory,
-                        isExpanded: true,
-                        dropdownColor: isDark ? AppColors.darkSurface : Colors.white,
-                        icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primary),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Kategori Makanan',
                         style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                          fontSize: 11,
                           fontWeight: FontWeight.w600,
+                          color: isDark ? AppColors.darkTextSecondary : const Color(0xFF558B2F),
                         ),
-                        items: _filterCategories.map((cat) => DropdownMenuItem(
-                          value: cat,
-                          child: Row(
-                            children: [
-                              if (cat != 'Semua') ...[
-                                Container(
-                                  width: 8, height: 8,
-                                  decoration: BoxDecoration(
-                                    color: _catColor(cat),
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                              ],
-                              Expanded(child: Text(cat, overflow: TextOverflow.ellipsis)),
-                            ],
-                          ),
-                        )).toList(),
-                        onChanged: (val) {
-                          if (val != null) {
-                            ctrl.setCategory(val);
-                            setState(() => _currentPage = 0);
-                          }
-                        },
                       ),
-                    ),
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: isDark ? AppColors.darkBackground : const Color(0xFFF4F6F0),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isDark ? AppColors.darkBorder : const Color(0xFFC8E6C9),
+                          ),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: ctrl.selectedCategory,
+                            isExpanded: true,
+                            dropdownColor: isDark ? AppColors.darkSurface : Colors.white,
+                            icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primary),
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            items: _filterCategories.map((cat) => DropdownMenuItem(
+                              value: cat,
+                              child: Row(
+                                children: [
+                                  if (cat != 'Semua') ...[
+                                    Container(
+                                      width: 8, height: 8,
+                                      decoration: BoxDecoration(
+                                        color: _catColor(cat),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                  ],
+                                  Expanded(child: Text(cat, overflow: TextOverflow.ellipsis)),
+                                ],
+                              ),
+                            )).toList(),
+                            onChanged: (val) {
+                              if (val != null) {
+                                ctrl.setCategory(val);
+                                setState(() => _currentPage = 0);
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 12),
                 // Source Dropdown
                 Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.darkBackground : const Color(0xFFF4F6F0),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isDark ? AppColors.darkBorder : const Color(0xFFC8E6C9),
-                      ),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: ctrl.selectedSource,
-                        isExpanded: true,
-                        dropdownColor: isDark ? AppColors.darkSurface : Colors.white,
-                        icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primary),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Sumber Data',
                         style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                          fontSize: 11,
                           fontWeight: FontWeight.w600,
+                          color: isDark ? AppColors.darkTextSecondary : const Color(0xFF558B2F),
                         ),
-                        items: ['Semua', 'Universal', 'Hasil AI'].map((src) => DropdownMenuItem(
-                          value: src,
-                          child: Text(src, overflow: TextOverflow.ellipsis),
-                        )).toList(),
-                        onChanged: (val) {
-                          if (val != null) {
-                            ctrl.setSource(val);
-                            setState(() => _currentPage = 0);
-                          }
-                        },
                       ),
-                    ),
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: isDark ? AppColors.darkBackground : const Color(0xFFF4F6F0),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isDark ? AppColors.darkBorder : const Color(0xFFC8E6C9),
+                          ),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: ctrl.selectedSource,
+                            isExpanded: true,
+                            dropdownColor: isDark ? AppColors.darkSurface : Colors.white,
+                            icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primary),
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            items: ['Semua', 'Universal', 'Hasil AI'].map((src) => DropdownMenuItem(
+                              value: src,
+                              child: Text(src, overflow: TextOverflow.ellipsis),
+                            )).toList(),
+                            onChanged: (val) {
+                              if (val != null) {
+                                ctrl.setSource(val);
+                                setState(() => _currentPage = 0);
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
             ),
           ),
 
