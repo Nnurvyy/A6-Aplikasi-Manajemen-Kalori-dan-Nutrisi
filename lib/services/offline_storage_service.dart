@@ -3,14 +3,16 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import '../features/general/food/models/log_model.dart';
 import 'food_log_firestore_service.dart';
 import 'hive_service.dart';
 
 class OfflineStorageService {
-  static const String _cloudinaryUrl = 'https://api.cloudinary.com/v1_1/<YOUR_CLOUD_NAME>/image/upload';
-  static const String _uploadPreset = '<YOUR_UPLOAD_PRESET>';
+  static String get _cloudName => dotenv.env['CLOUDINARY_CLOUD_NAME'] ?? 'dxvg4czip';
+  static String get _uploadPreset => dotenv.env['CLOUDINARY_UPLOAD_PRESET'] ?? 'submission_images';
+  static String get _cloudinaryUrl => 'https://api.cloudinary.com/v1_1/$_cloudName/image/upload';
 
   /// Menyimpan file gambar PCD ke lokal secara offline-first
   /// Hanya me-return nama file (contoh: scan_123456789.jpg)

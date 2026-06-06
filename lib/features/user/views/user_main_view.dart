@@ -464,6 +464,7 @@ class _UserMainViewState extends State<UserMainView>
           bottom: false,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children:
                 isMonitor
                     ? [
@@ -553,6 +554,7 @@ class _UserMainViewState extends State<UserMainView>
 
     return Expanded(
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: () {
           if (_dialOpen) _closeDial();
           HapticFeedback.selectionClick();
@@ -575,8 +577,9 @@ class _UserMainViewState extends State<UserMainView>
                   ? 'Double-tap untuk Kembali ke Akun Anda'
                   : '',
           preferBelow: false,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6), // Padding disesuaikan agar proporsional
+          child: Container(
+            color: Colors.transparent,
+            alignment: Alignment.center,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
