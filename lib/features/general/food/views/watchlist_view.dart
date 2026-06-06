@@ -7,6 +7,9 @@ import 'package:nutritrack_app/features/general/auth/controllers/auth_controller
 import 'dart:io';
 import 'package:nutritrack_app/services/offline_storage_service.dart';
 import 'package:nutritrack_app/features/general/food/models/food_combination_model.dart';
+import 'package:nutritrack_app/features/general/food/controllers/food_controller.dart';
+import 'package:nutritrack_app/helpers/date_controller.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class WatchlistView extends StatefulWidget {
   const WatchlistView({super.key});
@@ -462,6 +465,135 @@ class _WatchlistViewState extends State<WatchlistView> with SingleTickerProvider
     );
   }
 
+  void _showLogComboBottomSheet(BuildContext context, FoodCombinationModel combo) {
+    final menuNameCtrl = TextEditingController(text: combo.title);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: isDark ? const Color(0xFF1B2A1B) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+            left: 24, right: 24, top: 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  const Icon(Icons.lunch_dining_rounded, color: Color(0xFF2E7D32), size: 28),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Log Kombinasi Menu',
+                    style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1B2A1B)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Tambahkan ${combo.foods.length} makanan ke riwayat makan harian Anda.',
+                style: GoogleFonts.poppins(color: Colors.grey.shade600, fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              
+              // Input Text Nama Menu / Waktu Makan
+              TextField(
+                controller: menuNameCtrl,
+                style: GoogleFonts.poppins(fontSize: 14),
+                decoration: InputDecoration(
+                  labelText: 'Nama Waktu Makan (Misal: Makan Siang, Bekal)',
+                  labelStyle: GoogleFonts.poppins(fontSize: 13),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon: const Icon(Icons.restaurant_menu_rounded),
+                ),
+              ),
+              const SizedBox(height: 24),
+              
+              // Tombol Konfirmasi Log
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.history_rounded, color: Colors.white),
+                  label: Text('Tambah ke Riwayat', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2E7D32),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () async {
+                    if (menuNameCtrl.text.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Isi nama waktu makannya dulu ya!'))
+                      );
+                      return;
+                    }
+                    
+                    final auth = context.read<AuthController>();
+                    final dateCtrl = context.read<DateController>();
+                    final foodCtrl = context.read<FoodController>();
+                    
+                    final userId = auth.currentUser?.id ?? '';
+                    if (userId.isEmpty) return;
+
+                    final selectedDate = dateCtrl.selectedDate;
+                    final mealName = menuNameCtrl.text;
+
+                    for (var food in combo.foods) {
+                      await foodCtrl.addFoodToDailyLog(
+                        userId: userId,
+                        foodName: food.name,
+                        category: food.category,
+                        calories: food.calories,
+                        protein: food.protein,
+                        carbs: food.carbs,
+                        fat: food.fat,
+                        mealType: mealName,
+                        dateConsumed: selectedDate,
+                        servingSize: food.defaultServingSize,
+                        quantity: 1,
+                        isManual: false,
+                        imageUrl: food.imageUrl,
+                        ingredientsJson: food.ingredientsJson,
+                        context: context,
+                      );
+                    }
+
+                    if (context.mounted) {
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Menu "$mealName" berhasil ditambahkan ke Riwayat!'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildCombinationTab(BuildContext context, List<FoodCombinationModel> combos, String userId) {
     if (combos.isEmpty) {
       return RefreshIndicator(
@@ -477,6 +609,44 @@ class _WatchlistViewState extends State<WatchlistView> with SingleTickerProvider
       );
     }
 
+    final List<Map<String, dynamic>> schemes = [
+      {
+        'bg': const Color(0xFFFFF0F5), // Lavender blush
+        'border': const Color(0xFFFFC0CB), // Pink
+        'accent': const Color(0xFFFF69B4),
+        'icon': Icons.bakery_dining_rounded,
+        'tagText': 'Menu Sarapan',
+      },
+      {
+        'bg': const Color(0xFFE8F5E9), // Soft Mint
+        'border': const Color(0xFFA7E8BD), 
+        'accent': const Color(0xFF2E7D32),
+        'icon': Icons.lunch_dining_rounded,
+        'tagText': 'Menu Sehat',
+      },
+      {
+        'bg': const Color(0xFFE8F0FE), // Soft Blue
+        'border': const Color(0xFFD2E3FC),
+        'accent': const Color(0xFF1A73E8),
+        'icon': Icons.restaurant_menu_rounded,
+        'tagText': 'Menu Lezat',
+      },
+      {
+        'bg': const Color(0xFFFFF3E0), // Soft Orange
+        'border': const Color(0xFFFFE0B2),
+        'accent': const Color(0xFFE65100),
+        'icon': Icons.emoji_food_beverage_rounded,
+        'tagText': 'Menu Segar',
+      },
+      {
+        'bg': const Color(0xFFF3E8FD), // Soft Purple
+        'border': const Color(0xFFE9D2FD),
+        'accent': const Color(0xFF681DA8),
+        'icon': Icons.soup_kitchen_rounded,
+        'tagText': 'Menu Spesial',
+      },
+    ];
+
     return RefreshIndicator(
       onRefresh: () async => context.read<WatchlistController>().loadCombinations(userId),
       color: const Color(0xFF2E7D32),
@@ -486,46 +656,84 @@ class _WatchlistViewState extends State<WatchlistView> with SingleTickerProvider
         itemCount: combos.length,
         itemBuilder: (context, index) {
           final combo = combos[index];
+          final scheme = schemes[index % schemes.length];
+          final accentColor = scheme['accent'] as Color;
+          final borderVal = scheme['border'] as Color;
+          final bgVal = scheme['bg'] as Color;
+          final iconVal = scheme['icon'] as IconData;
+          final tagText = scheme['tagText'] as String;
 
-      
           double totalCal = combo.foods.fold(0, (sum, f) => sum + f.calories);
           double totalProtein = combo.foods.fold(0, (sum, f) => sum + f.protein);
           double totalCarbs = combo.foods.fold(0, (sum, f) => sum + f.carbs);
           double totalFat = combo.foods.fold(0, (sum, f) => sum + f.fat);
 
-          return Card(
-            color: _surface,
+          return Container(
             margin: const EdgeInsets.only(bottom: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            elevation: 2,
+            decoration: BoxDecoration(
+              color: bgVal.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: borderVal, width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: accentColor.withValues(alpha: 0.04),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: accentColor.withValues(alpha: 0.12),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(iconVal, color: accentColor, size: 20),
+                      ),
+                      const SizedBox(width: 10),
                       Expanded(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Flexible(
-                              child: Text(
-                                combo.title,
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _textDark),
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    combo.title,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 16, 
+                                      fontWeight: FontWeight.bold, 
+                                      color: _textDark,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Icon(
+                                  combo.isSynced == true ? Icons.cloud_done_rounded : Icons.cloud_upload_rounded,
+                                  size: 14,
+                                  color: combo.isSynced == true 
+                                      ? Colors.blue.withValues(alpha: 0.8) 
+                                      : Colors.orange.withValues(alpha: 0.8),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 8),
-                            
-                            Icon(
-                              combo.isSynced == true ? Icons.cloud_done_rounded : Icons.cloud_upload_rounded,
-                              size: 16,
-                              color: combo.isSynced == true 
-                                  ? Colors.blue.withValues(alpha: 0.8) 
-                                  : Colors.orange.withValues(alpha: 0.8),
+                            Text(
+                              tagText,
+                              style: GoogleFonts.poppins(
+                                fontSize: 10,
+                                color: accentColor,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.3,
+                              ),
                             ),
                           ],
                         ),
@@ -538,17 +746,20 @@ class _WatchlistViewState extends State<WatchlistView> with SingleTickerProvider
                     ],
                   ),
 
-                  const Divider(height: 20),
+                  const Divider(height: 20, thickness: 1),
 
-                  ...combo.foods.map((food) => Card(
-                        elevation: 0,
-                        color: _bg.withValues(alpha: 0.5), 
+                  ...combo.foods.map((food) => Container(
                         margin: const EdgeInsets.symmetric(vertical: 4),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.9),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: borderVal.withValues(alpha: 0.4),
+                            width: 1,
+                          ),
                         ),
                         child: InkWell(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(16),
                           onTap: () {
                             Navigator.push(
                               context,
@@ -562,34 +773,47 @@ class _WatchlistViewState extends State<WatchlistView> with SingleTickerProvider
                             child: Row(
                               children: [
                                 Container(
-                                  width: 6,
-                                  height: 6,
-                                
+                                  width: 8,
+                                  height: 8,
                                   decoration: BoxDecoration(
-                                    
                                     color: _categoryColor(food.category),
                                     shape: BoxShape.circle,
                                   ),
                                 ),
                                 const SizedBox(width: 10),
                                 Expanded(
-                                  child: Text(
-                                    food.name,
-                                    style: const TextStyle(
-                                      fontSize: 14, 
-                                      fontWeight: FontWeight.w500,
-                                      color: _textDark
-                                    ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        food.name,
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 13, 
+                                          fontWeight: FontWeight.bold,
+                                          color: _textDark
+                                        ),
+                                      ),
+                                      Text(
+                                        '${food.category} • ${food.defaultServingSize.round()}g',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 10,
+                                          color: _textMuted,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                                 Text(
                                   '${food.calories.toStringAsFixed(0)} kkal',
-                                  style: const TextStyle(fontSize: 13, color: _textMuted),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12, 
+                                    fontWeight: FontWeight.w600,
+                                    color: _textMuted
+                                  ),
                                 ),
-                                const SizedBox(width: 8),
-                                
+                                const SizedBox(width: 6),
                                 IconButton(
-                                  icon: const Icon(Icons.remove_circle_outline, size: 18, color: Colors.orange),
+                                  icon: const Icon(Icons.remove_circle_outline_rounded, size: 18, color: Colors.orange),
                                   padding: EdgeInsets.zero,
                                   constraints: const BoxConstraints(),
                                   onPressed: () => context.read<WatchlistController>().removeFoodFromCombination(combo.id, food.id),
@@ -600,32 +824,66 @@ class _WatchlistViewState extends State<WatchlistView> with SingleTickerProvider
                         ),
                       )),
 
-                  const Divider(height: 24),
+                  const Divider(height: 24, thickness: 1),
 
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F1),
-                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.white.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: borderVal.withValues(alpha: 0.3),
+                        width: 1,
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Total Nutrisi Kombinasi:',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: _textMuted),
+                        Row(
+                          children: [
+                            Icon(Icons.insights_rounded, size: 14, color: accentColor),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Total Nutrisi Kombinasi:',
+                              style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: accentColor),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 8),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            _buildNutrientInfo('Kalori', '${totalCal.toStringAsFixed(0)} kkal'),
-                            _buildNutrientInfo('Protein', '${totalProtein.toStringAsFixed(1)}g'),
-                            _buildNutrientInfo('Karbo', '${totalCarbs.toStringAsFixed(1)}g'),
-                            _buildNutrientInfo('Lemak', '${totalFat.toStringAsFixed(1)}g'),
+                            _buildNutrientInfo('🔥 Kalori', '${totalCal.toStringAsFixed(0)} kkal', accentColor),
+                            _buildNutrientInfo('💪 Protein', '${totalProtein.toStringAsFixed(1)}g', accentColor),
+                            _buildNutrientInfo('🍞 Karbo', '${totalCarbs.toStringAsFixed(1)}g', accentColor),
+                            _buildNutrientInfo('🥑 Lemak', '${totalFat.toStringAsFixed(1)}g', accentColor),
                           ],
                         ),
                       ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.add_task_rounded, color: Colors.white, size: 18),
+                      label: Text(
+                        'Makan Menu Ini',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontSize: 13,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: accentColor,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      onPressed: () => _showLogComboBottomSheet(context, combo),
                     ),
                   ),
                 ],
@@ -637,14 +895,20 @@ class _WatchlistViewState extends State<WatchlistView> with SingleTickerProvider
     );
   }
 
-  Widget _buildNutrientInfo(String label, String value) {
+  Widget _buildNutrientInfo(String label, String value, Color color) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 11, color: _textMuted)),
-        Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: _textDark)),
+        Text(
+          label, 
+          style: GoogleFonts.poppins(fontSize: 10, color: _textMuted, fontWeight: FontWeight.w500)
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value, 
+          style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: _textDark)
+        ),
       ],
     );
   }
 }
-
