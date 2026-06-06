@@ -3,7 +3,6 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:nutritrack_app/services/gemini_scanner_service.dart';
-import 'package:nutritrack_app/services/hive_service.dart';
 import 'package:nutritrack_app/services/offline_storage_service.dart';
 import 'package:nutritrack_app/helpers/pcd_helper.dart';
 import 'dart:convert';
