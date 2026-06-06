@@ -355,13 +355,11 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
                                 borderRadius: BorderRadius.circular(14),
                                 child: Stack(
                                   children: [
-                                    SizedBox(
-                                      width: double.infinity,
-                                      height: 160,
+                                    AspectRatio(
+                                      aspectRatio: 1,
                                       child: SubmissionImage(
                                         imagePath: item.imagePath,
                                         width: double.infinity,
-                                        height: 160,
                                         fit: BoxFit.cover,
                                         placeholder: _imgErrBox(160),
                                       ),
@@ -930,13 +928,14 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
                 unselectedLabelColor: _muted,
                 indicatorColor: _green,
                 indicatorWeight: 3,
+                labelPadding: const EdgeInsets.symmetric(horizontal: 4.0),
                 labelStyle: const TextStyle(
                   fontWeight: FontWeight.w700,
-                  fontSize: 12,
+                  fontSize: 11,
                 ),
                 unselectedLabelStyle: const TextStyle(
                   fontWeight: FontWeight.w500,
-                  fontSize: 12,
+                  fontSize: 11,
                 ),
                 tabs: [
                   Tab(
@@ -985,9 +984,9 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
       Text(label),
-      const SizedBox(width: 6),
+      const SizedBox(width: 4),
       Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
         decoration: BoxDecoration(
           color:
               count > 0
@@ -998,7 +997,7 @@ class _AdminSubmissionViewState extends State<AdminSubmissionView>
         child: Text(
           '$count',
           style: TextStyle(
-            fontSize: 11,
+            fontSize: 10,
             fontWeight: FontWeight.w800,
             color: count > 0 ? color : _muted,
           ),
@@ -1305,13 +1304,11 @@ class _SubmissionCard extends StatelessWidget {
                 ),
                 child: Stack(
                   children: [
-                    SizedBox(
-                      width: double.infinity,
-                      height: 130,
+                    AspectRatio(
+                      aspectRatio: 1,
                       child: SubmissionImage(
                         imagePath: item.imagePath,
                         width: double.infinity,
-                        height: 130,
                         fit: BoxFit.cover,
                         placeholder: _noImage(),
                       ),

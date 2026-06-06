@@ -3,6 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:nutritrack_app/services/hive_service.dart';
 import 'package:nutritrack_app/features/general/auth/models/user_model.dart';
 import 'package:nutritrack_app/helpers/calorie_helper.dart';
+import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 
 class AdminUserController extends ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -14,6 +17,7 @@ class AdminUserController extends ChangeNotifier {
   int currentPage = 0;
   String searchQuery = '';
   bool isSaving = false;
+  final Set<String> _downloadingUserIds = {};
 
   List<UserModel> get filteredUsers => _filtered;
   int get totalPages => (_filtered.length / itemsPerPage).ceil();
@@ -83,23 +87,8 @@ class AdminUserController extends ChangeNotifier {
 
   // ─── BLOCK/UNBLOCK (Offline-First) ───
   Future<void> toggleBlock(UserModel user, bool willBlock) async {
-    final updated = UserModel(
-      id: user.id, 
-      name: user.name, 
-      email: user.email,
-      password: user.password, 
-      role: user.role,
-      weight: user.weight, 
-      height: user.height, 
-      age: user.age,
-      gender: user.gender, 
-      activityLevel: user.activityLevel,
-      dailyCalorieNeed: user.dailyCalorieNeed, 
-      birthDate: user.birthDate,
+    final updated = user.copyWith(
       isBlocked: willBlock,
-      targetWeightGainPerMonth: user.targetWeightGainPerMonth,
-      initialWeight: user.initialWeight, 
-      targetHistory: user.targetHistory,
       isSynced: false,
     );
     
@@ -170,16 +159,16 @@ class AdminUserController extends ChangeNotifier {
       );
     }
 
-    final updated = UserModel(
-      id: oldUser.id, name: name, email: email,
-      password: oldUser.password, role: oldUser.role,
-      weight: weight, height: height, age: age,
-      gender: gender, activityLevel: activityLevel,
-      dailyCalorieNeed: newCalorie, birthDate: oldUser.birthDate,
-      isBlocked: oldUser.isBlocked,
+    final updated = oldUser.copyWith(
+      name: name,
+      email: email,
+      weight: weight,
+      height: height,
+      age: age,
+      gender: gender,
+      activityLevel: activityLevel,
+      dailyCalorieNeed: newCalorie,
       targetWeightGainPerMonth: target,
-      initialWeight: oldUser.initialWeight,
-      targetHistory: oldUser.targetHistory,
       isSynced: false,
     );
 
@@ -207,5 +196,47 @@ class AdminUserController extends ChangeNotifier {
     isSaving = false;
     notifyListeners();
     return null; 
+  }
+
+  // ─── DOWNLOAD & CACHE PROFILE IMAGE (Offline-First) ───
+  Future<void> downloadAndCacheProfileImage(UserModel user) async {
+    if (user.profileImageUrl == null || user.profileImageUrl!.isEmpty) return;
+    
+    // Check if it's already downloaded/exists
+    if (user.localProfileImagePath != null && File(user.localProfileImagePath!).existsSync()) {
+      return;
+    }
+    
+    if (_downloadingUserIds.contains(user.id)) return;
+    _downloadingUserIds.add(user.id);
+    
+    try {
+      final response = await http.get(Uri.parse(user.profileImageUrl!));
+      if (response.statusCode == 200) {
+        final bytes = response.bodyBytes;
+        final tempDir = await getApplicationDocumentsDirectory();
+        final fileName = 'profile_${user.id}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final file = File('${tempDir.path}/$fileName');
+        await file.writeAsBytes(bytes);
+        
+        final updated = user.copyWith(
+          localProfileImagePath: file.path,
+        );
+        
+        // Save to Hive
+        await HiveService.users.put(updated.id, updated);
+        
+        // Update in memory list
+        final index = _allUsers.indexWhere((u) => u.id == user.id);
+        if (index != -1) {
+          _allUsers[index] = updated;
+        }
+        applyFilter();
+      }
+    } catch (e) {
+      debugPrint("Gagal mendownload foto profil: $e");
+    } finally {
+      _downloadingUserIds.remove(user.id);
+    }
   }
 }

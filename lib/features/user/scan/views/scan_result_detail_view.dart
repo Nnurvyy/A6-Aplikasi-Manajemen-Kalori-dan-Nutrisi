@@ -13,6 +13,7 @@ import 'dart:convert';
 import 'package:nutritrack_app/features/general/food/controllers/watchlist_controller.dart';
 import 'package:nutritrack_app/helpers/date_controller.dart';
 import 'package:nutritrack_app/services/offline_storage_service.dart';
+import 'package:nutritrack_app/helpers/string_helper.dart';
 import './scan_ingredient_edit_view.dart';
 
 class ScanResultDetailView extends StatefulWidget {
@@ -337,7 +338,7 @@ class _ScanResultDetailViewState extends State<ScanResultDetailView> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Jumlah (Pcs/Porsi)',
+                        StringHelper.getUnitForCategory(widget.food.category) == 'pcs' ? 'Jumlah (Pcs)' : 'Jumlah (Porsi)',
                         style: GoogleFonts.poppins(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -419,6 +420,28 @@ class _ScanResultDetailViewState extends State<ScanResultDetailView> {
                     localFileName = await OfflineStorageService.saveLocalImage(widget.processedImageBytes!);
                   }
 
+                  String? ingredientsJson;
+                  if (_hasIngredients) {
+                    final List<Map<String, dynamic>> ingredientsList = _ingredientStates.map((state) {
+                      final name = state.originalData['name'] ?? '';
+                      final grams = double.tryParse(state.weightCtrl.text) ?? state.baseWeight;
+                      final calories = double.tryParse(state.calCtrl.text) ?? state.baseCal;
+                      final protein = double.tryParse(state.proCtrl.text) ?? state.basePro;
+                      final carbs = double.tryParse(state.carbCtrl.text) ?? state.baseCarb;
+                      final fat = double.tryParse(state.fatCtrl.text) ?? state.baseFat;
+                      return {
+                        'name': name,
+                        'grams': grams,
+                        'weight_grams': grams,
+                        'calories': calories,
+                        'protein': protein,
+                        'carbs': carbs,
+                        'fat': fat,
+                      };
+                    }).toList();
+                    ingredientsJson = jsonEncode(ingredientsList);
+                  }
+
                   bool success = await foodCtrl.addFoodToDailyLog(
                     userId: userId,
                     foodName: widget.food.name,
@@ -429,8 +452,10 @@ class _ScanResultDetailViewState extends State<ScanResultDetailView> {
                     fat: nutrition['fat']!,
                     mealType: '',
                     dateConsumed: context.read<DateController>().selectedDate,
-                    servingSize: _currentGrams * _quantity,
+                    servingSize: _currentGrams,
+                    quantity: _quantity,
                     imageUrl: localFileName,
+                    ingredientsJson: ingredientsJson,
                   );
 
                   if (mounted) {

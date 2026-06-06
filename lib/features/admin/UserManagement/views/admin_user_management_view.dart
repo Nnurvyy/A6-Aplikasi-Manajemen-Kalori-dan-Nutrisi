@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:nutritrack_app/features/general/auth/controllers/auth_controller.dart';
 import 'package:nutritrack_app/features/general/auth/models/user_model.dart';
 import 'package:nutritrack_app/features/admin/UserManagement/controllers/admin_user_controller.dart';
-import 'package:nutritrack_app/features/admin/UserManagement/controllers/admin_user_management_controller.dart';
+import 'dart:io';
 
 class AdminUserManagementView extends StatefulWidget {
   const AdminUserManagementView({super.key});
@@ -428,14 +428,6 @@ class _UserCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initials =
-        user.name
-            .trim()
-            .split(' ')
-            .take(2)
-            .map((w) => w.isNotEmpty ? w[0].toUpperCase() : '')
-            .join();
-
     return GestureDetector(
       onTap: onDetail,
       child: Container(
@@ -461,26 +453,10 @@ class _UserCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                color:
-                    user.isBlocked
-                        ? const Color(0xFFFFEBEE)
-                        : const Color(0xFFE8F5E9),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: Text(
-                  initials,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: user.isBlocked ? _danger : _primary,
-                  ),
-                ),
-              ),
+            UserAvatar(
+              user: user,
+              size: 46,
+              fontSize: 18,
             ),
             const SizedBox(width: 14),
 
@@ -634,14 +610,6 @@ class _UserDetailSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initials =
-        user.name
-            .trim()
-            .split(' ')
-            .take(2)
-            .map((w) => w.isNotEmpty ? w[0].toUpperCase() : '')
-            .join();
-
     final bmi =
         (user.weight != null && user.height != null)
             ? user.weight! / ((user.height! / 100) * (user.height! / 100))
@@ -673,36 +641,10 @@ class _UserDetailSheet extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
             child: Row(
               children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors:
-                          user.isBlocked
-                              ? [
-                                const Color(0xFFFFCDD2),
-                                const Color(0xFFEF9A9A),
-                              ]
-                              : [
-                                const Color(0xFFA5D6A7),
-                                const Color(0xFF66BB6A),
-                              ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Center(
-                    child: Text(
-                      initials,
-                      style: TextStyle(
-                        color: user.isBlocked ? _danger : _primary,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 20,
-                      ),
-                    ),
-                  ),
+                UserAvatar(
+                  user: user,
+                  size: 56,
+                  fontSize: 20,
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -1426,6 +1368,132 @@ class _EditUserViewState extends State<_EditUserView> {
             items.map((i) {
               return DropdownMenuItem(value: i, child: Text(i));
             }).toList(),
+      ),
+    );
+  }
+}
+
+// ─── UserAvatar Widget (Offline-First) ───
+class UserAvatar extends StatefulWidget {
+  final UserModel user;
+  final double size;
+  final double fontSize;
+  const UserAvatar({
+    super.key,
+    required this.user,
+    this.size = 46,
+    this.fontSize = 18,
+  });
+
+  @override
+  State<UserAvatar> createState() => _UserAvatarState();
+}
+
+class _UserAvatarState extends State<UserAvatar> {
+  @override
+  void initState() {
+    super.initState();
+    _triggerDownloadIfNeeded();
+  }
+
+  @override
+  void didUpdateWidget(UserAvatar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.user.id != oldWidget.user.id ||
+        widget.user.profileImageUrl != oldWidget.user.profileImageUrl) {
+      _triggerDownloadIfNeeded();
+    }
+  }
+
+  void _triggerDownloadIfNeeded() {
+    final user = widget.user;
+    if (user.profileImageUrl != null && user.profileImageUrl!.isNotEmpty) {
+      final hasLocal = user.localProfileImagePath != null &&
+          File(user.localProfileImagePath!).existsSync();
+      if (!hasLocal) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            context
+                .read<AdminUserController>()
+                .downloadAndCacheProfileImage(user);
+          }
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = widget.user;
+    final size = widget.size;
+    final initials = user.name
+        .trim()
+        .split(' ')
+        .take(2)
+        .map((w) => w.isNotEmpty ? w[0].toUpperCase() : '')
+        .join();
+
+    final Color primary = const Color(0xFF4CAF50);
+    final Color danger = const Color(0xFFE53935);
+    final Color textColor = user.isBlocked ? danger : primary;
+
+    final hasLocal = user.localProfileImagePath != null &&
+        user.localProfileImagePath!.isNotEmpty &&
+        File(user.localProfileImagePath!).existsSync();
+
+    if (hasLocal) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.file(
+          File(user.localProfileImagePath!),
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _buildInitials(initials, textColor),
+        ),
+      );
+    } else if (user.profileImageUrl != null &&
+        user.profileImageUrl!.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.network(
+          user.profileImageUrl!,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _buildInitials(initials, textColor),
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return _buildInitials(initials, textColor);
+          },
+        ),
+      );
+    } else {
+      return _buildInitials(initials, textColor);
+    }
+  }
+
+  Widget _buildInitials(String initials, Color textColor) {
+    final user = widget.user;
+    return Container(
+      width: widget.size,
+      height: widget.size,
+      decoration: BoxDecoration(
+        color:
+            user.isBlocked
+                ? const Color(0xFFFFEBEE)
+                : const Color(0xFFE8F5E9),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Center(
+        child: Text(
+          initials,
+          style: TextStyle(
+            fontSize: widget.fontSize,
+            fontWeight: FontWeight.w800,
+            color: textColor,
+          ),
+        ),
       ),
     );
   }

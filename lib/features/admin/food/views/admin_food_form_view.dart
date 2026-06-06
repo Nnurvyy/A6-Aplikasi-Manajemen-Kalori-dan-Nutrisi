@@ -11,7 +11,8 @@ import 'dart:convert';
 
 class AdminFoodFormView extends StatefulWidget {
   final FoodModel? initialFood;
-  const AdminFoodFormView({super.key, this.initialFood});
+  final bool isAIPrepopulate;
+  const AdminFoodFormView({super.key, this.initialFood, this.isAIPrepopulate = false});
 
   @override
   State<AdminFoodFormView> createState() => _AdminFoodFormViewState();
@@ -156,7 +157,9 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
     final fatTotal  = double.tryParse(_fatCtrl.text)      ?? 0;
 
     final newFood = FoodModel(
-      id: widget.initialFood?.id ?? const Uuid().v4(),
+      id: (widget.initialFood == null || widget.isAIPrepopulate)
+          ? (widget.isAIPrepopulate ? 'ai_${const Uuid().v4()}' : const Uuid().v4())
+          : widget.initialFood!.id,
       name: _nameCtrl.text.trim(),
       category: _selectedCategory,
       calories: calTotal  * ratio,   // stored per 100g
@@ -171,7 +174,7 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
       ingredientsJson: _ingredients.isEmpty ? null : jsonEncode(_ingredients),
     );
 
-    if (widget.initialFood == null) {
+    if (widget.initialFood == null || widget.isAIPrepopulate) {
       await foodCtrl.addFood(newFood);
     } else {
       await foodCtrl.updateFood(newFood);

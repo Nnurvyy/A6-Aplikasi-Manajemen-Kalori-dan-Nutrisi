@@ -4,6 +4,9 @@ import 'package:nutritrack_app/features/general/food/controllers/food_controller
 import 'package:nutritrack_app/features/general/food/models/food_model.dart';
 import 'package:nutritrack_app/features/general/food/views/food_detail_view.dart';
 import 'admin_food_form_view.dart';
+import 'package:nutritrack_app/helpers/string_helper.dart';
+import 'package:nutritrack_app/services/groq_nutrition_service.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'dart:io';
 
 class AdminFoodListView extends StatefulWidget {
@@ -51,14 +54,206 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
     );
   }
 
-  void _navigateToAddEdit({FoodModel? food}) async {
+  void _openManualForm() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => AdminFoodFormView(initialFood: food)),
+      MaterialPageRoute(builder: (context) => const AdminFoodFormView()),
     );
     if (result == true && mounted) {
       context.read<FoodController>().loadAllFoods();
     }
+  }
+
+  void _openAIInput() {
+    final searchCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            'Cari Makanan dengan AI',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          content: TextField(
+            controller: searchCtrl,
+            decoration: InputDecoration(
+              hintText: 'Misal: Sate Kambing 1 Piring',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final query = searchCtrl.text.trim();
+                if (query.isNotEmpty) {
+                  Navigator.pop(ctx);
+                  _runAISearch(query);
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2E7D32),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Cari', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _runAISearch(String query) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: Color(0xFF2E7D32)),
+                SizedBox(height: 16),
+                Text('Mencari data gizi dengan AI...', style: TextStyle(fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final aiService = GroqNutritionService();
+      final result = await aiService.fetchNutritionData(query);
+      if (mounted) Navigator.pop(context); // Pop loading dialog
+
+      if (result != null) {
+        final double porsiGram = (result['porsi_gram'] as num?)?.toDouble() ?? 100.0;
+        final double ratio = porsiGram > 0 ? 100.0 / porsiGram : 1.0;
+
+        // Create temporary FoodModel pre-populated
+        final aiFood = FoodModel(
+          id: 'ai_${DateTime.now().millisecondsSinceEpoch}',
+          name: result['nama_makanan'] ?? query,
+          category: result['kategori'] ?? 'Lainnya',
+          calories: ((result['kalori'] as num?)?.toDouble() ?? 0.0) * ratio,
+          protein: ((result['protein'] as num?)?.toDouble() ?? 0.0) * ratio,
+          carbs: ((result['karbohidrat'] as num?)?.toDouble() ?? 0.0) * ratio,
+          fat: ((result['lemak'] as num?)?.toDouble() ?? 0.0) * ratio,
+          defaultServingSize: porsiGram,
+          isApproved: true, // Admin-created AI foods are automatically approved
+          createdAt: DateTime.now(),
+        );
+
+        final resultForm = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AdminFoodFormView(
+              initialFood: aiFood,
+              isAIPrepopulate: true,
+            ),
+          ),
+        );
+
+        if (resultForm == true && mounted) {
+          context.read<FoodController>().loadAllFoods();
+        }
+      } else {
+        throw Exception('AI mengembalikan hasil kosong');
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Ensure loading is popped if exception happened
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memproses AI: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  void _navigateToAddEdit({FoodModel? food}) async {
+    if (food != null) {
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => AdminFoodFormView(initialFood: food)),
+      );
+      if (result == true && mounted) {
+        context.read<FoodController>().loadAllFoods();
+      }
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Tambah Makanan Baru',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF1B2A1B),
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2E7D32).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.edit_note_rounded, color: Color(0xFF2E7D32)),
+                ),
+                title: Text('Buat Manual', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _openManualForm();
+                },
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.auto_awesome, color: Colors.blue),
+                ),
+                title: Text('Buat dengan AI', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _openAIInput();
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   void _confirmDelete(FoodModel food) {
@@ -392,7 +587,7 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
+          border: Border.all(color: accentColor, width: 1),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.03),
@@ -466,7 +661,7 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '${food.category} • ${food.defaultServingSize.toInt()}g',
+                        '${StringHelper.formatCategory(food.category)} • ${food.defaultServingSize.toInt()}g',
                         style: const TextStyle(fontSize: 12, color: _textMuted),
                       ),
                     ],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:nutritrack_app/features/general/food/models/food_model.dart';
 import 'package:nutritrack_app/helpers/app_colors.dart';
 import 'package:nutritrack_app/features/user/scan/controllers/scan_controller.dart';
 import './scan_result_detail_view.dart';
@@ -88,7 +89,7 @@ class _ScanFoodViewState extends State<ScanFoodView> {
                       child: _choiceActionButton(
                         icon: Icons.camera_alt_rounded,
                         label: 'Kamera',
-                        onTap: () => ctrl.pickImage(ImageSource.camera),
+                        onTap: () => _handlePickImage(context, ctrl, ImageSource.camera),
                         color: const Color(0xFF2E7D32),
                       ),
                     ),
@@ -97,7 +98,7 @@ class _ScanFoodViewState extends State<ScanFoodView> {
                       child: _choiceActionButton(
                         icon: Icons.photo_library_rounded,
                         label: 'Galeri',
-                        onTap: () => ctrl.pickImage(ImageSource.gallery),
+                        onTap: () => _handlePickImage(context, ctrl, ImageSource.gallery),
                         color: const Color(0xFF1976D2),
                       ),
                     ),
@@ -159,6 +160,29 @@ class _ScanFoodViewState extends State<ScanFoodView> {
     );
   }
 
+  Future<void> _handlePickImage(BuildContext context, ScanController ctrl, ImageSource source) async {
+    await ctrl.pickImage(source);
+    if (ctrl.hasResult && ctrl.uniqueMappedFoods.isNotEmpty && context.mounted) {
+      final unique = List<FoodModel>.from(ctrl.uniqueMappedFoods)
+        ..sort((a, b) => ctrl.getFoodCount(b.id).compareTo(ctrl.getFoodCount(a.id)));
+      
+      final dominantFood = unique.first;
+      final count = ctrl.getFoodCount(dominantFood.id);
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ScanResultDetailView(
+            food: dominantFood,
+            imageFile: ctrl.selectedImage,
+            processedImageBytes: ctrl.processedImageBytes,
+            initialQuantity: count,
+          ),
+        ),
+      );
+    }
+  }
+
   Widget _buildControlPanel(BuildContext context, ScanController ctrl, bool isDark) {
     return Container(
       decoration: BoxDecoration(
@@ -182,51 +206,7 @@ class _ScanFoodViewState extends State<ScanFoodView> {
           ),
           const SizedBox(height: 20),
 
-          if (ctrl.hasResult) ...[
-            _resultSummary(ctrl, isDark),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => ctrl.clearResult(),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: Text('Batal', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.normal)),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      final unique = ctrl.uniqueMappedFoods;
-                      if (unique.isNotEmpty) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ScanResultDetailView(
-                              food: unique.first,
-                              imageFile: ctrl.selectedImage,
-                              processedImageBytes: ctrl.processedImageBytes,
-                              initialQuantity: ctrl.getFoodCount(unique.first.id),
-                            ),
-                          ),
-                        );
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: Text('Simpan Log', style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                  ),
-                ),
-              ],
-            ),
-          ] else if (ctrl.selectedImage != null && !ctrl.isScanning) ...[
+          if (ctrl.selectedImage != null && !ctrl.isScanning && !ctrl.hasResult) ...[
             const Icon(Icons.search_off_rounded, color: Colors.orange, size: 48),
             const SizedBox(height: 12),
             Text(
@@ -250,7 +230,7 @@ class _ScanFoodViewState extends State<ScanFoodView> {
                 Expanded(
                   child: _actionButton(
                     Icons.camera_alt_rounded, 'Coba Lagi', 
-                    () => ctrl.pickImage(ImageSource.camera),
+                    () => _handlePickImage(context, ctrl, ImageSource.camera),
                     AppColors.primary,
                   ),
                 ),
@@ -267,81 +247,6 @@ class _ScanFoodViewState extends State<ScanFoodView> {
           ],
         ],
       ),
-    );
-  }
-
-  Widget _resultSummary(ScanController ctrl, bool isDark) {
-    final uniqueFoods = ctrl.uniqueMappedFoods;
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Icon(Icons.analytics_outlined, color: AppColors.primaryLight, size: 20),
-            const SizedBox(width: 8),
-            Text('Hasil Deteksi (${ctrl.mappedFoods.length})', 
-              style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: AppColors.primary)),
-          ],
-        ),
-        const SizedBox(height: 12),
-        ...uniqueFoods.map((f) {
-           final count = ctrl.getFoodCount(f.id);
-           final totalCal = (f.calories * f.defaultServingSize / 100) * count;
-           
-           return Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            child: InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ScanResultDetailView(
-                      food: f,
-                      imageFile: ctrl.selectedImage,
-                      processedImageBytes: ctrl.processedImageBytes,
-                      initialQuantity: count,
-                    ),
-                  ),
-                );
-              },
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.fastfood_rounded, size: 16, color: AppColors.primary),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        count > 1 ? '${f.name} x$count' : f.name, 
-                        style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w500)
-                      )
-                    ),
-                    Text('${totalCal.toStringAsFixed(0)} kkal', 
-                      style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold)),
-                    const SizedBox(width: 8),
-                    const Icon(Icons.chevron_right_rounded, size: 20, color: Colors.grey),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }),
-        const Divider(height: 24),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Total Estimasi Kalori', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 13)),
-            Text('${ctrl.totalCalories.toStringAsFixed(0)} kkal', 
-              style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary)),
-          ],
-        ),
-      ],
     );
   }
 

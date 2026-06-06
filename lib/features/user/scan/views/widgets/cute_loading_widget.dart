@@ -37,6 +37,7 @@ class _CuteLoadingWidgetState extends State<CuteLoadingWidget>
   @override
   void initState() {
     super.initState();
+    _loadingMessages.shuffle();
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 3000),

@@ -23,6 +23,7 @@ import 'package:nutritrack_app/features/general/food/controllers/food_controller
 import 'package:nutritrack_app/features/user/scan/views/scan_nutritional_information_view.dart';
 import 'package:nutritrack_app/features/user/scan/controllers/scan_nutritional_information_controller.dart';
 import 'package:nutritrack_app/features/user/notification/controllers/notification_controller.dart';
+import 'package:nutritrack_app/helpers/string_helper.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // USER MAIN VIEW
@@ -869,7 +870,7 @@ class _SavedFoodSheet extends StatelessWidget {
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
         ),
         subtitle: Text(
-          '${item.food.category} • ${item.food.calories.toStringAsFixed(0)} kkal',
+          '${StringHelper.formatCategory(item.food.category)} • ${item.food.calories.toStringAsFixed(0)} kkal',
           style: const TextStyle(fontSize: 12, color: Color(0xFF7A9485)),
         ),
         trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),

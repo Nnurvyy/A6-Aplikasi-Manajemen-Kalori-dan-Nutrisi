@@ -45,20 +45,62 @@ class SubmissionDetailScreen extends StatelessWidget {
     }
   }
 
-  Widget _buildImageWidget() {
-    return SubmissionImage(
-      imagePath: submission.imagePath,
-      width: double.infinity,
-      height: 220,
-      fit: BoxFit.cover,
-      borderRadius: BorderRadius.circular(16),
-      placeholder: _imagePlaceholder(),
+  Widget _buildImageWidget(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => FullScreenImageViewer(imagePath: submission.imagePath),
+          ),
+        );
+      },
+      child: AspectRatio(
+        aspectRatio: 1.0,
+        child: Stack(
+          children: [
+            SubmissionImage(
+              imagePath: submission.imagePath,
+              width: double.infinity,
+              height: double.infinity,
+              fit: BoxFit.cover,
+              borderRadius: BorderRadius.circular(16),
+              placeholder: _imagePlaceholder(),
+            ),
+            Positioned(
+              bottom: 12,
+              right: 12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.zoom_in_rounded, color: Colors.white, size: 16),
+                    SizedBox(width: 4),
+                    Text(
+                      'Perbesar',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _imagePlaceholder() {
     return Container(
-      height: 220,
       decoration: BoxDecoration(
         color: _primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
@@ -92,7 +134,7 @@ class SubmissionDetailScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _buildImageWidget(),
+          _buildImageWidget(context),
           const SizedBox(height: 16),
 
           // Banner belum tersync
@@ -327,5 +369,49 @@ class SubmissionDetailScreen extends StatelessWidget {
   String _formatDate(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year} '
       '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+}
+
+class FullScreenImageViewer extends StatelessWidget {
+  final String imagePath;
+  const FullScreenImageViewer({super.key, required this.imagePath});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          Center(
+            child: InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: SubmissionImage(
+                imagePath: imagePath,
+                width: double.infinity,
+                height: double.infinity,
+                fit: BoxFit.contain,
+                borderRadius: BorderRadius.zero,
+                placeholder: const Center(
+                  child: Icon(Icons.fastfood_rounded, size: 72, color: Colors.white70),
+                ),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: CircleAvatar(
+                backgroundColor: Colors.black.withValues(alpha: 0.5),
+                child: IconButton(
+                  icon: const Icon(Icons.close_rounded, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 

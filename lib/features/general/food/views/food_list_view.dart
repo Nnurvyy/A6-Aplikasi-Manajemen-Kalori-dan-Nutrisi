@@ -12,6 +12,7 @@ import 'package:nutritrack_app/features/general/food/controllers/watchlist_contr
 import 'package:nutritrack_app/features/general/food/models/log_model.dart';
 import 'package:nutritrack_app/helpers/date_controller.dart';
 import 'package:nutritrack_app/services/hive_service.dart';
+import 'package:nutritrack_app/helpers/string_helper.dart';
 
 class FoodListView extends StatefulWidget {
   final String? initialSearch;
@@ -641,7 +642,7 @@ class _FoodListViewState extends State<FoodListView> {
                         decoration: BoxDecoration(color: _catColor(food.category), shape: BoxShape.circle),
                       ),
                       const SizedBox(width: 4),
-                      Text(food.category,
+                      Text(StringHelper.formatCategory(food.category),
                           style: GoogleFonts.poppins(
                             fontSize: 11,
                             color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,

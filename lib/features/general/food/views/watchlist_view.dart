@@ -10,6 +10,7 @@ import 'package:nutritrack_app/features/general/food/models/food_combination_mod
 import 'package:nutritrack_app/features/general/food/controllers/food_controller.dart';
 import 'package:nutritrack_app/helpers/date_controller.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:nutritrack_app/helpers/string_helper.dart';
 
 class WatchlistView extends StatefulWidget {
   const WatchlistView({super.key});
@@ -343,7 +344,7 @@ class _WatchlistViewState extends State<WatchlistView> with SingleTickerProvider
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '${food.category} • ${food.defaultServingSize.toInt()}g',
+                        '${StringHelper.formatCategory(food.category)} • ${food.defaultServingSize.toInt()}g',
                         style: const TextStyle(fontSize: 12, color: _textMuted),
                       ),
                     ],
@@ -794,7 +795,7 @@ class _WatchlistViewState extends State<WatchlistView> with SingleTickerProvider
                                         ),
                                       ),
                                       Text(
-                                        '${food.category} • ${food.defaultServingSize.round()}g',
+                                        '${StringHelper.formatCategory(food.category)} • ${food.defaultServingSize.round()}g',
                                         style: GoogleFonts.poppins(
                                           fontSize: 10,
                                           color: _textMuted,

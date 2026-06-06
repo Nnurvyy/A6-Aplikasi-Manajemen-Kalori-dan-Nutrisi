@@ -168,6 +168,7 @@ class ScanGeminiController extends ChangeNotifier {
           servingSize: food.defaultServingSize,
           isManual: false,
           imageUrl: localFileName, // Sementara simpan nama file, akan diupdate via background sync
+          ingredientsJson: food.ingredientsJson,
           context: context,
         );
       }

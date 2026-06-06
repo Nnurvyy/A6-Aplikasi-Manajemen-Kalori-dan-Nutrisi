@@ -18,14 +18,6 @@ class AdminMainView extends StatefulWidget {
 class _AdminMainViewState extends State<AdminMainView> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = [
-    const AdminDashboardView(),
-    const AdminFoodListView(),
-    const AdminSubmissionView(),
-    const AdminUserManagementView(),
-    const _AdminProfileView(),
-  ];
-
   @override
   Widget build(BuildContext context) {
     final authCtrl = context.watch<AuthController>();
@@ -35,8 +27,22 @@ class _AdminMainViewState extends State<AdminMainView> {
       return const LoginView();
     }
 
+    final pages = [
+      const AdminDashboardView(),
+      const AdminFoodListView(),
+      const AdminSubmissionView(),
+      const AdminUserManagementView(),
+      _AdminProfileView(
+        onTabSelected: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+      ),
+    ];
+
     return Scaffold(
-      body: _pages[_currentIndex],
+      body: pages[_currentIndex],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
@@ -96,7 +102,8 @@ class _AdminMainViewState extends State<AdminMainView> {
 
 // ─── Admin Profile View ─────────────────────────────────────────────────────
 class _AdminProfileView extends StatelessWidget {
-  const _AdminProfileView();
+  final Function(int) onTabSelected;
+  const _AdminProfileView({required this.onTabSelected});
 
   static const Color _primary = Color(0xFF4CAF50);
   static const Color _dark = Color(0xFF1B2A1B);
@@ -234,6 +241,7 @@ class _AdminProfileView extends StatelessWidget {
                           label: 'Kelola Database Makanan',
                           color: _primary,
                           subtitle: 'Tambah, edit, dan hapus makanan',
+                          onTap: () => onTabSelected(1),
                         ),
                         const Divider(height: 24),
                         _menuRow(
@@ -241,6 +249,7 @@ class _AdminProfileView extends StatelessWidget {
                           label: 'Kelola Pengajuan',
                           color: Colors.orange,
                           subtitle: 'Review pengajuan dari pengguna',
+                          onTap: () => onTabSelected(2),
                         ),
                         const Divider(height: 24),
                         _menuRow(
@@ -248,6 +257,15 @@ class _AdminProfileView extends StatelessWidget {
                           label: 'Dashboard Statistik',
                           color: Colors.blue,
                           subtitle: 'Monitor aktivitas pengguna',
+                          onTap: () => onTabSelected(0),
+                        ),
+                        const Divider(height: 24),
+                        _menuRow(
+                          icon: Icons.people_alt_rounded,
+                          label: 'Kelola Pengguna',
+                          color: Colors.purple,
+                          subtitle: 'Atur hak akses dan status pengguna',
+                          onTap: () => onTabSelected(3),
                         ),
                       ],
                     ),
@@ -369,39 +387,47 @@ class _AdminProfileView extends StatelessWidget {
     required String label,
     required Color color,
     required String subtitle,
+    required VoidCallback onTap,
   }) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, color: color, size: 18),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: _dark,
-                  fontWeight: FontWeight.w700,
-                ),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
               ),
-              Text(
-                subtitle,
-                style: const TextStyle(fontSize: 11, color: _muted),
+              child: Icon(icon, color: color, size: 18),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: _dark,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(fontSize: 11, color: _muted),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: _muted, size: 18),
+          ],
         ),
-        const Icon(Icons.chevron_right_rounded, color: _muted, size: 18),
-      ],
+      ),
     );
   }
 

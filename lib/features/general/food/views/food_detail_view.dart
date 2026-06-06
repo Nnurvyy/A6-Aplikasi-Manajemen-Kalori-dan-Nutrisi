@@ -10,6 +10,7 @@ import 'package:nutritrack_app/features/general/views/widgets/nt_button.dart';
 import 'package:nutritrack_app/features/general/food/controllers/food_controller.dart';
 import 'package:nutritrack_app/features/general/food/controllers/watchlist_controller.dart';
 import 'package:nutritrack_app/helpers/date_controller.dart';
+import 'package:nutritrack_app/helpers/string_helper.dart';
 import 'dart:io';
 import 'package:nutritrack_app/services/offline_storage_service.dart';
 import 'package:nutritrack_app/features/user/scan/views/scan_ingredient_edit_view.dart';
@@ -29,6 +30,7 @@ class FoodDetailView extends StatefulWidget {
 class _FoodDetailViewState extends State<FoodDetailView> {
   List<Map<String, dynamic>> _ingredientWeights = [];
   int _quantity = 1;
+  List<TextEditingController> _controllers = [];
 
   @override
   void initState() {
@@ -73,6 +75,19 @@ class _FoodDetailViewState extends State<FoodDetailView> {
     } else {
       _setupSingleIngredient();
     }
+
+    _controllers = _ingredientWeights.map((ing) {
+      final grams = (ing['grams'] as double).round();
+      return TextEditingController(text: grams.toString());
+    }).toList();
+  }
+
+  @override
+  void dispose() {
+    for (var controller in _controllers) {
+      controller.dispose();
+    }
+    super.dispose();
   }
 
   void _setupSingleIngredient() {
@@ -117,6 +132,16 @@ class _FoodDetailViewState extends State<FoodDetailView> {
       _ingredientWeights[index]['protein'] = proBase * ratio;
       _ingredientWeights[index]['carbs'] = carbBase * ratio;
       _ingredientWeights[index]['fat'] = fatBase * ratio;
+
+      if (index < _controllers.length) {
+        final newText = grams.round().toString();
+        if (_controllers[index].text != newText) {
+          _controllers[index].text = newText;
+          _controllers[index].selection = TextSelection.fromPosition(
+            TextPosition(offset: _controllers[index].text.length),
+          );
+        }
+      }
     });
   }
 
@@ -278,7 +303,7 @@ class _FoodDetailViewState extends State<FoodDetailView> {
                 width: 100,
                 height: 40,
                 child: TextFormField(
-                  initialValue: (ing['grams'] as double).round().toString(),
+                  controller: _controllers[index],
                   enabled: !widget.isReadOnly,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   onChanged: (val) {
@@ -307,10 +332,10 @@ class _FoodDetailViewState extends State<FoodDetailView> {
                 trackHeight: 4,
               ),
               child: Slider(
-                value: (ing['grams'] as double).clamp(0, 2000),
+                value: (ing['grams'] as double).clamp(0, 500),
                 min: 0,
-                max: 1000,
-                divisions: 200,
+                max: 500,
+                divisions: 100,
                 onChanged: (val) => _updateIngredientNutrition(index, val),
               ),
             ),
@@ -398,8 +423,8 @@ class _FoodDetailViewState extends State<FoodDetailView> {
           children: [
             Text(
               widget.isReadOnly
-              ? '${widget.food.category ?? '-'} • 1 Porsi (${totalGrams.round()} gram)'
-              : (widget.food.category ?? '-'),
+              ? '${StringHelper.formatCategory(widget.food.category)} • 1 ${StringHelper.getUnitForCategory(widget.food.category) == 'pcs' ? 'Pcs' : 'Porsi'} (${totalGrams.round()} gram)'
+              : StringHelper.formatCategory(widget.food.category),
               
               style: GoogleFonts.poppins(
                 fontSize: 12,
@@ -523,7 +548,7 @@ class _FoodDetailViewState extends State<FoodDetailView> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          'Jumlah (Pcs/Porsi)',
+          StringHelper.getUnitForCategory(widget.food.category) == 'pcs' ? 'Jumlah (Pcs)' : 'Jumlah (Porsi)',
           style: GoogleFonts.poppins(
             fontSize: 16,
             fontWeight: FontWeight.bold,

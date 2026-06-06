@@ -4,6 +4,7 @@ import 'package:nutritrack_app/features/general/food/controllers/food_controller
 import 'package:nutritrack_app/features/general/food/models/food_model.dart';
 import 'package:nutritrack_app/features/general/food/views/food_detail_view.dart';
 import 'package:nutritrack_app/features/admin/food/views/admin_food_form_view.dart';
+import 'package:nutritrack_app/helpers/string_helper.dart';
 import 'dart:io';
 
 class NutritionistFoodDatabaseView extends StatefulWidget {
@@ -267,7 +268,7 @@ class _NutritionistFoodDatabaseViewState extends State<NutritionistFoodDatabaseV
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
+          border: Border.all(color: accentColor, width: 1),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withAlpha(8),
@@ -339,7 +340,7 @@ class _NutritionistFoodDatabaseViewState extends State<NutritionistFoodDatabaseV
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${food.category} • ${food.defaultServingSize.toInt()}g',
+                    '${StringHelper.formatCategory(food.category)} • ${food.defaultServingSize.toInt()}g',
                     style: const TextStyle(fontSize: 12, color: _textMuted),
                   ),
                   const SizedBox(height: 8),

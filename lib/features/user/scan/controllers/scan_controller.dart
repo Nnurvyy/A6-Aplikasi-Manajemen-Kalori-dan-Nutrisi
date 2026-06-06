@@ -35,7 +35,17 @@ class ScanController extends ChangeNotifier {
   int get origWidth => _origWidth;
   int get origHeight => _origHeight;
 
-  double get totalCalories => _mappedFoods.fold(0, (sum, f) => sum + (f.calories * f.defaultServingSize / 100));
+  double get totalCalories {
+    double sum = 0;
+    for (var f in _mappedFoods) {
+      if (f.ingredientsJson != null) {
+        sum += f.calories;
+      } else {
+        sum += (f.calories * f.defaultServingSize / 100);
+      }
+    }
+    return sum;
+  }
 
   List<FoodModel> get uniqueMappedFoods {
     final Map<String, FoodModel> unique = {};
@@ -115,7 +125,6 @@ class ScanController extends ChangeNotifier {
     _mappedFoods = [];
     for (var det in _detections) {
       final String tag = det['tag'];
-      // Cari di Hive dengan nama yang sesuai
       final food = HiveService.foods.values.firstWhere(
         (f) => f.name.toLowerCase() == tag.toLowerCase(),
         orElse: () => FoodModel(
@@ -175,6 +184,7 @@ class ScanController extends ChangeNotifier {
           servingSize: food.defaultServingSize,
           isManual: false,
           imageUrl: localFileName, // Sementara simpan nama file, akan diupdate via background sync
+          ingredientsJson: food.ingredientsJson,
           context: context,
         );
       }

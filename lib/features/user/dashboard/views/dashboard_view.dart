@@ -11,6 +11,7 @@ import 'package:nutritrack_app/features/general/food/models/log_model.dart';
 import 'package:nutritrack_app/helpers/date_controller.dart';
 import 'package:nutritrack_app/helpers/app_colors.dart';
 import 'package:nutritrack_app/services/offline_storage_service.dart';
+import 'package:nutritrack_app/helpers/string_helper.dart';
 
 import 'package:nutritrack_app/features/general/food/views/food_detail_view.dart';
 import 'package:nutritrack_app/features/general/food/models/food_model.dart';
@@ -1163,9 +1164,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item.quantity > 1
-                        ? '${item.quantity} pcs ${item.foodName}'
-                        : item.foodName,
+                    StringHelper.getFoodHistoryDisplayName(item.foodName, item.quantity, item.category),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -1176,7 +1175,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    item.category,
+                    StringHelper.formatCategory(item.category),
                     style: const TextStyle(
                       fontSize: 11,
                       color: Color(0xFF5A7A5A),
