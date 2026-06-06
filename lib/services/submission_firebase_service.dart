@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../features/general/submission/submission_model.dart';
+import 'package:nutritrack_app/features/general/submission/models/submission_model.dart';
 
 class SubmissionFirebaseService {
   static final _db = FirebaseFirestore.instance;

@@ -4,41 +4,42 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-import './features/admin/UserManagement/admin_user_controller.dart';
+import 'package:nutritrack_app/features/admin/UserManagement/controllers/admin_user_controller.dart';
 import './features/general/auth/models/user_model.dart';
 import './features/general/food/models/food_model.dart';
 import './features/general/food/models/log_model.dart';
 import './features/general/food/models/watchlist_model.dart';
 import './features/general/food/models/food_combination_model.dart';
-import './features/general/food/watchlist_controller.dart';
+import 'package:nutritrack_app/features/general/food/controllers/watchlist_controller.dart';
 import './features/user/progress/models/weight_log_model.dart';
-import './features/general/submission/submission_controller.dart';
-import './features/general/submission/model/pending_submission_model.dart';
+import 'package:nutritrack_app/features/general/submission/controllers/submission_controller.dart';
+import 'package:nutritrack_app/features/general/submission/models/pending_submission_model.dart';
 import './features/user/notification/models/notification_setting_model.dart';
 import './helpers/date_controller.dart';
 import './services/hive_service.dart';
 import './helpers/seed_helper.dart';
-import './features/general/auth/auth_controller.dart';
-import './features/general/food/food_controller.dart';
-import './features/general/auth/splash_view.dart';
+import 'package:nutritrack_app/features/general/auth/controllers/auth_controller.dart';
+import 'package:nutritrack_app/features/general/food/controllers/food_controller.dart';
+import 'package:nutritrack_app/features/general/auth/views/splash_view.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
 import 'services/food_log_sync_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
-import './features/user/smartwatch/smartwatch_controller.dart';
+import 'package:nutritrack_app/features/user/smartwatch/controllers/smartwatch_controller.dart';
 import './services/notification_service.dart';
-import './features/user/notification/notification_controller.dart';
-import 'services/food_log_sync_service.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:nutritrack_app/features/user/notification/controllers/notification_controller.dart';
 
 // ── Satu instance global — dipakai di MultiProvider DAN dipanggil loadSettings()
 final notifCtrl = NotificationController();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await dotenv.load(fileName: ".env");
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 

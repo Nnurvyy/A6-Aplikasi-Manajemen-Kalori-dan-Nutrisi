@@ -26,6 +26,7 @@ dependencies:
 
   # State management
   provider: ^6.1.2
+  flutter_dotenv: ^5.2.1
 
   # UI / Chart
   fl_chart: ^0.68.0
@@ -70,6 +71,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - .env
     - assets/
     - assets/nutritrack.tflite
     - assets/labels.txt
