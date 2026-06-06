@@ -18,6 +18,7 @@ class AuthController extends ChangeNotifier {
   bool _isMonitoringActive = false; // Flag apakah mode pantau sedang aktif
   bool _isLoading = false;
   String? _errorMessage;
+  List<UserModel> _monitors = []; // Daftar orang tua yang memantau akun ini
 
   UserModel? get currentUser => _isMonitoringActive ? _monitoredUser : _currentUser;
   UserModel? get mainUser => _currentUser;
@@ -26,6 +27,7 @@ class AuthController extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isLoggedIn => _currentUser != null;
   bool get isMonitoring => _isMonitoringActive;
+  List<UserModel> get monitors => _monitors;
   bool get hasMonitoredUser {
     if (_currentUser == null) return false;
     final legacyKey = 'monitored_user_id_${_currentUser!.id}';
@@ -85,6 +87,24 @@ class AuthController extends ChangeNotifier {
           final index = _monitoredUsersList.indexWhere((u) => u.id == uid);
           if (index >= 0) _monitoredUsersList[index] = _monitoredUser!;
         }
+
+        // Sinkronisasi info monitoring ke Firestore milik anak
+        try {
+          final childDocRef = _firestore.collection('users').doc(uid);
+          await _firestore.runTransaction((transaction) async {
+            final snapshot = await transaction.get(childDocRef);
+            if (snapshot.exists) {
+              final data = snapshot.data() ?? {};
+              final List<dynamic> currentMonitors = data['monitoredBy'] ?? [];
+              if (!currentMonitors.contains(_currentUser!.id)) {
+                currentMonitors.add(_currentUser!.id);
+                transaction.update(childDocRef, {'monitoredBy': currentMonitors});
+              }
+            }
+          });
+        } catch (e) {
+          debugPrint("Gagal menambahkan monitoring parent ke Firestore: $e");
+        }
         
         _setLoading(false);
         return true;
@@ -141,6 +161,25 @@ class AuthController extends ChangeNotifier {
         _isMonitoringActive = false;
       }
     }
+
+    // Hapus monitoring parent dari Firestore milik anak
+    try {
+      final childDocRef = _firestore.collection('users').doc(uid);
+      await _firestore.runTransaction((transaction) async {
+        final snapshot = await transaction.get(childDocRef);
+        if (snapshot.exists) {
+          final data = snapshot.data() ?? {};
+          final List<dynamic> currentMonitors = data['monitoredBy'] ?? [];
+          if (currentMonitors.contains(_currentUser!.id)) {
+            currentMonitors.remove(_currentUser!.id);
+            transaction.update(childDocRef, {'monitoredBy': currentMonitors});
+          }
+        }
+      });
+    } catch (e) {
+      debugPrint("Gagal menghapus monitoring parent dari Firestore: $e");
+    }
+
     notifyListeners();
   }
 
@@ -231,6 +270,7 @@ class AuthController extends ChangeNotifier {
     }
     
     notifyListeners();
+    fetchMonitors();
   }
 
   Future<void> _fetchUserProfile(String uid) async {
@@ -286,6 +326,56 @@ class AuthController extends ChangeNotifier {
       // Kita pastikan lagi _currentUser terisi dari Hive jika fetch cloud gagal
       _currentUser ??= HiveService.users.get(uid);
     }
+    notifyListeners();
+    fetchMonitors();
+  }
+
+  Future<void> fetchMonitors() async {
+    if (_currentUser == null) {
+      _monitors = [];
+      notifyListeners();
+      return;
+    }
+
+    final myId = _currentUser!.id;
+    final parentIds = <String>{};
+
+    // 1. Dapatkan parent IDs dari field monitoredBy
+    if (_currentUser!.monitoredBy != null) {
+      parentIds.addAll(_currentUser!.monitoredBy!);
+    }
+
+    // 2. Dapatkan parent IDs dari Hive settings lokal (untuk sinkronisasi offline/lokal)
+    for (var key in HiveService.settings.keys) {
+      if (key is String && key.startsWith('monitored_user_ids_')) {
+        final parentId = key.replaceFirst('monitored_user_ids_', '');
+        final ids = (HiveService.settings.get(key) as List?)?.cast<String>() ?? [];
+        if (ids.contains(myId)) {
+          parentIds.add(parentId);
+        }
+      }
+    }
+
+    final loadedMonitors = <UserModel>[];
+    for (var parentId in parentIds) {
+      var parent = HiveService.users.get(parentId);
+      if (parent == null) {
+        try {
+          final doc = await _firestore.collection('users').doc(parentId).get();
+          if (doc.exists) {
+            parent = UserModel.fromMap(doc.data()!);
+            await HiveService.users.put(parentId, parent);
+          }
+        } catch (e) {
+          debugPrint("Gagal mengambil profil pemantau $parentId: $e");
+        }
+      }
+      if (parent != null) {
+        loadedMonitors.add(parent);
+      }
+    }
+
+    _monitors = loadedMonitors;
     notifyListeners();
   }
 
@@ -391,6 +481,7 @@ class AuthController extends ChangeNotifier {
       await HiveService.settings.put('current_user_id', uid);
 
       _currentUser = newUser;
+      fetchMonitors();
       _setLoading(false);
       return true;
     } on FirebaseAuthException catch (e) {
@@ -411,6 +502,7 @@ class AuthController extends ChangeNotifier {
     await _auth.signOut();
     await HiveService.settings.delete('current_user_id');
     _currentUser = null;
+    _monitors = [];
     notifyListeners();
   }
 

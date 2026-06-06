@@ -25,6 +25,7 @@ class UserModel extends HiveObject {
   String? profileImageUrl;
   String? localProfileImagePath;
   bool isProfileImageSynced;
+  List<String>? monitoredBy; // List ID orang tua yang memantau akun ini
 
   UserModel({
     required this.id,
@@ -47,12 +48,62 @@ class UserModel extends HiveObject {
     this.profileImageUrl,
     this.localProfileImagePath,
     this.isProfileImageSynced = true,
+    this.monitoredBy,
   });
 
   /// Target makro harian (gram) - Menggunakan logic baru dari CalorieHelper
   Map<String, double> get macroTargets {
     final cal = dailyCalorieNeed ?? 2000.0;
     return CalorieHelper.calculateMacros(cal);
+  }
+
+  /// Membuat salinan UserModel dengan field yang diubah secara selektif
+  UserModel copyWith({
+    String? id,
+    String? name,
+    String? email,
+    String? password,
+    String? role,
+    double? weight,
+    double? height,
+    int? age,
+    String? gender,
+    String? activityLevel,
+    double? dailyCalorieNeed,
+    DateTime? birthDate,
+    bool? isBlocked,
+    double? targetWeightGainPerMonth,
+    double? initialWeight,
+    Map<String, double>? targetHistory,
+    bool? isSynced,
+    String? profileImageUrl,
+    String? localProfileImagePath,
+    bool? isProfileImageSynced,
+    List<String>? monitoredBy,
+  }) {
+    return UserModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      password: password ?? this.password,
+      role: role ?? this.role,
+      weight: weight ?? this.weight,
+      height: height ?? this.height,
+      age: age ?? this.age,
+      gender: gender ?? this.gender,
+      activityLevel: activityLevel ?? this.activityLevel,
+      dailyCalorieNeed: dailyCalorieNeed ?? this.dailyCalorieNeed,
+      birthDate: birthDate ?? this.birthDate,
+      isBlocked: isBlocked ?? this.isBlocked,
+      targetWeightGainPerMonth: targetWeightGainPerMonth ?? this.targetWeightGainPerMonth,
+      initialWeight: initialWeight ?? this.initialWeight,
+      targetHistory: targetHistory ?? this.targetHistory,
+      isSynced: isSynced ?? this.isSynced,
+      profileImageUrl: profileImageUrl ?? this.profileImageUrl,
+      localProfileImagePath: localProfileImagePath ?? this.localProfileImagePath,
+      isProfileImageSynced: isProfileImageSynced ?? this.isProfileImageSynced,
+      monitoredBy: monitoredBy ?? this.monitoredBy,
+    );
   }
 
   Map<String, dynamic> toMap() {
@@ -74,6 +125,7 @@ class UserModel extends HiveObject {
       'initialWeight': initialWeight,
       'targetHistory': targetHistory,
       'profileImageUrl': profileImageUrl,
+      'monitoredBy': monitoredBy,
     };
   }
 
@@ -99,6 +151,7 @@ class UserModel extends HiveObject {
       targetHistory: map['targetHistory'] != null ? Map<String, double>.from(map['targetHistory']) : null,
       isSynced: map['isSynced'] ?? true,
       profileImageUrl: map['profileImageUrl'],
+      monitoredBy: (map['monitoredBy'] as List?)?.cast<String>(),
     );
   }
 }
@@ -134,13 +187,14 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
       profileImageUrl: f[18] as String?,
       localProfileImagePath: f[19] as String?,
       isProfileImageSynced: f[20] as bool? ?? true,
+      monitoredBy: (f[21] as List?)?.cast<String>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, UserModel obj) {
     writer
-      ..writeByte(20) 
+      ..writeByte(21) 
       ..writeByte(0)..write(obj.id)
       ..writeByte(1)..write(obj.name)
       ..writeByte(2)..write(obj.email)
@@ -160,6 +214,7 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
       ..writeByte(17)..write(obj.isSynced)
       ..writeByte(18)..write(obj.profileImageUrl)
       ..writeByte(19)..write(obj.localProfileImagePath)
-      ..writeByte(20)..write(obj.isProfileImageSynced);
+      ..writeByte(20)..write(obj.isProfileImageSynced)
+      ..writeByte(21)..write(obj.monitoredBy);
   }
 }

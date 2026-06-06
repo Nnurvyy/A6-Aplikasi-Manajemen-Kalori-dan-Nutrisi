@@ -49,9 +49,10 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    // Inisialisasi awal saat pertama kali halaman dibuka
     final auth = context.read<AuthController>();
     final user = auth.currentUser;
-    if (user != null && user.id != _lastInitUserId) {
+    if (user != null && _lastInitUserId == null) {
       _lastInitUserId = user.id;
       _ctrl.init(user, isMonitoring: auth.isMonitoring);
       if (!auth.isMonitoring && _ctrl.shouldShowWeightModal && _ctrl.pendingWeightMonth != null) {
@@ -360,6 +361,26 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
+    // ─── Deteksi perubahan user yang dipantau ────────────────────────────────
+    // Menggunakan context.watch agar rebuild terjadi setiap AuthController
+    // notifyListeners(), termasuk saat user ganti anak yang dipantau.
+    final auth = context.watch<AuthController>();
+    final currentUser = auth.currentUser;
+    if (currentUser != null && currentUser.id != _lastInitUserId) {
+      _lastInitUserId = currentUser.id;
+      // Jadwalkan reinit setelah frame selesai agar tidak memodifikasi state
+      // di tengah proses build (Flutter constraint).
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _ctrl.init(currentUser, isMonitoring: auth.isMonitoring);
+        if (!auth.isMonitoring &&
+            _ctrl.shouldShowWeightModal &&
+            _ctrl.pendingWeightMonth != null) {
+          _showWeightModal(_ctrl.pendingWeightMonth!);
+        }
+      });
+    }
+
     return ChangeNotifierProvider.value(
       value: _ctrl,
       child: Consumer<ProgressController>(
@@ -980,9 +1001,9 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
     final unit = ctrl.activeNutrientUnit;
     return Row(
       children: [
-        _statChip('Rata-rata', '${stats['avg']!.toStringAsFixed(1)} $unit', ctrl.activeNutrientColor),
+        _statChip('Rata-rata', '${stats['avg']!.toStringAsFixed(0)} $unit', ctrl.activeNutrientColor),
         const SizedBox(width: 8),
-        _statChip('Tertinggi', '${stats['max']!.toStringAsFixed(1)} $unit', ctrl.activeNutrientColor),
+        _statChip('Tertinggi', '${stats['max']!.toStringAsFixed(0)} $unit', ctrl.activeNutrientColor),
         const SizedBox(width: 8),
         _statChip('Total', '${stats['total']!.toStringAsFixed(0)} $unit', ctrl.activeNutrientColor),
       ],
