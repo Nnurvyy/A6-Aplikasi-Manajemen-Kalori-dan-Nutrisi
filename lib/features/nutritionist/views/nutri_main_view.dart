@@ -20,12 +20,7 @@ class _NutriMainViewState extends State<NutriMainView>
   int _currentIndex = 0;
   static const _green = Color(0xFF2E7D32);
 
-  static const _pages = [
-    NutriDashboardView(),
-    NutritionistFoodDatabaseView(),
-    NutriSubmissionView(),
-    _NutriProfileView(),
-  ];
+  // Pages will be built dynamically in build to pass the callback
 
   static const _items = [
     _NutriNavData(
@@ -59,8 +54,15 @@ class _NutriMainViewState extends State<NutriMainView>
     final hasBadge =
         context.watch<SubmissionController>().approvedNeedsFill.isNotEmpty;
 
+    final pages = [
+      const NutriDashboardView(),
+      const NutritionistFoodDatabaseView(),
+      const NutriSubmissionView(),
+      _NutriProfileView(onTabSelected: _onTap),
+    ];
+
     return Scaffold(
-      body: _pages[_currentIndex],
+      body: pages[_currentIndex],
       bottomNavigationBar: _NutriNavBar(
         currentIndex: _currentIndex,
         items: _items,
@@ -209,7 +211,8 @@ class _NutriNavBar extends StatelessWidget {
 
 // ─── Profile Ahli Gizi ───────────────────────────────────────────────────────
 class _NutriProfileView extends StatelessWidget {
-  const _NutriProfileView();
+  final void Function(int) onTabSelected;
+  const _NutriProfileView({required this.onTabSelected});
 
   static const _teal = Color(0xFF2E7D32);
   static const _dark = Color(0xFF1A2E22);
@@ -321,7 +324,7 @@ class _NutriProfileView extends StatelessWidget {
                   const SizedBox(height: 20),
 
                   const Text(
-                    'STATISTIK KONTRIBUSI',
+                    'PINTASAN FITUR',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
@@ -336,24 +339,27 @@ class _NutriProfileView extends StatelessWidget {
                     child: Column(
                       children: [
                         _menuRow(
-                          Icons.pending_actions_rounded,
-                          'Perlu Diisi',
+                          Icons.dashboard_rounded,
+                          'Dashboard',
+                          'Kembali ke dashboard ahli gizi',
+                          Colors.blue,
+                          () => onTabSelected(0),
+                        ),
+                        const Divider(height: 24),
+                        _menuRow(
+                          Icons.folder_rounded,
+                          'Edit Data Makanan',
+                          'Lihat & edit database makanan',
+                          _teal,
+                          () => onTabSelected(1),
+                        ),
+                        const Divider(height: 24),
+                        _menuRow(
+                          Icons.assignment_rounded,
+                          'Isi Nutrisi',
                           '${ctrl.approvedNeedsFill.length} pengajuan menunggu data nutrisi',
                           const Color(0xFFFFB300),
-                        ),
-                        const Divider(height: 24),
-                        _menuRow(
-                          Icons.check_circle_rounded,
-                          'Sudah Dilengkapi',
-                          '${ctrl.approvedFilled.length} data nutrisi sudah lengkap',
-                          _teal,
-                        ),
-                        const Divider(height: 24),
-                        _menuRow(
-                          Icons.bar_chart_rounded,
-                          'Total Ditangani',
-                          '${ctrl.approved.length} pengajuan dari admin',
-                          Colors.blue,
+                          () => onTabSelected(2),
                         ),
                       ],
                     ),
@@ -464,38 +470,46 @@ class _NutriProfileView extends StatelessWidget {
     ],
   );
 
-  Widget _menuRow(IconData icon, String label, String subtitle, Color color) =>
-      Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: color, size: 18),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: _dark,
-                    fontWeight: FontWeight.w700,
-                  ),
+  Widget _menuRow(IconData icon, String label, String subtitle, Color color, VoidCallback onTap) =>
+      InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                Text(
-                  subtitle,
-                  style: const TextStyle(fontSize: 11, color: _muted),
+                child: Icon(icon, color: color, size: 18),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: _dark,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(fontSize: 11, color: _muted),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: _muted, size: 18),
+            ],
           ),
-        ],
+        ),
       );
 
   void _confirmLogout(BuildContext context, AuthController authCtrl) {

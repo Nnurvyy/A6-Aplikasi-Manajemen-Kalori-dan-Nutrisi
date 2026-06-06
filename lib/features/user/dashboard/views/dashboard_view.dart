@@ -16,6 +16,7 @@ import 'package:nutritrack_app/helpers/string_helper.dart';
 import 'package:nutritrack_app/features/general/food/views/food_detail_view.dart';
 import 'package:nutritrack_app/features/general/food/models/food_model.dart';
 import 'package:nutritrack_app/services/hive_service.dart';
+import 'package:nutritrack_app/features/general/food/controllers/watchlist_controller.dart';
 import 'dart:io';
 
 import 'package:percent_indicator/circular_percent_indicator.dart';
@@ -1125,12 +1126,12 @@ class _DashboardBodyState extends State<DashboardBody> {
   Widget _buildFoodHistoryCard(LogModel item, bool isMonitor) {
     final Color accentColor = _categoryColor(item.category);
 
-    return GestureDetector(
+    // ── The actual card widget ──
+    final Widget card = GestureDetector(
       onTap: isMonitor ? null : () => _showFoodDetailModal(item),
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
-
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
@@ -1143,7 +1144,6 @@ class _DashboardBodyState extends State<DashboardBody> {
             ),
           ],
         ),
-        
         child: Row(
           children: [
             ClipRRect(
@@ -1184,23 +1184,11 @@ class _DashboardBodyState extends State<DashboardBody> {
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      _nutriChip(
-                        'P ${item.protein.round()}g',
-                        const Color(0xFFFFEBEE),
-                        const Color(0xFFE53935),
-                      ),
+                      _nutriChip('P ${item.protein.round()}g', const Color(0xFFFFEBEE), const Color(0xFFE53935)),
                       const SizedBox(width: 4),
-                      _nutriChip(
-                        'K ${item.carbs.round()}g',
-                        const Color(0xFFFFF8E1),
-                        const Color(0xFFF59E0B),
-                      ),
+                      _nutriChip('K ${item.carbs.round()}g', const Color(0xFFFFF8E1), const Color(0xFFF59E0B)),
                       const SizedBox(width: 4),
-                      _nutriChip(
-                        'L ${item.fat.round()}g',
-                        const Color(0xFFFFF3E0),
-                        const Color(0xFFFF8C00),
-                      ),
+                      _nutriChip('L ${item.fat.round()}g', const Color(0xFFFFF3E0), const Color(0xFFFF8C00)),
                     ],
                   ),
                 ],
@@ -1209,44 +1197,125 @@ class _DashboardBodyState extends State<DashboardBody> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
-                  '${item.calories.toInt()}',
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF2E7D32),
-                  ),
-                ),
-                const Text(
-                  'kkal',
-                  style: TextStyle(fontSize: 10, color: Color(0xFF5A7A5A)),
-                ),
+                Text('${item.calories.toInt()}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Color(0xFF2E7D32))),
+                const Text('kkal', style: TextStyle(fontSize: 10, color: Color(0xFF5A7A5A))),
                 const SizedBox(height: 4),
                 Text(
                   "${item.consumedAt.hour.toString().padLeft(2, '0')}:${item.consumedAt.minute.toString().padLeft(2, '0')}",
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: Color(0xFF9E9E9E),
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: const TextStyle(fontSize: 11, color: Color(0xFF9E9E9E), fontWeight: FontWeight.w500),
                 ),
-
-                // ─── TAMBAHKAN INI ───────────────────────────────
                 const SizedBox(height: 4),
                 Icon(
                   item.syncStatus == 'synced' ? Icons.cloud_done_rounded : Icons.cloud_upload_rounded,
                   size: 14,
-                  color: item.syncStatus == 'synced'
-                      ? const Color(0xFF4CAF50)  // hijau = sudah di cloud
-                      : const Color(0xFFF59E0B), // oranye = masih pending
+                  color: item.syncStatus == 'synced' ? const Color(0xFF4CAF50) : const Color(0xFFF59E0B),
                 ),
-                // ────────────────────────────────────────────────
-
               ],
             ),
           ],
         ),
       ),
+    );
+
+    // Monitor users cannot swipe
+    if (isMonitor) return card;
+
+    return Dismissible(
+      key: ValueKey(item.id),
+      direction: DismissDirection.horizontal,
+      confirmDismiss: (direction) async {
+        if (direction == DismissDirection.startToEnd) {
+          // ── Swipe RIGHT → Toggle Watchlist ──
+          final auth = context.read<AuthController>();
+          final userId = auth.currentUser?.id;
+          if (userId == null) return false;
+          final watchlist = context.read<WatchlistController>();
+          final totalWeight = item.servingSize * (item.quantity > 0 ? item.quantity : 1);
+          double getPer100(double total) => totalWeight > 0 ? (total * 100) / totalWeight : 0;
+          final food = FoodModel(
+            id: 'log_${item.id}',
+            name: item.foodName,
+            category: item.category,
+            calories: getPer100(item.calories),
+            protein: getPer100(item.protein),
+            carbs: getPer100(item.carbs),
+            fat: getPer100(item.fat),
+            defaultServingSize: item.servingSize,
+            isApproved: true,
+            createdAt: item.consumedAt,
+            imageUrl: item.imageUrl,
+            ingredientsJson: item.ingredientsJson,
+          );
+          await watchlist.toggleWatchlist(userId, food);
+          final isNowSaved = watchlist.isInWatchlist(userId, food.id);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(isNowSaved ? '${item.foodName} disimpan ke watchlist' : '${item.foodName} dihapus dari watchlist'),
+              backgroundColor: isNowSaved ? const Color(0xFF1E88E5) : const Color(0xFF78909C),
+              duration: const Duration(seconds: 2),
+            ));
+          }
+          return false; // don't dismiss the card
+        } else {
+          // ── Swipe LEFT → Confirm delete ──
+          return await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: const Text('Hapus Riwayat?', style: TextStyle(fontWeight: FontWeight.bold)),
+              content: Text('Hapus "${item.foodName}" dari riwayat?'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: const Text('Hapus', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
+          ) ?? false;
+        }
+      },
+      onDismissed: (direction) {
+        if (direction == DismissDirection.endToStart) {
+          context.read<FoodController>().deleteLog(item.id);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('${item.foodName} dihapus dari riwayat'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ));
+        }
+      },
+      // Left/right swipe reveal backgrounds
+      background: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(color: const Color(0xFF1E88E5), borderRadius: BorderRadius.circular(14)),
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.only(left: 20),
+        child: const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.bookmark_add_rounded, color: Colors.white, size: 28),
+            SizedBox(height: 4),
+            Text('Simpan', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+          ],
+        ),
+      ),
+      secondaryBackground: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(14)),
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        child: const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.delete_rounded, color: Colors.white, size: 28),
+            SizedBox(height: 4),
+            Text('Hapus', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+          ],
+        ),
+      ),
+      child: card,
     );
   }
 

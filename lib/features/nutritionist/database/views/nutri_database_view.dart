@@ -268,7 +268,7 @@ class _NutritionistFoodDatabaseViewState extends State<NutritionistFoodDatabaseV
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: accentColor, width: 1),
+          border: Border.all(color: accentColor, width: 1.5),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withAlpha(8),
@@ -431,7 +431,7 @@ class _NutritionistFoodDatabaseViewState extends State<NutritionistFoodDatabaseV
   }
 
   Color _catColor(String category) {
-    switch (category.toLowerCase()) {
+    switch (category.toLowerCase().trim()) {
       case 'lauk': return const Color(0xFF4CAF50);
       case 'makanan pokok': return const Color(0xFFF59E0B);
       case 'sayuran': return const Color(0xFF43A047);

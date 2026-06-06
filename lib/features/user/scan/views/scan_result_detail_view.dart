@@ -39,14 +39,54 @@ class _ScanResultDetailViewState extends State<ScanResultDetailView> {
   late double _currentGrams;
   int _quantity = 1;
 
+  // Editable food name & category
+  late TextEditingController _foodNameCtrl;
+  late String _editedCategory;
+
+  static const List<String> _categories = [
+    'Makanan Pokok', 'Lauk', 'Sayuran', 'Buah', 'Minuman', 'Snack', 'Lainnya',
+  ];
+
   bool _hasIngredients = false;
   List<IngredientState> _ingredientStates = [];
+
+  String _normalizeCategory(String? raw) {
+    if (raw == null) return 'Lainnya';
+    final clean = raw.trim().toLowerCase().replaceAll('_', ' ');
+    if (clean.contains('pokok') || clean.contains('staple')) {
+      return 'Makanan Pokok';
+    }
+    if (clean.contains('lauk') || clean.contains('side')) {
+      return 'Lauk';
+    }
+    if (clean.contains('sayur') || clean.contains('veg')) {
+      return 'Sayuran';
+    }
+    if (clean.contains('buah') || clean.contains('fruit')) {
+      return 'Buah';
+    }
+    if (clean.contains('minum') || clean.contains('drink') || clean.contains('beverage')) {
+      return 'Minuman';
+    }
+    if (clean.contains('snack') || clean.contains('camilan') || clean.contains('kue')) {
+      return 'Snack';
+    }
+
+    final formatted = StringHelper.formatCategory(raw);
+    if (_categories.contains(formatted)) {
+      return formatted;
+    }
+
+    return 'Lainnya';
+  }
 
   @override
   void initState() {
     super.initState();
     _currentGrams = widget.food.defaultServingSize;
     _quantity = widget.food.id == 'unknown' ? 1 : (widget.initialQuantity ?? 1);
+    _foodNameCtrl = TextEditingController(text: widget.food.name);
+    _editedCategory = _normalizeCategory(widget.food.category);
 
     if (widget.food.ingredientsJson != null) {
       try {
@@ -65,6 +105,7 @@ class _ScanResultDetailViewState extends State<ScanResultDetailView> {
 
   @override
   void dispose() {
+    _foodNameCtrl.dispose();
     for (var state in _ingredientStates) {
       state.dispose();
     }
@@ -165,13 +206,49 @@ class _ScanResultDetailViewState extends State<ScanResultDetailView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title & Info
-                  Text(
-                    widget.food.name,
-                    style: GoogleFonts.poppins(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+              // Editable Name
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _foodNameCtrl,
+                          style: GoogleFonts.poppins(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                          ),
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+                            hintText: 'Nama makanan...',
+                            hintStyle: GoogleFonts.poppins(color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
+                      ),
+                      const Icon(Icons.edit_rounded, size: 16, color: AppColors.primary),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  // Category Dropdown
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _editedCategory,
+                        isDense: true,
+                        icon: const Icon(Icons.arrow_drop_down, color: AppColors.primary, size: 20),
+                        style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary),
+                        onChanged: (v) => setState(() => _editedCategory = v!),
+                        items: _categories
+                            .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                            .toList(),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -443,13 +520,13 @@ class _ScanResultDetailViewState extends State<ScanResultDetailView> {
                   }
 
                   bool success = await foodCtrl.addFoodToDailyLog(
-                    userId: userId,
-                    foodName: widget.food.name,
-                    category: widget.food.category,
-                    calories: nutrition['calories']!,
-                    protein: nutrition['protein']!,
-                    carbs: nutrition['carbs']!,
-                    fat: nutrition['fat']!,
+                     userId: userId,
+                     foodName: _foodNameCtrl.text.trim().isNotEmpty ? _foodNameCtrl.text.trim() : widget.food.name,
+                     category: _editedCategory,
+                     calories: nutrition['calories']!,
+                     protein: nutrition['protein']!,
+                     carbs: nutrition['carbs']!,
+                     fat: nutrition['fat']!,
                     mealType: '',
                     dateConsumed: context.read<DateController>().selectedDate,
                     servingSize: _currentGrams,
@@ -471,7 +548,7 @@ class _ScanResultDetailViewState extends State<ScanResultDetailView> {
                       Navigator.pop(context); // Close detail & return to dashboard
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('${widget.food.name} berhasil ditambahkan ke log'),
+                          content: Text('${_foodNameCtrl.text.trim().isNotEmpty ? _foodNameCtrl.text.trim() : widget.food.name} berhasil ditambahkan ke log'),
                           backgroundColor: AppColors.primary,
                           duration: const Duration(seconds: 2),
                         ),

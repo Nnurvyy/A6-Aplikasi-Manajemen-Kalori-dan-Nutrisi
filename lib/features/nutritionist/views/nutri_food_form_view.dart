@@ -1,25 +1,24 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:uuid/uuid.dart';
 import 'package:nutritrack_app/features/general/food/controllers/food_controller.dart';
 import 'package:nutritrack_app/features/general/food/models/food_model.dart';
 import 'package:nutritrack_app/features/general/food/views/widgets/ingredient_picker_dialog.dart';
 import 'package:nutritrack_app/features/user/manual_food/views/manual_ingredient_input_page.dart';
+import 'package:nutritrack_app/features/general/submission/controllers/submission_controller.dart';
+import 'package:nutritrack_app/features/general/submission/models/submission_model.dart';
+import 'package:nutritrack_app/features/general/submission/views/widgets/submission_image_widget.dart';
 import 'dart:convert';
 
-class AdminFoodFormView extends StatefulWidget {
-  final FoodModel? initialFood;
-  final bool isAIPrepopulate;
-  const AdminFoodFormView({super.key, this.initialFood, this.isAIPrepopulate = false});
+class NutriFoodFormView extends StatefulWidget {
+  final SubmissionModel item;
+  const NutriFoodFormView({super.key, required this.item});
 
   @override
-  State<AdminFoodFormView> createState() => _AdminFoodFormViewState();
+  State<NutriFoodFormView> createState() => _NutriFoodFormViewState();
 }
 
-class _AdminFoodFormViewState extends State<AdminFoodFormView> {
+class _NutriFoodFormViewState extends State<NutriFoodFormView> {
   final _formKey = GlobalKey<FormState>();
 
   late TextEditingController _nameCtrl;
@@ -31,10 +30,8 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
   late TextEditingController _descCtrl;
 
   String _selectedCategory = 'Lauk';
-  File? _pickedImage;
-  String? _existingImageUrl;
-  
   List<Map<String, dynamic>> _ingredients = [];
+  bool _saving = false;
 
   static const List<String> _categories = [
     'Makanan Pokok', 'Lauk', 'Sayuran', 'Buah', 'Minuman', 'Snack', 'Lainnya'
@@ -48,28 +45,18 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
   @override
   void initState() {
     super.initState();
-    final f = widget.initialFood;
-    _nameCtrl = TextEditingController(text: f?.name ?? '');
-    _descCtrl = TextEditingController(text: f?.description ?? '');
-    _existingImageUrl = f?.imageUrl;
+    final s = widget.item;
+    _nameCtrl = TextEditingController(text: s.foodName);
+    _descCtrl = TextEditingController(text: s.nutriNote ?? '');
 
-    // Convert stored per-100g back to "total for serving" for editing
-    if (f != null) {
-      final serv = f.defaultServingSize;
-      final ratio = serv / 100;
-      _servingSizeCtrl = TextEditingController(text: serv.toStringAsFixed(0));
-      _caloriesCtrl = TextEditingController(text: (f.calories * ratio).round().toString());
-      _proteinCtrl  = TextEditingController(text: (f.protein  * ratio).round().toString());
-      _carbsCtrl    = TextEditingController(text: (f.carbs    * ratio).round().toString());
-      _fatCtrl      = TextEditingController(text: (f.fat      * ratio).round().toString());
-      if (_categories.contains(f.category)) _selectedCategory = f.category;
-
-      if (f.ingredientsJson != null) {
-        try {
-          final List dynamicList = jsonDecode(f.ingredientsJson!);
-          _ingredients = dynamicList.map((e) => Map<String, dynamic>.from(e)).toList();
-        } catch (_) {}
-      }
+    // If already has nutritional info (editing a completed submission), 
+    // it's stored as per-100g. Default serving size to 100g so total = per-100g.
+    if (s.isNutriFilled) {
+      _servingSizeCtrl = TextEditingController(text: '100');
+      _caloriesCtrl = TextEditingController(text: s.calories?.toStringAsFixed(0) ?? '');
+      _proteinCtrl  = TextEditingController(text: s.protein?.toStringAsFixed(1) ?? '');
+      _carbsCtrl    = TextEditingController(text: s.carbs?.toStringAsFixed(1) ?? '');
+      _fatCtrl      = TextEditingController(text: s.fat?.toStringAsFixed(1) ?? '');
     } else {
       _servingSizeCtrl = TextEditingController(text: '100');
       _caloriesCtrl = TextEditingController();
@@ -99,48 +86,10 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
     }
   }
 
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
-            const SizedBox(height: 20),
-            Text('Pilih Sumber Foto', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: _dark)),
-            const SizedBox(height: 16),
-            ListTile(
-              leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: _primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.camera_alt_rounded, color: _primary)),
-              title: Text('Kamera', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
-              onTap: () async {
-                Navigator.pop(ctx);
-                final img = await picker.pickImage(source: ImageSource.camera, imageQuality: 80);
-                if (img != null) setState(() => _pickedImage = File(img.path));
-              },
-            ),
-            ListTile(
-              leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.photo_library_rounded, color: Colors.blue)),
-              title: Text('Galeri', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
-              onTap: () async {
-                Navigator.pop(ctx);
-                final img = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
-                if (img != null) setState(() => _pickedImage = File(img.path));
-              },
-            ),
-            if (_pickedImage != null || _existingImageUrl != null)
-              ListTile(
-                leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.delete_outline_rounded, color: Colors.red)),
-                title: Text('Hapus Foto', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.red)),
-                onTap: () { Navigator.pop(ctx); setState(() { _pickedImage = null; _existingImageUrl = null; }); },
-              ),
-          ],
-        ),
-      ),
+  void _showImageViewer(BuildContext ctx, String imagePath) {
+    if (imagePath.isEmpty) return;
+    Navigator.of(ctx).push(
+      MaterialPageRoute(builder: (_) => _ImageViewerPage(imagePath: imagePath)),
     );
   }
 
@@ -234,7 +183,6 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
   void _handleIngredientResult(dynamic result) {
     if (result == null || result is! Map) return;
     if (result['isManual'] == true) {
-      // From ManualIngredientInputPage
       setState(() {
         _ingredients.add({
           'id': 'manual_${DateTime.now().millisecondsSinceEpoch}',
@@ -247,7 +195,6 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
         });
       });
     } else {
-      // From IngredientPickerDialog
       final food = result['food'] as FoodModel;
       final grams = result['grams'] as double;
       final nutri = food.nutritionForAmount(grams);
@@ -268,46 +215,96 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
 
   void _save() async {
     if (!_formKey.currentState!.validate()) return;
-    final foodCtrl = context.read<FoodController>();
 
+    final name = _nameCtrl.text.trim();
     final serv = double.tryParse(_servingSizeCtrl.text) ?? 100;
     final ratio = serv > 0 ? 100 / serv : 1.0;
 
-    // Admin inputs total for serving → convert to per-100g for storage
     final calTotal  = double.tryParse(_caloriesCtrl.text) ?? 0;
     final protTotal = double.tryParse(_proteinCtrl.text)  ?? 0;
     final carbTotal = double.tryParse(_carbsCtrl.text)    ?? 0;
     final fatTotal  = double.tryParse(_fatCtrl.text)      ?? 0;
 
-    final newFood = FoodModel(
-      id: (widget.initialFood == null || widget.isAIPrepopulate)
-          ? (widget.isAIPrepopulate ? 'ai_${const Uuid().v4()}' : const Uuid().v4())
-          : widget.initialFood!.id,
-      name: _nameCtrl.text.trim(),
-      category: _selectedCategory,
-      calories: calTotal  * ratio,   // stored per 100g
-      protein:  protTotal * ratio,
-      carbs:    carbTotal * ratio,
-      fat:      fatTotal  * ratio,
-      defaultServingSize: serv,
-      isApproved: true,
-      createdAt: widget.initialFood?.createdAt ?? DateTime.now(),
-      imageUrl: _pickedImage?.path ?? _existingImageUrl,
-      description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
-      ingredientsJson: _ingredients.isEmpty ? null : jsonEncode(_ingredients),
-    );
+    // Convert total values back to per-100g for storage
+    final calPer100  = calTotal * ratio;
+    final protPer100 = protTotal * ratio;
+    final carbPer100 = carbTotal * ratio;
+    final fatPer100  = fatTotal * ratio;
 
-    if (widget.initialFood == null || widget.isAIPrepopulate) {
-      await foodCtrl.addFood(newFood);
-    } else {
-      await foodCtrl.updateFood(newFood);
+    setState(() => _saving = true);
+
+    try {
+      // 1. Save nutrition details in the submission
+      await context.read<SubmissionController>().saveNutriData(
+        id: widget.item.id,
+        foodName: name,
+        calories: calPer100,
+        protein: protPer100,
+        carbs: carbPer100,
+        fat: fatPer100,
+        nutriNote: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
+      );
+
+      // 2. Add the food item to the universal database
+      final newFood = FoodModel(
+        id: 'food_sub_${widget.item.id}', // Predictable ID to avoid duplicates
+        name: name,
+        category: _selectedCategory,
+        calories: calPer100,
+        protein: protPer100,
+        carbs: carbPer100,
+        fat: fatPer100,
+        defaultServingSize: serv,
+        isApproved: true,
+        createdAt: DateTime.now(),
+        imageUrl: widget.item.imagePath.isNotEmpty ? widget.item.imagePath : null,
+        description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
+        ingredientsJson: _ingredients.isEmpty ? null : jsonEncode(_ingredients),
+      );
+
+      await context.read<FoodController>().addFood(newFood);
+
+      if (mounted) {
+        setState(() => _saving = false);
+        Navigator.pop(context, true);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Data nutrisi "$name" disimpan ke database universal!',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: _primary,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal menyimpan: $e'),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
-    if (mounted) Navigator.pop(context, true);
   }
 
   @override
   Widget build(BuildContext context) {
-    final isEdit = widget.initialFood != null;
+    final isEdit = widget.item.isNutriFilled;
     final catColor = _catColor;
 
     return Scaffold(
@@ -316,7 +313,7 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
         slivers: [
           // ─── Hero Header ───────────────────────────────────────────────────
           SliverAppBar(
-            expandedHeight: 250,
+            expandedHeight: 280,
             pinned: true,
             backgroundColor: catColor,
             leading: IconButton(
@@ -325,8 +322,13 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
             ),
             actions: [
               TextButton.icon(
-                onPressed: _save,
-                icon: const Icon(Icons.check_rounded, color: Colors.white, size: 18),
+                onPressed: _saving ? null : _save,
+                icon: _saving 
+                    ? const SizedBox(
+                        width: 16, height: 16,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Icon(Icons.check_rounded, color: Colors.white, size: 18),
                 label: Text('Simpan', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
               ),
               const SizedBox(width: 8),
@@ -335,11 +337,16 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Image / placeholder
-                  if (_pickedImage != null)
-                    Image.file(_pickedImage!, fit: BoxFit.cover)
-                  else if (_existingImageUrl != null)
-                    Image.network(_existingImageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _placeholder(catColor))
+                  // Image / placeholder with tap to zoom
+                  if (widget.item.imagePath.isNotEmpty)
+                    GestureDetector(
+                      onTap: () => _showImageViewer(context, widget.item.imagePath),
+                      child: SubmissionImage(
+                        imagePath: widget.item.imagePath,
+                        fit: BoxFit.cover,
+                        placeholder: _placeholder(catColor),
+                      ),
+                    )
                   else
                     _placeholder(catColor),
 
@@ -354,32 +361,29 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
                     ),
                   ),
 
-                  // Camera button
-                  Positioned(
-                    bottom: 16, right: 16,
-                    child: GestureDetector(
-                      onTap: _pickImage,
+                  // Zoom Hint
+                  if (widget.item.imagePath.isNotEmpty)
+                    Positioned(
+                      bottom: 16, right: 16,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Colors.black.withValues(alpha: 0.6),
                           borderRadius: BorderRadius.circular(20),
-                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 6, offset: const Offset(0, 2))],
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(_pickedImage != null || _existingImageUrl != null ? Icons.edit_rounded : Icons.add_a_photo_rounded, color: catColor, size: 15),
-                            const SizedBox(width: 5),
+                            const Icon(Icons.zoom_out_map_rounded, color: Colors.white, size: 12),
+                            const SizedBox(width: 4),
                             Text(
-                              _pickedImage != null || _existingImageUrl != null ? 'Ganti Foto' : 'Tambah Foto',
-                              style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w700, color: catColor),
+                              'Ketuk untuk perbesar',
+                              style: GoogleFonts.poppins(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w600),
                             ),
                           ],
                         ),
                       ),
                     ),
-                  ),
 
                   // Name preview at bottom left
                   Positioned(
@@ -390,7 +394,7 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(20)),
-                          child: Text(isEdit ? 'Edit Makanan' : 'Tambah Makanan Baru', style: GoogleFonts.poppins(fontSize: 11, color: Colors.white70)),
+                          child: Text(isEdit ? 'Edit Data Nutrisi' : 'Isi Data Nutrisi Baru', style: GoogleFonts.poppins(fontSize: 11, color: Colors.white70)),
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -423,7 +427,7 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
                         const SizedBox(height: 14),
                         _categoryPicker(),
                         const SizedBox(height: 14),
-                        _field(controller: _descCtrl, label: 'Deskripsi (opsional)', icon: Icons.notes_rounded, maxLines: 2),
+                        _field(controller: _descCtrl, label: 'Deskripsi / Catatan (opsional)', icon: Icons.notes_rounded, maxLines: 2),
                       ],
                     ),
                   ),
@@ -941,3 +945,48 @@ class _AdminFoodFormViewState extends State<AdminFoodFormView> {
   }
 }
 
+// ─── Fullscreen Image Viewer ──────────────────────────────────────────────────
+class _ImageViewerPage extends StatelessWidget {
+  final String imagePath;
+  const _ImageViewerPage({required this.imagePath});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          'Foto Makanan',
+          style: TextStyle(color: Colors.white, fontSize: 16),
+        ),
+      ),
+      body: Center(
+        child: InteractiveViewer(
+          minScale: 0.5,
+          maxScale: 4,
+          child: SubmissionImage(
+            imagePath: imagePath,
+            fit: BoxFit.contain,
+            placeholder: const Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.broken_image_rounded,
+                  color: Colors.white54,
+                  size: 64,
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'Foto tidak dapat ditampilkan',
+                  style: TextStyle(color: Colors.white54),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

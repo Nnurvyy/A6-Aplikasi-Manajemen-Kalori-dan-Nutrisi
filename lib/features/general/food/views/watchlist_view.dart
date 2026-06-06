@@ -610,44 +610,6 @@ class _WatchlistViewState extends State<WatchlistView> with SingleTickerProvider
       );
     }
 
-    final List<Map<String, dynamic>> schemes = [
-      {
-        'bg': const Color(0xFFFFF0F5), // Lavender blush
-        'border': const Color(0xFFFFC0CB), // Pink
-        'accent': const Color(0xFFFF69B4),
-        'icon': Icons.bakery_dining_rounded,
-        'tagText': 'Menu Sarapan',
-      },
-      {
-        'bg': const Color(0xFFE8F5E9), // Soft Mint
-        'border': const Color(0xFFA7E8BD), 
-        'accent': const Color(0xFF2E7D32),
-        'icon': Icons.lunch_dining_rounded,
-        'tagText': 'Menu Sehat',
-      },
-      {
-        'bg': const Color(0xFFE8F0FE), // Soft Blue
-        'border': const Color(0xFFD2E3FC),
-        'accent': const Color(0xFF1A73E8),
-        'icon': Icons.restaurant_menu_rounded,
-        'tagText': 'Menu Lezat',
-      },
-      {
-        'bg': const Color(0xFFFFF3E0), // Soft Orange
-        'border': const Color(0xFFFFE0B2),
-        'accent': const Color(0xFFE65100),
-        'icon': Icons.emoji_food_beverage_rounded,
-        'tagText': 'Menu Segar',
-      },
-      {
-        'bg': const Color(0xFFF3E8FD), // Soft Purple
-        'border': const Color(0xFFE9D2FD),
-        'accent': const Color(0xFF681DA8),
-        'icon': Icons.soup_kitchen_rounded,
-        'tagText': 'Menu Spesial',
-      },
-    ];
-
     return RefreshIndicator(
       onRefresh: () async => context.read<WatchlistController>().loadCombinations(userId),
       color: const Color(0xFF2E7D32),
@@ -657,17 +619,53 @@ class _WatchlistViewState extends State<WatchlistView> with SingleTickerProvider
         itemCount: combos.length,
         itemBuilder: (context, index) {
           final combo = combos[index];
-          final scheme = schemes[index % schemes.length];
-          final accentColor = scheme['accent'] as Color;
-          final borderVal = scheme['border'] as Color;
-          final bgVal = scheme['bg'] as Color;
-          final iconVal = scheme['icon'] as IconData;
-          final tagText = scheme['tagText'] as String;
 
           double totalCal = combo.foods.fold(0, (sum, f) => sum + f.calories);
           double totalProtein = combo.foods.fold(0, (sum, f) => sum + f.protein);
           double totalCarbs = combo.foods.fold(0, (sum, f) => sum + f.carbs);
           double totalFat = combo.foods.fold(0, (sum, f) => sum + f.fat);
+
+          // Determine dominant nutrient (by weight in grams)
+          double maxVal = totalProtein;
+          String dominantNutrient = 'protein';
+
+          if (totalCarbs > maxVal) {
+            maxVal = totalCarbs;
+            dominantNutrient = 'carbs';
+          }
+          if (totalFat > maxVal) {
+            maxVal = totalFat;
+            dominantNutrient = 'fat';
+          }
+
+          Color accentColor;
+          Color borderVal;
+          Color bgVal;
+          IconData iconVal;
+
+          final hasNutrients = totalProtein > 0 || totalCarbs > 0 || totalFat > 0;
+
+          if (!hasNutrients) {
+            accentColor = const Color(0xFF2E7D32); // Primary Green
+            borderVal = const Color(0xFFA7E8BD); // Soft Green
+            bgVal = const Color(0xFFE8F5E9); // Soft Green BG
+            iconVal = Icons.restaurant_menu_rounded;
+          } else if (dominantNutrient == 'protein') {
+            accentColor = const Color(0xFFEF5350); // Protein Red/Pink
+            borderVal = const Color(0xFFFFC0CB); 
+            bgVal = const Color(0xFFFFF0F5); 
+            iconVal = Icons.fitness_center_rounded;
+          } else if (dominantNutrient == 'carbs') {
+            accentColor = const Color(0xFF42A5F5); // Carbs Blue
+            borderVal = const Color(0xFFD2E3FC); 
+            bgVal = const Color(0xFFE8F0FE); 
+            iconVal = Icons.grain_rounded;
+          } else {
+            accentColor = const Color(0xFFFFA726); // Fat Orange
+            borderVal = const Color(0xFFFFE0B2); 
+            bgVal = const Color(0xFFFFF3E0); 
+            iconVal = Icons.opacity_rounded;
+          }
 
           return Container(
             margin: const EdgeInsets.only(bottom: 16),
@@ -726,15 +724,6 @@ class _WatchlistViewState extends State<WatchlistView> with SingleTickerProvider
                                       : Colors.orange.withValues(alpha: 0.8),
                                 ),
                               ],
-                            ),
-                            Text(
-                              tagText,
-                              style: GoogleFonts.poppins(
-                                fontSize: 10,
-                                color: accentColor,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.3,
-                              ),
                             ),
                           ],
                         ),

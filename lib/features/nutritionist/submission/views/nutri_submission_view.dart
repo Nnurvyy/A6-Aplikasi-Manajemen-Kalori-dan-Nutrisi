@@ -1,9 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:nutritrack_app/features/general/submission/controllers/submission_controller.dart';
 import 'package:nutritrack_app/features/general/submission/models/submission_model.dart';
-import 'package:nutritrack_app/features/nutritionist/views/widgets/nutri_fill_sheet.dart';
+import 'package:nutritrack_app/features/general/submission/views/widgets/submission_image_widget.dart';
+import 'package:nutritrack_app/features/nutritionist/views/nutri_food_form_view.dart';
 
 class NutriSubmissionView extends StatefulWidget {
   const NutriSubmissionView({super.key});
@@ -14,7 +16,6 @@ class NutriSubmissionView extends StatefulWidget {
 
 class _NutriSubmissionViewState extends State<NutriSubmissionView>
     with SingleTickerProviderStateMixin {
-  // ── Tema hijau selaras ────────────────────────────────────────────────────
   static const _green = Color(0xFF2E7D32);
   static const _dark = Color(0xFF1A2E22);
   static const _muted = Color(0xFF7A9485);
@@ -24,12 +25,29 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
   final _searchCtrl = TextEditingController();
   String _query = '';
 
+  // ── Pagination ──────────────────────────────────────────────────────────
+  static const _pageSize = 5;
+  int _needsFillPage = 0;
+  int _filledPage = 0;
+
   @override
   void initState() {
     super.initState();
     _tabCtrl = TabController(length: 2, vsync: this);
+    _tabCtrl.addListener(() {
+      if (_tabCtrl.indexIsChanging) {
+        setState(() {
+          _needsFillPage = 0;
+          _filledPage = 0;
+        });
+      }
+    });
     _searchCtrl.addListener(
-      () => setState(() => _query = _searchCtrl.text.toLowerCase()),
+      () => setState(() {
+        _query = _searchCtrl.text.toLowerCase();
+        _needsFillPage = 0;
+        _filledPage = 0;
+      }),
     );
   }
 
@@ -40,18 +58,38 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
     super.dispose();
   }
 
+  void _showImageViewer(BuildContext ctx, String imagePath) {
+    if (imagePath.isEmpty) return;
+    Navigator.of(ctx).push(
+      MaterialPageRoute(builder: (_) => _ImageViewerPage(imagePath: imagePath)),
+    );
+  }
+
+  String _formatDateShort(DateTime dt) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+    return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+  }
+
+  String _formatTime(DateTime dt) {
+    final h = dt.hour.toString().padLeft(2, '0');
+    final m = dt.minute.toString().padLeft(2, '0');
+    return '$h:$m';
+  }
+
   @override
   Widget build(BuildContext context) {
-    // ← Pakai SubmissionController GLOBAL (shared dengan admin & user)
     final ctrl = context.watch<SubmissionController>();
-    final belumDiisi =
-        ctrl.approvedNeedsFill
-            .where((s) => s.foodName.toLowerCase().contains(_query))
-            .toList();
-    final sudahDiisi =
-        ctrl.approvedFilled
-            .where((s) => s.foodName.toLowerCase().contains(_query))
-            .toList();
+
+    // Sort by newest (createdAt descending)
+    final belumDiisi = ctrl.approvedNeedsFill
+        .where((s) => s.foodName.toLowerCase().contains(_query))
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    final sudahDiisi = ctrl.approvedFilled
+        .where((s) => s.foodName.toLowerCase().contains(_query))
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     return Scaffold(
       backgroundColor: _bg,
@@ -59,9 +97,9 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: false,
-        title: const Text(
+        title: Text(
           'Pengajuan Saya',
-          style: TextStyle(
+          style: GoogleFonts.poppins(
             fontSize: 18,
             fontWeight: FontWeight.w800,
             color: _dark,
@@ -85,7 +123,7 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
                 const SizedBox(width: 4),
                 Text(
                   '${ctrl.approved.length} total',
-                  style: const TextStyle(
+                  style: GoogleFonts.poppins(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: _green,
@@ -111,10 +149,10 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
                   ),
                   child: TextField(
                     controller: _searchCtrl,
-                    style: const TextStyle(fontSize: 13),
+                    style: GoogleFonts.poppins(fontSize: 13),
                     decoration: InputDecoration(
                       hintText: 'Cari nama makanan...',
-                      hintStyle: const TextStyle(fontSize: 13, color: _muted),
+                      hintStyle: GoogleFonts.poppins(fontSize: 13, color: _muted),
                       prefixIcon: const Icon(
                         Icons.search_rounded,
                         color: _muted,
@@ -122,20 +160,19 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
                       ),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(vertical: 11),
-                      suffixIcon:
-                          _query.isNotEmpty
-                              ? IconButton(
-                                icon: const Icon(
-                                  Icons.close_rounded,
-                                  size: 16,
-                                  color: _muted,
-                                ),
-                                onPressed: () {
-                                  _searchCtrl.clear();
-                                  setState(() => _query = '');
-                                },
-                              )
-                              : null,
+                      suffixIcon: _query.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(
+                                Icons.close_rounded,
+                                size: 16,
+                                color: _muted,
+                              ),
+                              onPressed: () {
+                                _searchCtrl.clear();
+                                setState(() => _query = '');
+                              },
+                            )
+                          : null,
                     ),
                   ),
                 ),
@@ -145,11 +182,11 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
                 controller: _tabCtrl,
                 labelColor: _green,
                 unselectedLabelColor: _muted,
-                labelStyle: const TextStyle(
+                labelStyle: GoogleFonts.poppins(
                   fontWeight: FontWeight.w700,
                   fontSize: 13,
                 ),
-                unselectedLabelStyle: const TextStyle(
+                unselectedLabelStyle: GoogleFonts.poppins(
                   fontWeight: FontWeight.w500,
                 ),
                 indicatorColor: _green,
@@ -184,14 +221,29 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
       body: TabBarView(
         controller: _tabCtrl,
         children: [
-          _buildList(belumDiisi, needsFill: true),
-          _buildList(sudahDiisi, needsFill: false),
+          _buildPaginatedList(
+            belumDiisi,
+            needsFill: true,
+            currentPage: _needsFillPage,
+            onPageChanged: (p) => setState(() => _needsFillPage = p),
+          ),
+          _buildPaginatedList(
+            sudahDiisi,
+            needsFill: false,
+            currentPage: _filledPage,
+            onPageChanged: (p) => setState(() => _filledPage = p),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildList(List<SubmissionModel> items, {required bool needsFill}) {
+  Widget _buildPaginatedList(
+    List<SubmissionModel> items, {
+    required bool needsFill,
+    required int currentPage,
+    required ValueChanged<int> onPageChanged,
+  }) {
     if (items.isEmpty) {
       return Center(
         child: Column(
@@ -214,7 +266,7 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
             const SizedBox(height: 16),
             Text(
               needsFill ? 'Semua sudah diisi! 🎉' : 'Belum ada yang selesai',
-              style: const TextStyle(
+              style: GoogleFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
                 color: _dark,
@@ -226,58 +278,164 @@ class _NutriSubmissionViewState extends State<NutriSubmissionView>
                   ? 'Tidak ada pengajuan yang perlu dilengkapi'
                   : 'Data nutrisi yang sudah diisi muncul di sini',
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 13, color: _muted),
+              style: GoogleFonts.poppins(fontSize: 13, color: _muted),
             ),
           ],
         ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-      itemCount: items.length,
-      itemBuilder:
-          (_, i) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _NutriListCard(item: items[i], needsFill: needsFill),
+    final totalPages = (items.length / _pageSize).ceil();
+    final safePage = currentPage.clamp(0, totalPages - 1);
+    final start = safePage * _pageSize;
+    final end = (start + _pageSize).clamp(0, items.length);
+    final pageItems = items.sublist(start, end);
+
+    return Column(
+      children: [
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+            itemCount: pageItems.length,
+            itemBuilder: (ctx, i) {
+              final item = pageItems[i];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _NutriListCard(
+                  item: item,
+                  needsFill: needsFill,
+                  dateLabel: _formatDateShort(item.createdAt),
+                  timeLabel: _formatTime(item.createdAt),
+                  onViewImage: item.imagePath.isNotEmpty
+                      ? () => _showImageViewer(ctx, item.imagePath)
+                      : null,
+                ),
+              );
+            },
           ),
+        ),
+
+        // Pagination Bar
+        if (totalPages > 1)
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _pageBtn(
+                  icon: Icons.chevron_left_rounded,
+                  enabled: safePage > 0,
+                  onTap: () => onPageChanged(safePage - 1),
+                ),
+                const SizedBox(width: 6),
+                ...List.generate(totalPages, (idx) {
+                  final active = idx == safePage;
+                  return GestureDetector(
+                    onTap: () => onPageChanged(idx),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      width: active ? 34 : 30,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: active ? _green : const Color(0xFFF4FAF6),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: active ? _green : const Color(0xFFD5EDE0),
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${idx + 1}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: active ? Colors.white : _muted,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+                const SizedBox(width: 6),
+                _pageBtn(
+                  icon: Icons.chevron_right_rounded,
+                  enabled: safePage < totalPages - 1,
+                  onTap: () => onPageChanged(safePage + 1),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  '${start + 1}–$end dari ${items.length}',
+                  style: GoogleFonts.poppins(fontSize: 11, color: _muted),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _pageBtn({
+    required IconData icon,
+    required bool enabled,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: enabled ? const Color(0xFFF4FAF6) : const Color(0xFFEEEEEE),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: enabled ? const Color(0xFFD5EDE0) : const Color(0xFFE0E0E0),
+          ),
+        ),
+        child: Icon(
+          icon,
+          size: 18,
+          color: enabled ? _dark : const Color(0xFFB0BEC5),
+        ),
+      ),
     );
   }
 }
 
 // ─── Card di list ─────────────────────────────────────────────────────────────
-
 class _NutriListCard extends StatelessWidget {
   final SubmissionModel item;
   final bool needsFill;
+  final String dateLabel;
+  final String timeLabel;
+  final VoidCallback? onViewImage;
 
-  const _NutriListCard({required this.item, required this.needsFill});
+  const _NutriListCard({
+    required this.item,
+    required this.needsFill,
+    required this.dateLabel,
+    required this.timeLabel,
+    this.onViewImage,
+  });
 
   static const _green = Color(0xFF2E7D32);
   static const _dark = Color(0xFF1A2E22);
   static const _muted = Color(0xFF7A9485);
-
-  String _timeAgo(DateTime dt) {
-    final d = DateTime.now().difference(dt);
-    if (d.inMinutes < 60) return '${d.inMinutes}m lalu';
-    if (d.inHours < 24) return '${d.inHours}j lalu';
-    return '${d.inDays}h lalu';
-  }
 
   @override
   Widget build(BuildContext context) {
     final accent = needsFill ? const Color(0xFFFF8F00) : _green;
 
     return GestureDetector(
-      onTap:
-          () => showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (_) => NutriFillSheet(item: item),
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => NutriFoodFormView(item: item),
           ),
+        );
+      },
       child: Container(
-        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
@@ -291,159 +449,242 @@ class _NutriListCard extends StatelessWidget {
           ],
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                // Avatar atau foto makanan
-                if (item.imagePath.isNotEmpty && !needsFill)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: SizedBox(
-                      width: 46,
-                      height: 46,
-                      child: Image.file(
-                        File(item.imagePath),
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _avatarFallback(accent),
-                      ),
-                    ),
-                  )
-                else
-                  _avatarFallback(accent),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            // 1:1 image on top if exists
+            if (item.imagePath.isNotEmpty)
+              GestureDetector(
+                onTap: onViewImage,
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                  child: Stack(
                     children: [
-                      Text(
-                        item.foodName,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: _dark,
+                      AspectRatio(
+                        aspectRatio: 1,
+                        child: SubmissionImage(
+                          imagePath: item.imagePath,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          placeholder: _noImage(),
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'dari ${item.userName} · ${_timeAgo(item.createdAt)}',
-                        style: const TextStyle(fontSize: 11, color: _muted),
+                      Positioned(
+                        bottom: 8,
+                        right: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.zoom_out_map_rounded, size: 11, color: Colors.white),
+                              SizedBox(width: 4),
+                              Text(
+                                'Perbesar',
+                                style: TextStyle(fontSize: 10, color: Colors.white),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ],
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: accent.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    needsFill ? 'Isi Data' : 'Selesai',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: accent,
-                    ),
+              )
+            else
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                child: Container(
+                  width: double.infinity,
+                  height: 52,
+                  color: accent.withValues(alpha: 0.05),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.image_not_supported_rounded, color: accent.withValues(alpha: 0.5), size: 16),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Tidak ada foto',
+                        style: TextStyle(fontSize: 11, color: accent.withValues(alpha: 0.7)),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-
-            if (!needsFill && item.calories != null) ...[
-              const SizedBox(height: 12),
-              const Divider(height: 1, color: Color(0xFFE8F5E9)),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _macro('Kalori', '${item.calories!.toInt()} kkal', _green),
-                  _macro(
-                    'Protein',
-                    '${item.protein!.toStringAsFixed(1)}g',
-                    const Color(0xFFE53935),
-                  ),
-                  _macro(
-                    'Karbo',
-                    '${item.carbs!.toStringAsFixed(1)}g',
-                    const Color(0xFFF59E0B),
-                  ),
-                  _macro(
-                    'Lemak',
-                    '${item.fat!.toStringAsFixed(1)}g',
-                    const Color(0xFF1E88E5),
-                  ),
-                ],
               ),
-            ],
 
-            if (needsFill) ...[
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: _green.withValues(alpha: 0.06),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.edit_rounded, color: _green, size: 14),
-                    SizedBox(width: 6),
-                    Text(
-                      'Ketuk untuk mengisi data nutrisi',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: _green,
-                        fontWeight: FontWeight.w600,
+            if (item.imagePath.isNotEmpty)
+              const Divider(height: 1, color: Color(0xFFF0F0F0)),
+
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.foodName,
+                              style: GoogleFonts.poppins(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: _dark,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'dari ${item.userName} · $dateLabel $timeLabel',
+                              style: GoogleFonts.poppins(fontSize: 11, color: _muted),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: accent.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          needsFill ? 'Isi Data' : 'Selesai',
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: accent,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  if (!needsFill && item.calories != null) ...[
+                    const SizedBox(height: 12),
+                    const Divider(height: 1, color: Color(0xFFE8F5E9)),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _macro('Kalori', '${item.calories!.toInt()} kkal', _green),
+                        _macro('Protein', '${item.protein!.toStringAsFixed(1)}g', const Color(0xFFE53935)),
+                        _macro('Karbo', '${item.carbs!.toStringAsFixed(1)}g', const Color(0xFFF59E0B)),
+                        _macro('Lemak', '${item.fat!.toStringAsFixed(1)}g', const Color(0xFF1E88E5)),
+                      ],
+                    ),
+                  ],
+
+                  if (needsFill) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: _green.withValues(alpha: 0.06),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.edit_rounded, color: _green, size: 14),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Ketuk untuk mengisi data nutrisi',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color: _green,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
-                ),
+                ],
               ),
-            ],
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _avatarFallback(Color accent) => Container(
-    width: 46,
-    height: 46,
-    decoration: BoxDecoration(
-      color: accent.withValues(alpha: 0.12),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: Center(
-      child: Text(
-        item.foodName[0].toUpperCase(),
-        style: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.w800,
-          color: accent,
+  Widget _noImage() => Container(
+        width: double.infinity,
+        color: const Color(0xFFF4FAF6),
+        child: const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.broken_image_rounded, color: Color(0xFFB0BEC5), size: 32),
+            SizedBox(height: 6),
+            Text(
+              'Foto tidak tersedia',
+              style: TextStyle(fontSize: 11, color: Color(0xFFB0BEC5)),
+            ),
+          ],
         ),
-      ),
-    ),
-  );
+      );
 
   Widget _macro(String label, String value, Color color) => Column(
-    children: [
-      Text(
-        value,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w800,
-          color: color,
-        ),
-      ),
-      const SizedBox(height: 2),
-      Text(label, style: const TextStyle(fontSize: 10, color: _muted)),
-    ],
-  );
+        children: [
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(label, style: GoogleFonts.poppins(fontSize: 10, color: _muted)),
+        ],
+      );
 }
 
+// ─── Image Viewer Page ────────────────────────────────────────────────────────
+class _ImageViewerPage extends StatelessWidget {
+  final String imagePath;
+  const _ImageViewerPage({required this.imagePath});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          'Foto Pengajuan',
+          style: TextStyle(color: Colors.white, fontSize: 16),
+        ),
+      ),
+      body: Center(
+        child: InteractiveViewer(
+          minScale: 0.5,
+          maxScale: 4,
+          child: SubmissionImage(
+            imagePath: imagePath,
+            fit: BoxFit.contain,
+            placeholder: const Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.broken_image_rounded,
+                  color: Colors.white54,
+                  size: 64,
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'Foto tidak dapat ditampilkan',
+                  style: TextStyle(color: Colors.white54),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

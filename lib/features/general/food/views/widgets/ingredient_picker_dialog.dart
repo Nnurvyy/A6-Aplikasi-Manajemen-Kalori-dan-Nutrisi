@@ -42,23 +42,7 @@ class _IngredientPickerDialogState extends State<IngredientPickerDialog> {
         height: 500,
         child: Column(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Pilih Bahan', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                TextButton.icon(
-                  onPressed: () => _promptManualIngredient(context),
-                  icon: const Icon(Icons.edit_note, size: 18),
-                  label: const Text('Input Manual'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.orange,
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                ),
-              ],
-            ),
+            const Text('Pilih Bahan', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             TextField(
               controller: _searchCtrl,
@@ -123,65 +107,5 @@ class _IngredientPickerDialogState extends State<IngredientPickerDialog> {
     );
   }
 
-  void _promptManualIngredient(BuildContext context) {
-    final nameCtrl = TextEditingController();
-    final gramCtrl = TextEditingController();
-    final calCtrl = TextEditingController();
-    final proCtrl = TextEditingController();
-    final carbCtrl = TextEditingController();
-    final fatCtrl = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Input Bahan Manual'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Nama Bahan', isDense: true)),
-              const SizedBox(height: 10),
-              TextField(controller: gramCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Jumlah (gram/ml)', isDense: true)),
-              const SizedBox(height: 10),
-              TextField(controller: calCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Total Kalori (kcal)', isDense: true)),
-              const SizedBox(height: 10),
-              TextField(controller: proCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Total Protein (g)', isDense: true)),
-              const SizedBox(height: 10),
-              TextField(controller: carbCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Total Karbo (g)', isDense: true)),
-              const SizedBox(height: 10),
-              TextField(controller: fatCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Total Lemak (g)', isDense: true)),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
-          ElevatedButton(
-            onPressed: () {
-              final name = nameCtrl.text.trim();
-              final gram = double.tryParse(gramCtrl.text) ?? 0;
-              final cal = double.tryParse(calCtrl.text) ?? 0;
-              final pro = double.tryParse(proCtrl.text) ?? 0;
-              final carb = double.tryParse(carbCtrl.text) ?? 0;
-              final fat = double.tryParse(fatCtrl.text) ?? 0;
-
-              if (name.isNotEmpty && gram > 0) {
-                Navigator.pop(ctx);
-                Navigator.pop(context, {
-                  'isManual': true,
-                  'name': name,
-                  'grams': gram,
-                  'calories': cal,
-                  'protein': pro,
-                  'carbs': carb,
-                  'fat': fat,
-                });
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-            child: const Text('Simpan', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
 }
+
