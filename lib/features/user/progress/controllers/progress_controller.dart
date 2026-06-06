@@ -8,6 +8,7 @@ import 'package:nutritrack_app/services/weight_log_firestore_service.dart';
 import 'package:nutritrack_app/features/general/auth/models/user_model.dart';
 import 'package:nutritrack_app/features/general/food/models/log_model.dart';
 import 'package:nutritrack_app/features/user/progress/models/weight_log_model.dart';
+import 'package:nutritrack_app/helpers/calorie_helper.dart';
 
 // ── Enum untuk pilihan periode ────────────────────────────────────────────────
 enum ChartPeriod { daily, monthly }
@@ -264,6 +265,14 @@ class ProgressController extends ChangeNotifier {
     final now = DateTime.now();
     if (month.year == now.year && month.month == now.month) {
       user.weight = weight;
+      user.dailyCalorieNeed = CalorieHelper.calculateDailyCalorieNeed(
+        weightKg: weight,
+        heightCm: user.height ?? 160.0,
+        age: user.age ?? 25,
+        gender: user.gender ?? 'Laki-laki',
+        activityLevel: user.activityLevel ?? 'Sedikit aktif atau tidak berolahraga',
+        targetWeightGainPerMonth: user.targetWeightGainPerMonth ?? 0.0,
+      );
       await user.save(); // Simpan perubahan ke box users
     }
 
@@ -498,13 +507,16 @@ class ProgressController extends ChangeNotifier {
       return;
     }
 
-    DateTime? accountCreated;
-    try {
-      final ms = int.parse(user.id.replaceAll('user_', ''));
-      accountCreated = DateTime.fromMillisecondsSinceEpoch(ms);
-    } catch (_) {
-      accountCreated = DateTime.now();
+    DateTime? accountCreated = user.createdAt;
+    if (accountCreated == null) {
+      if (user.targetHistory != null && user.targetHistory!.isNotEmpty) {
+        final sortedKeys = user.targetHistory!.keys.toList()..sort();
+        try {
+          accountCreated = DateFormat('yyyy-MM').parse(sortedKeys.first);
+        } catch (_) {}
+      }
     }
+    accountCreated ??= DateTime.now();
 
     final startWeight = user.initialWeight ?? user.weight ?? 60.0;
     final targetHistory = user.targetHistory ?? {};

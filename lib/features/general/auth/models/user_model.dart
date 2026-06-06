@@ -26,6 +26,7 @@ class UserModel extends HiveObject {
   String? localProfileImagePath;
   bool isProfileImageSynced;
   List<String>? monitoredBy; // List ID orang tua yang memantau akun ini
+  DateTime? createdAt;
 
   UserModel({
     required this.id,
@@ -49,6 +50,7 @@ class UserModel extends HiveObject {
     this.localProfileImagePath,
     this.isProfileImageSynced = true,
     this.monitoredBy,
+    this.createdAt,
   });
 
   /// Target makro harian (gram) - Menggunakan logic baru dari CalorieHelper
@@ -80,6 +82,7 @@ class UserModel extends HiveObject {
     String? localProfileImagePath,
     bool? isProfileImageSynced,
     List<String>? monitoredBy,
+    DateTime? createdAt,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -103,6 +106,7 @@ class UserModel extends HiveObject {
       localProfileImagePath: localProfileImagePath ?? this.localProfileImagePath,
       isProfileImageSynced: isProfileImageSynced ?? this.isProfileImageSynced,
       monitoredBy: monitoredBy ?? this.monitoredBy,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 
@@ -126,6 +130,7 @@ class UserModel extends HiveObject {
       'targetHistory': targetHistory,
       'profileImageUrl': profileImageUrl,
       'monitoredBy': monitoredBy,
+      'createdAt': createdAt?.toIso8601String(),
     };
   }
 
@@ -152,6 +157,8 @@ class UserModel extends HiveObject {
       isSynced: map['isSynced'] ?? true,
       profileImageUrl: map['profileImageUrl'],
       monitoredBy: (map['monitoredBy'] as List?)?.cast<String>(),
+      createdAt:
+          map['createdAt'] != null ? DateTime.parse(map['createdAt']) : null,
     );
   }
 }
@@ -188,13 +195,14 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
       localProfileImagePath: f[19] as String?,
       isProfileImageSynced: f[20] as bool? ?? true,
       monitoredBy: (f[21] as List?)?.cast<String>(),
+      createdAt: f[22] as DateTime?,
     );
   }
 
   @override
   void write(BinaryWriter writer, UserModel obj) {
     writer
-      ..writeByte(21) 
+      ..writeByte(22) 
       ..writeByte(0)..write(obj.id)
       ..writeByte(1)..write(obj.name)
       ..writeByte(2)..write(obj.email)
@@ -215,6 +223,7 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
       ..writeByte(18)..write(obj.profileImageUrl)
       ..writeByte(19)..write(obj.localProfileImagePath)
       ..writeByte(20)..write(obj.isProfileImageSynced)
-      ..writeByte(21)..write(obj.monitoredBy);
+      ..writeByte(21)..write(obj.monitoredBy)
+      ..writeByte(22)..write(obj.createdAt);
   }
 }

@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:nutritrack_app/features/general/auth/controllers/auth_controller.dart';
 import 'package:nutritrack_app/features/user/progress/controllers/progress_controller.dart';
+import 'package:nutritrack_app/helpers/calorie_helper.dart';
 
 class ProgressView extends StatefulWidget {
   const ProgressView({super.key});
@@ -123,6 +124,28 @@ class _ProgressViewState extends State<ProgressView> with TickerProviderStateMix
               final v = double.tryParse(ctrl.text.trim());
               if (v != null && v > 0) {
                 await _ctrl.saveActualWeight(month: month, weight: v);
+                
+                // Sinkronisasikan berat badan ke profile jika input untuk bulan berjalan saat ini
+                final now = DateTime.now();
+                if (month.year == now.year && month.month == now.month) {
+                  final auth = context.read<AuthController>();
+                  final currentUser = auth.currentUser;
+                  if (currentUser != null) {
+                    final updatedUser = currentUser.copyWith(
+                      weight: v,
+                      dailyCalorieNeed: CalorieHelper.calculateDailyCalorieNeed(
+                        weightKg: v,
+                        heightCm: currentUser.height ?? 160.0,
+                        age: currentUser.age ?? 25,
+                        gender: currentUser.gender ?? 'Laki-laki',
+                        activityLevel: currentUser.activityLevel ?? 'Sedikit aktif atau tidak berolahraga',
+                        targetWeightGainPerMonth: currentUser.targetWeightGainPerMonth ?? 0.0,
+                      ),
+                    );
+                    await auth.updateProfile(updatedUser);
+                  }
+                }
+                
                 if (mounted) { 
                   Navigator.of(ctx).pop(); 
                   setState(() {}); 

@@ -378,13 +378,37 @@ class _RegisterViewState extends State<RegisterView> {
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
               isExpanded: true,
+              itemHeight: null,
               value: _activityLevel,
               items: _activityLevels
-                  .map((p) =>
-                      DropdownMenuItem(value: p, child: Text(p, style: GoogleFonts.poppins(fontSize: 13))))
+                  .map((p) => DropdownMenuItem(
+                        value: p,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4.0),
+                          child: Text(
+                            p,
+                            style: GoogleFonts.poppins(fontSize: 13),
+                            softWrap: true,
+                          ),
+                        ),
+                      ))
                   .toList(),
+              selectedItemBuilder: (BuildContext context) {
+                return _activityLevels.map<Widget>((String item) {
+                  return Container(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      item,
+                      style: GoogleFonts.poppins(fontSize: 13),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  );
+                }).toList();
+              },
               onChanged: (v) => setState(() => _activityLevel = v!),
               decoration: InputDecoration(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 prefixIcon: const Icon(Icons.directions_run_rounded,
                     color: AppColors.primaryLight, size: 20),
                 border: OutlineInputBorder(

@@ -508,6 +508,7 @@ class AuthController extends ChangeNotifier {
         targetHistory: {
           DateFormat('yyyy-MM').format(DateTime.now()): targetWeightGainPerMonth,
         },
+        createdAt: DateTime.now(),
       );
 
       // 4. Simpan ke Firestore

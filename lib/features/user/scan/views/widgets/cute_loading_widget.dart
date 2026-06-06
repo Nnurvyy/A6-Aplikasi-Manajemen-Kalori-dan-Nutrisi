@@ -20,7 +20,6 @@ class _CuteLoadingWidgetState extends State<CuteLoadingWidget>
 
   final List<String> _loadingMessages = [
     'Mengintip resep rahasia Krabby Patty...',
-    'Menimbang kalori pisang ini...',
     'Menghitung dosa kuliner hari ini...',
     'Bertanya pada chef AI terbaik...',
     'Mendeteksi kadar kebahagiaan makanan ini...',
@@ -30,6 +29,7 @@ class _CuteLoadingWidgetState extends State<CuteLoadingWidget>
     'Membaca masa depan lingkar pinggangmu...',
     'Menerjemahkan bahasa kalori...',
     'Menyiapkan laporan gizi terbaik untukmu...',
+    'Menimbang kalori makanan ini...',
   ];
 
   final List<String> _emojis = ['🍎', '🍌', '🥦', '🍕', '🥑', '🥕', '🍳', '🍉', '🍍', '🍩', '🍔', '🍓'];
