@@ -200,7 +200,8 @@ class _FoodListViewState extends State<FoodListView> {
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
             ),
-              // ─── Filters ───
+          ),
+          // ─── Filters ───
           Container(
             color: isDark ? AppColors.darkSurface : Colors.white,
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
@@ -321,6 +322,7 @@ class _FoodListViewState extends State<FoodListView> {
                     ],
                   ),
                 ),
+              ],
             ),
           ),
 
