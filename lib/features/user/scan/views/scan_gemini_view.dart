@@ -7,6 +7,10 @@ import 'package:nutritrack_app/features/user/scan/controllers/scan_gemini_contro
 import './scan_result_detail_view.dart';
 import './widgets/cute_loading_widget.dart';
 import './widgets/kawaii_apple_painter.dart';
+import 'package:nutritrack_app/features/general/auth/controllers/auth_controller.dart';
+import 'package:nutritrack_app/helpers/subscription_helper.dart';
+import 'package:nutritrack_app/features/user/profile/views/premium_upgrade_view.dart';
+import 'package:nutritrack_app/features/general/views/ad_screen.dart';
 
 class ScanGeminiView extends StatefulWidget {
   const ScanGeminiView({super.key});
@@ -209,8 +213,64 @@ class _ScanGeminiViewState extends State<ScanGeminiView> {
   }
 
   Future<void> _handlePickImage(BuildContext context, ScanGeminiController ctrl, ImageSource source) async {
+    final auth = context.read<AuthController>();
+    final user = auth.currentUser;
+
+    if (!SubscriptionHelper.canScanGemini(user)) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.orange),
+              SizedBox(width: 8),
+              Text('Batas Scan Habis', style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: const Text(
+            'Batas harian scan makanan gratis Anda telah habis (Maksimal 2 kali sehari).\n\nUpgrade ke Premium sekarang untuk menikmati scan Gemini tanpa batas tanpa iklan!',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Nanti Saja', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                Navigator.pop(ctx);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PremiumUpgradeView()),
+                );
+              },
+              child: const Text('Upgrade'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    if (SubscriptionHelper.shouldShowAdForGemini(user)) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const AdScreen(durationSeconds: 15),
+        ),
+      );
+    }
+
     await ctrl.pickImage(source);
+    
     if (ctrl.hasResult && ctrl.uniqueMappedFoods.isNotEmpty && context.mounted) {
+      if (user != null) {
+        SubscriptionHelper.incrementGeminiScanCount(user.id);
+      }
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(

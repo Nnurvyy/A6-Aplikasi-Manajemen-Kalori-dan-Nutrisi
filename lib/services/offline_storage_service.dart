@@ -10,9 +10,9 @@ import 'food_log_firestore_service.dart';
 import 'hive_service.dart';
 
 class OfflineStorageService {
-  static String get _cloudName => dotenv.env['CLOUDINARY_CLOUD_NAME'] ?? 'dxvg4czip';
-  static String get _uploadPreset => dotenv.env['CLOUDINARY_UPLOAD_PRESET'] ?? 'submission_images';
-  static String get _cloudinaryUrl => 'https://api.cloudinary.com/v1_1/$_cloudName/image/upload';
+  static String get _backendUrl => dotenv.env['BACKEND_URL'] ?? '';
+  static String get _secretToken => dotenv.env['APP_SECRET_TOKEN'] ?? '';
+  static String get _cloudinaryUrl => '$_backendUrl/api/ai/cloudinary/upload';
 
   /// Menyimpan file gambar PCD ke lokal secara offline-first
   /// Hanya me-return nama file (contoh: scan_123456789.jpg)
@@ -95,9 +95,9 @@ class OfflineStorageService {
         return;
       }
 
-      // Upload ke Cloudinary
+      // Upload ke Cloudinary via Hono
       var request = http.MultipartRequest('POST', Uri.parse(_cloudinaryUrl));
-      request.fields['upload_preset'] = _uploadPreset;
+      request.headers['X-App-Secret'] = _secretToken;
       request.fields['folder'] = 'scans/$userId'; // Optional
       request.files.add(await http.MultipartFile.fromPath('file', file.path));
 

@@ -9,7 +9,7 @@ import 'package:nutritrack_app/features/user/dashboard/controllers/dashboard_con
 import 'package:nutritrack_app/features/general/food/controllers/food_controller.dart';
 import 'package:nutritrack_app/features/general/food/models/log_model.dart';
 import 'package:nutritrack_app/helpers/date_controller.dart';
-import 'package:nutritrack_app/helpers/app_colors.dart';
+
 import 'package:nutritrack_app/services/offline_storage_service.dart';
 import 'package:nutritrack_app/helpers/string_helper.dart';
 
@@ -20,6 +20,9 @@ import 'package:nutritrack_app/features/general/food/controllers/watchlist_contr
 import 'dart:io';
 
 import 'package:percent_indicator/circular_percent_indicator.dart';
+import 'package:nutritrack_app/helpers/subscription_helper.dart';
+import 'package:nutritrack_app/features/user/profile/views/premium_upgrade_view.dart';
+import 'package:nutritrack_app/features/general/auth/models/user_model.dart';
 
 /// Widget murni isi dashboard — TANPA Scaffold/BottomNav sendiri.
 /// Dibungkus oleh UserMainView yang sudah punya satu BottomAppBar.
@@ -36,10 +39,10 @@ enum NutritionState {
   danger,
 }
 
+class _DashboardBodyState extends State<DashboardBody> {
   // ─────────────────────────────────────────────────────────────
-  // GLOBAL HANDLER
+  // NUTRITION STATE HANDLER
   // ─────────────────────────────────────────────────────────────
-
   NutritionState nutritionState(
     double consumed,
     double target, {
@@ -62,7 +65,6 @@ enum NutritionState {
     return NutritionState.danger;
   }
 
-class _DashboardBodyState extends State<DashboardBody> {
   final DashboardController _controller = DashboardController();
   int _riwayatPage = 0;
   static const int _riwayatItemsPerPage = 7;
@@ -301,6 +303,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                     _buildHeader(selectedDate, auth),
                     _buildDaySelector(),
                     _buildKaloriCard(),
+                    _buildPremiumBanner(user, auth),
                     const SizedBox(height: 8),
                     _buildNutriGrid(
                       proteinConsumed,
@@ -1439,6 +1442,80 @@ class _DashboardBodyState extends State<DashboardBody> {
       default:
         return const Color(0xFF78909C);
     }
+  }
+
+  Widget _buildPremiumBanner(UserModel? user, AuthController auth) {
+    if (auth.isMonitoring || SubscriptionHelper.isPremium(user)) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF4E6C50), Color(0xFF698F6E)],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF4E6C50).withValues(alpha: 0.15),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.workspace_premium_rounded, color: Colors.white, size: 36),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Upgrade ke Premium!',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Text(
+                    'Dapatkan scan Gemini & pencarian AI Groq tanpa batas!',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: const Color(0xFF4E6C50),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PremiumUpgradeView()),
+                );
+              },
+              child: Text(
+                'Mulai',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 12),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
