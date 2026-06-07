@@ -3,7 +3,11 @@ import '../features/general/auth/models/user_model.dart';
 import '../features/general/food/models/food_model.dart';
 import '../features/general/food/models/log_model.dart';
 import '../features/user/progress/models/weight_log_model.dart';
+<<<<<<< HEAD
 import '../features/general/submission/model/pending_submission_model.dart';
+=======
+import 'package:nutritrack_app/features/general/submission/models/pending_submission_model.dart';
+>>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
 import '../features/user/notification/models/notification_setting_model.dart'; 
 
 

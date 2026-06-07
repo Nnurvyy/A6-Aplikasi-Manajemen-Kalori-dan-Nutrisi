@@ -1,0 +1,303 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:nutritrack_app/features/general/auth/controllers/auth_controller.dart';
+import 'package:nutritrack_app/features/general/submission/controllers/submission_controller.dart';
+import 'package:nutritrack_app/features/general/submission/models/submission_model.dart';
+import './add_submission_screen.dart';
+import './submission_detail_screen.dart';
+import './widgets/submission_card.dart';
+import './widgets/submission_info_dialog.dart';
+
+class SubmissionScreen extends StatelessWidget {
+  const SubmissionScreen({super.key});
+
+  static const _green = Color(0xFF2E7D32);
+  static const _bg = Color(0xFFF4FAF6);
+  static const _textDark = Color(0xFF1A2E22);
+  static const _textMuted = Color(0xFF7A9485);
+
+  void _goToAdd(BuildContext context) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AddSubmissionScreen()),
+    );
+  }
+
+  /// Konfirmasi lalu hapus submission pending
+  Future<void> _confirmDelete(
+    BuildContext context,
+    SubmissionController ctrl,
+    SubmissionModel item,
+  ) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder:
+          (_) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Text('Hapus Pengajuan?'),
+            content: Text(
+              'Pengajuan "${item.foodName}" akan dihapus permanen dan tidak dapat dikembalikan.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Batal'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+                child: const Text('Hapus'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirm == true && context.mounted) {
+      await ctrl.deleteSubmission(item);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pengajuan berhasil dihapus.'),
+            backgroundColor: Colors.redAccent,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = context.watch<AuthController>().currentUser;
+    if (user == null) return const SizedBox();
+
+    final ctrl = context.watch<SubmissionController>();
+
+    if (ctrl.error != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(ctrl.error!),
+              backgroundColor: Colors.redAccent,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+      });
+    }
+
+    if (ctrl.isLoading && ctrl.all.isEmpty) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final items = ctrl.byUser(user.id);
+
+    return Scaffold(
+      backgroundColor: _bg,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: const Text(
+          'Pengajuan Makanan',
+          style: TextStyle(
+            color: _textDark,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline_rounded, color: _textMuted),
+            onPressed:
+                () => showDialog(
+                  context: context,
+                  builder: (_) => const SubmissionInfoDialog(),
+                ),
+          ),
+        ],
+      ),
+      body:
+          items.isEmpty
+              ? _buildEmpty(context)
+              : _buildList(context, ctrl, items),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _goToAdd(context),
+        backgroundColor: _green,
+        child: const Icon(Icons.add_rounded, color: Colors.white),
+      ),
+    );
+  }
+
+  Widget _buildList(
+    BuildContext context,
+    SubmissionController ctrl,
+    List<SubmissionModel> items,
+  ) {
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: items.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (_, i) {
+        final item = items[i];
+        final canDelete = item.status == SubmissionStatus.pending;
+
+        // Swipe-to-delete hanya untuk item pending
+        if (canDelete) {
+          return Dismissible(
+            key: Key(item.id),
+            direction: DismissDirection.endToStart,
+            confirmDismiss: (_) async {
+              bool? result;
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder:
+                    (_) => AlertDialog(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      title: const Text('Hapus Pengajuan?'),
+                      content: Text(
+                        'Pengajuan "${item.foodName}" akan dihapus permanen.',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('Batal'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.redAccent,
+                          ),
+                          child: const Text('Hapus'),
+                        ),
+                      ],
+                    ),
+              );
+              result = confirm ?? false;
+              if (result && context.mounted) {
+                await ctrl.deleteSubmission(item);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Pengajuan berhasil dihapus.'),
+                      backgroundColor: Colors.redAccent,
+                      duration: Duration(seconds: 3),
+                    ),
+                  );
+                }
+              }
+              return result;
+            },
+            background: Container(
+              margin: const EdgeInsets.symmetric(vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.redAccent,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.only(right: 20),
+              child: const Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.delete_rounded, color: Colors.white, size: 26),
+                  SizedBox(height: 4),
+                  Text(
+                    'Hapus',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            child: SubmissionCard(
+              item: item,
+              onTap:
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SubmissionDetailScreen(submission: item),
+                    ),
+                  ),
+            ),
+          );
+        }
+
+        // Item non-pending: tampil biasa tanpa swipe
+        return SubmissionCard(
+          item: item,
+          onTap:
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => SubmissionDetailScreen(submission: item),
+                ),
+              ),
+        );
+      },
+    );
+  }
+
+  Widget _buildEmpty(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              color: _green.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.upload_file_rounded,
+              size: 54,
+              color: _green,
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Belum ada pengajuan',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: _textDark,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Ajukan makanan favoritmu\nuntuk ditambahkan ke database!',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: _textMuted, fontSize: 13),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () => _goToAdd(context),
+            icon: const Icon(Icons.add_rounded, color: Colors.white),
+            label: const Text(
+              'Buat Pengajuan',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _green,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

@@ -1,0 +1,792 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:nutritrack_app/features/general/food/controllers/food_controller.dart';
+import 'package:nutritrack_app/features/general/food/models/food_model.dart';
+import 'package:nutritrack_app/features/general/food/views/food_detail_view.dart';
+import 'admin_food_form_view.dart';
+import 'package:nutritrack_app/helpers/string_helper.dart';
+import 'package:nutritrack_app/services/groq_nutrition_service.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'dart:io';
+
+class AdminFoodListView extends StatefulWidget {
+  const AdminFoodListView({super.key});
+
+  @override
+  State<AdminFoodListView> createState() => _AdminFoodListViewState();
+}
+
+class _AdminFoodListViewState extends State<AdminFoodListView> {
+  final TextEditingController _searchController = TextEditingController();
+
+  static const Color _bg = Color(0xFFF4F6F0);
+  static const Color _surface = Colors.white;
+  static const Color _primary = Color(0xFF4CAF50);
+  static const Color _textDark = Color(0xFF1B2A1B);
+  static const Color _textMuted = Color(0xFF5A7A5A);
+
+  static const int _itemsPerPage = 10;
+  int _currentPage = 0;
+  String _selectedCategory = 'Semua';
+
+  static const List<String> _filterCategories = [
+    'Semua', 'Makanan Pokok', 'Lauk', 'Sayuran', 'Buah', 'Minuman', 'Snack', 'Lainnya'
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<FoodController>().loadAllFoods();
+    });
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  void _onSearchChanged() {
+    setState(() => _currentPage = 0);
+    context.read<FoodController>().search(_searchController.text);
+  }
+
+  void _navigateToDetail(FoodModel food) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => FoodDetailView(food: food, isReadOnly: true)),
+    );
+  }
+
+  void _openManualForm() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const AdminFoodFormView()),
+    );
+    if (result == true && mounted) {
+      context.read<FoodController>().loadAllFoods();
+    }
+  }
+
+  void _openAIInput() {
+    final searchCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            'Cari Makanan dengan AI',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          content: TextField(
+            controller: searchCtrl,
+            decoration: InputDecoration(
+              hintText: 'Misal: Sate Kambing 1 Piring',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final query = searchCtrl.text.trim();
+                if (query.isNotEmpty) {
+                  Navigator.pop(ctx);
+                  _runAISearch(query);
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2E7D32),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Cari', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _runAISearch(String query) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: Color(0xFF2E7D32)),
+                SizedBox(height: 16),
+                Text('Mencari data gizi dengan AI...', style: TextStyle(fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final aiService = GroqNutritionService();
+      final result = await aiService.fetchNutritionData(query);
+      if (mounted) Navigator.pop(context); // Pop loading dialog
+
+      if (result != null) {
+        final double porsiGram = (result['porsi_gram'] as num?)?.toDouble() ?? 100.0;
+        final double ratio = porsiGram > 0 ? 100.0 / porsiGram : 1.0;
+
+        // Create temporary FoodModel pre-populated
+        final aiFood = FoodModel(
+          id: 'ai_${DateTime.now().millisecondsSinceEpoch}',
+          name: result['nama_makanan'] ?? query,
+          category: result['kategori'] ?? 'Lainnya',
+          calories: ((result['kalori'] as num?)?.toDouble() ?? 0.0) * ratio,
+          protein: ((result['protein'] as num?)?.toDouble() ?? 0.0) * ratio,
+          carbs: ((result['karbohidrat'] as num?)?.toDouble() ?? 0.0) * ratio,
+          fat: ((result['lemak'] as num?)?.toDouble() ?? 0.0) * ratio,
+          defaultServingSize: porsiGram,
+          isApproved: true, // Admin-created AI foods are automatically approved
+          createdAt: DateTime.now(),
+        );
+
+        final resultForm = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AdminFoodFormView(
+              initialFood: aiFood,
+              isAIPrepopulate: true,
+            ),
+          ),
+        );
+
+        if (resultForm == true && mounted) {
+          context.read<FoodController>().loadAllFoods();
+        }
+      } else {
+        throw Exception('AI mengembalikan hasil kosong');
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Ensure loading is popped if exception happened
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memproses AI: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  void _navigateToAddEdit({FoodModel? food}) async {
+    if (food != null) {
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => AdminFoodFormView(initialFood: food)),
+      );
+      if (result == true && mounted) {
+        context.read<FoodController>().loadAllFoods();
+      }
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Tambah Makanan Baru',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF1B2A1B),
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2E7D32).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.edit_note_rounded, color: Color(0xFF2E7D32)),
+                ),
+                title: Text('Buat Manual', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _openManualForm();
+                },
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.auto_awesome, color: Colors.blue),
+                ),
+                title: Text('Buat dengan AI', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _openAIInput();
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _confirmDelete(FoodModel food) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Hapus Makanan?', style: TextStyle(fontWeight: FontWeight.w800)),
+        content: Text('Anda yakin ingin menghapus "${food.name}" dari database?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+          TextButton(
+            onPressed: () {
+              context.read<FoodController>().deleteFood(food.id);
+              Navigator.pop(ctx);
+              setState(() => _currentPage = 0);
+            },
+            child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+
+
+  @override
+  Widget build(BuildContext context) {
+    final foodCtrl = context.watch<FoodController>();
+    List<FoodModel> foods = foodCtrl.foods;
+    if (_selectedCategory != 'Semua') {
+      foods = foods.where((f) => f.category == _selectedCategory).toList();
+    }
+
+    final totalPages = (foods.length / _itemsPerPage).ceil();
+    final safeCurrentPage = foods.isEmpty ? 0 : _currentPage.clamp(0, totalPages - 1);
+    final startIndex = safeCurrentPage * _itemsPerPage;
+    final endIndex = (startIndex + _itemsPerPage).clamp(0, foods.length);
+    final pageItems = foods.isEmpty ? <FoodModel>[] : foods.sublist(startIndex, endIndex);
+
+    return Scaffold(
+      backgroundColor: _bg,
+      appBar: AppBar(
+        backgroundColor: _surface,
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          'Database Makanan',
+          style: TextStyle(color: _textDark, fontWeight: FontWeight.w800, fontSize: 18),
+        ),
+      ),
+      body: Column(
+        children: [
+          _buildSearchAndFilter(),
+          // ─── Tambah Makanan button (inline) ───
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+            child: GestureDetector(
+              onTap: () => _navigateToAddEdit(),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                decoration: BoxDecoration(
+                  color: _primary,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _primary.withValues(alpha: 0.35),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      'Tambah Makanan Baru',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Results info
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
+            child: Row(
+              children: [
+                Text(
+                  '${foods.length} makanan',
+                  style: const TextStyle(fontSize: 12, color: _textMuted, fontWeight: FontWeight.w600),
+                ),
+                if (foods.isNotEmpty) ...[
+                  const Spacer(),
+                  Text(
+                    'Hal. ${safeCurrentPage + 1}/${totalPages < 1 ? 1 : totalPages}',
+                    style: const TextStyle(fontSize: 12, color: _textMuted),
+                  ),
+                ]
+              ],
+            ),
+          ),
+          Expanded(
+            child: foods.isEmpty
+                ? _buildEmptyState()
+                : Column(
+                    children: [
+                      Expanded(
+                        child: ListView.builder(
+                          padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+                          itemCount: pageItems.length,
+                          itemBuilder: (context, index) => _buildFoodCard(pageItems[index]),
+                        ),
+                      ),
+                      if (totalPages > 1) _buildPagination(safeCurrentPage, totalPages),
+                    ],
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchAndFilter() {
+    return Container(
+      color: _surface,
+      child: Column(
+        children: [
+          // Search bar
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F5E9).withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFC8E6C9), width: 1),
+              ),
+              child: TextField(
+                controller: _searchController,
+                style: const TextStyle(fontSize: 14, color: _textDark),
+                decoration: InputDecoration(
+                  hintText: 'Cari makanan...',
+                  hintStyle: const TextStyle(color: Color(0xFF9EAD9E), fontSize: 14),
+                  prefixIcon: const Icon(Icons.search_rounded, color: _primary, size: 20),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_rounded, size: 18, color: _textMuted),
+                          onPressed: () {
+                            _searchController.clear();
+                            context.read<FoodController>().search('');
+                          },
+                        )
+                      : null,
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+          ),
+          // Category dropdown filter
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+            child: Row(
+              children: [
+                const Icon(Icons.filter_list_rounded, color: _primary, size: 18),
+                const SizedBox(width: 8),
+                const Text('Kategori:', style: TextStyle(fontSize: 13, color: _textMuted, fontWeight: FontWeight.w600)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: _bg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFC8E6C9)),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _selectedCategory,
+                        isExpanded: true,
+                        icon: const Icon(Icons.keyboard_arrow_down_rounded, color: _primary),
+                        style: const TextStyle(fontSize: 13, color: _textDark, fontWeight: FontWeight.w600),
+                        items: _filterCategories.map((cat) => DropdownMenuItem(
+                          value: cat,
+                          child: Row(
+                            children: [
+                              if (cat != 'Semua') ...[
+                                Container(
+                                  width: 8, height: 8,
+                                  decoration: BoxDecoration(
+                                    color: _catColor(cat),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                              ],
+                              Text(cat),
+                            ],
+                          ),
+                        )).toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() {
+                              _selectedCategory = val;
+                              _currentPage = 0;
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPagination(int current, int total) {
+    const int maxVisible = 3; 
+
+    int startPage = current - (maxVisible ~/ 2);
+    if (startPage < 0) startPage = 0;
+
+    int endPage = startPage + maxVisible - 1;
+    if (endPage >= total) {
+      endPage = total - 1;
+      startPage = endPage - maxVisible + 1;
+      if (startPage < 0) startPage = 0;
+    }
+
+    List<int> visiblePages = [];
+    for (int i = startPage; i <= endPage; i++) {
+      visiblePages.add(i);
+    }
+    
+    return Container(
+      color: _surface,
+      
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16), 
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _pageBtn(Icons.first_page_rounded, current > 0, () => setState(() => _currentPage = 0)),
+          const SizedBox(width: 4),
+          _pageBtn(Icons.chevron_left_rounded, current > 0, () => setState(() => _currentPage--)),
+          const SizedBox(width: 8),
+          
+          ...visiblePages.map((i) {
+            final isActive = i == current;
+            return GestureDetector(
+              onTap: () => setState(() => _currentPage = i),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: isActive ? _primary : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: isActive ? _primary : const Color(0xFFD0E8D0)),
+                ),
+                child: Center(
+                  child: Text(
+                    '${i + 1}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: isActive ? Colors.white : _textMuted,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+          
+          const SizedBox(width: 8),
+          _pageBtn(Icons.chevron_right_rounded, current < total - 1, () => setState(() => _currentPage++)),
+          const SizedBox(width: 4),
+          _pageBtn(Icons.last_page_rounded, current < total - 1, () => setState(() => _currentPage = total - 1)),
+        ],
+      ),
+    );
+  }
+
+  Widget _pageBtn(IconData icon, bool enabled, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: Container(
+        width: 32, height: 32,
+        decoration: BoxDecoration(
+          color: enabled ? _bg : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: enabled ? const Color(0xFFD0E8D0) : Colors.transparent),
+        ),
+        child: Icon(icon, size: 18, color: enabled ? _primary : _textMuted.withValues(alpha: 0.3)),
+      ),
+    );
+  }
+
+  Widget _buildFoodCard(FoodModel food) {
+    final Color accentColor = _catColor(food.category);
+    final nutrients = food.nutritionForAmount(food.defaultServingSize);
+    final calories = nutrients['calories'] ?? 0;
+    final protein = nutrients['protein'] ?? 0;
+    final carbs = nutrients['carbs'] ?? 0;
+    final fat = nutrients['fat'] ?? 0;
+
+    return GestureDetector(
+      onTap: () => _navigateToDetail(food),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: accentColor, width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Food image or avatar
+            Stack(
+              clipBehavior: Clip.none, 
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: food.imageUrl != null
+                      ? (food.imageUrl!.startsWith('http')
+                          ? Image.network(
+                              food.imageUrl!,
+                              width: 50, height: 50,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => _buildAvatar(food.name, accentColor),
+                            )
+                          : Image.file(
+                              File(food.imageUrl!),
+                              width: 50, height: 50,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => _buildAvatar(food.name, accentColor),
+                            ))
+                      : _buildAvatar(food.name, accentColor),
+                ),
+
+                Positioned(
+                  top: -4,
+                  left: -4,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(color: Colors.black12, blurRadius: 2)
+                      ],
+                    ),
+                    child: Icon(
+                      food.isSynced ? Icons.cloud_done_rounded : Icons.cloud_upload_rounded,
+                      size: 14,
+                      color: food.isSynced ? Colors.green : Colors.orange,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    food.name,
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: _textDark),
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Container(
+                        width: 6, height: 6,
+                        decoration: BoxDecoration(color: accentColor, shape: BoxShape.circle),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${StringHelper.formatCategory(food.category)} • ${food.defaultServingSize.toInt()}g',
+                        style: const TextStyle(fontSize: 12, color: _textMuted),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _nutriChip('P ${protein.toStringAsFixed(1)}g', const Color(0xFFFFEBEE), const Color(0xFFE53935)),
+                      const SizedBox(width: 4),
+                      _nutriChip('K ${carbs.toStringAsFixed(1)}g', const Color(0xFFFFF8E1), const Color(0xFFF59E0B)),
+                      const SizedBox(width: 4),
+                      _nutriChip('L ${fat.toStringAsFixed(1)}g', const Color(0xFFFFF3E0), const Color(0xFFFF8C00)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${calories.toInt()}',
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: _primary),
+                ),
+                const Text('kkal', style: TextStyle(fontSize: 10, color: _textMuted)),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () => _navigateToAddEdit(food: food),
+                      child: Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.edit_rounded, color: Colors.blue, size: 16),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () => _confirmDelete(food),
+                      child: Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 16),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvatar(String name, Color color) {
+    return Container(
+      width: 50, height: 50,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Center(
+        child: Text(
+          name.isNotEmpty ? name[0].toUpperCase() : '?',
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: color),
+        ),
+      ),
+    );
+  }
+
+  Widget _nutriChip(String label, Color bg, Color textColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
+      child: Text(
+        label,
+        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: textColor),
+      ),
+    );
+  }
+
+  Color _catColor(String category) {
+    switch (category.toLowerCase()) {
+      case 'lauk': return const Color(0xFF4CAF50);
+      case 'makanan pokok': return const Color(0xFFF59E0B);
+      case 'sayuran': return const Color(0xFF43A047);
+      case 'buah': return const Color(0xFFE91E63);
+      case 'minuman': return const Color(0xFF1E88E5);
+      case 'snack': return const Color(0xFF9C27B0);
+      default: return const Color(0xFF78909C);
+    }
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: const BoxDecoration(color: Color(0xFFE8F5E9), shape: BoxShape.circle),
+            child: const Icon(Icons.search_off_rounded, size: 40, color: _primary),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Makanan tidak ditemukan',
+            style: TextStyle(color: _textDark, fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Coba kata kunci atau kategori lain',
+            style: TextStyle(color: _textMuted, fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+}

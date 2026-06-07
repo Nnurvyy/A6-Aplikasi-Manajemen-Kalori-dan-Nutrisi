@@ -8,15 +8,26 @@ class LogModel extends HiveObject {
   double protein;
   double carbs;
   double fat;
+<<<<<<< HEAD
   String mealType;
   DateTime consumedAt;
   String syncStatus; // pending or synced
   double servingSize;
+=======
+  String mealType; 
+  DateTime consumedAt;
+  String syncStatus; // pending or synced
+  double servingSize; 
+>>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
   String category;
   bool isManual;
   String? imageUrl;
   String? ingredientsJson;
+<<<<<<< HEAD
   int quantity; // jumlah pcs/porsi
+=======
+  int quantity; // New field for pieces/servings
+>>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
 
   LogModel({
     required this.id,
@@ -28,13 +39,21 @@ class LogModel extends HiveObject {
     required this.fat,
     required this.mealType,
     required this.consumedAt,
+<<<<<<< HEAD
     this.syncStatus = 'pending',
+=======
+    this.syncStatus = 'pending', // Default
+>>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
     required this.servingSize,
     required this.category,
     this.isManual = false,
     this.imageUrl,
     this.ingredientsJson,
+<<<<<<< HEAD
     this.quantity = 1,
+=======
+    this.quantity = 1, // Default to 1
+>>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
   });
 
   String get formattedTime {
@@ -126,7 +145,11 @@ class LogModel extends HiveObject {
 
 class LogModelAdapter extends TypeAdapter<LogModel> {
   @override
+<<<<<<< HEAD
   final int typeId = 2;
+=======
+  final int typeId = 2; 
+>>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
 
   @override
   LogModel read(BinaryReader reader) {
@@ -157,6 +180,7 @@ class LogModelAdapter extends TypeAdapter<LogModel> {
   @override
   void write(BinaryWriter writer, LogModel obj) {
     writer
+<<<<<<< HEAD
       ..writeByte(16)
       ..writeByte(0)
       ..write(obj.id)
@@ -190,5 +214,24 @@ class LogModelAdapter extends TypeAdapter<LogModel> {
       ..write(obj.ingredientsJson)
       ..writeByte(15)
       ..write(obj.quantity);
+=======
+      ..writeByte(16) // Total fields
+      ..writeByte(0)..write(obj.id)
+      ..writeByte(1)..write(obj.userId)
+      ..writeByte(2)..write(obj.foodName)
+      ..writeByte(3)..write(obj.calories)
+      ..writeByte(4)..write(obj.protein)
+      ..writeByte(5)..write(obj.carbs)
+      ..writeByte(6)..write(obj.fat)
+      ..writeByte(7)..write(obj.mealType)
+      ..writeByte(8)..write(obj.consumedAt)
+      ..writeByte(9)..write(obj.syncStatus)
+      ..writeByte(10)..write(obj.servingSize)
+      ..writeByte(11)..write(obj.category)
+      ..writeByte(12)..write(obj.isManual)
+      ..writeByte(13)..write(obj.imageUrl)
+      ..writeByte(14)..write(obj.ingredientsJson)
+      ..writeByte(15)..write(obj.quantity);
+>>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
   }
 }
