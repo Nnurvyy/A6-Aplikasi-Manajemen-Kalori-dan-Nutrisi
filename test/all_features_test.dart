@@ -1,11 +1,62 @@
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hive/hive.dart';
+import 'package:image/image.dart' as img;
 import 'package:nutritrack_app/features/general/auth/models/user_model.dart';
 import 'package:nutritrack_app/features/general/food/models/food_model.dart';
 import 'package:nutritrack_app/features/general/food/models/log_model.dart';
 import 'package:nutritrack_app/features/general/submission/models/submission_model.dart';
 import 'package:nutritrack_app/features/user/progress/models/weight_log_model.dart';
+import 'package:nutritrack_app/helpers/subscription_helper.dart';
+import 'package:nutritrack_app/helpers/calorie_helper.dart';
+import 'package:nutritrack_app/helpers/pcd_helper.dart';
+import 'package:nutritrack_app/services/hive_service.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUpAll(() async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('dev.fluttercommunity.plus/device_info'),
+      (MethodCall methodCall) async {
+        return <String, dynamic>{
+          'name': 'iPhone',
+          'systemName': 'iOS',
+          'systemVersion': '15.0',
+          'model': 'iPhone',
+          'localizedModel': 'iPhone',
+          'identifierForVendor': 'uuid',
+          'isPhysicalDevice': false,
+          'utsname': {
+            'sysname': 'Darwin',
+            'nodename': 'iPhone',
+            'release': '21.0.0',
+            'version': 'Release',
+            'machine': 'iPhone14,3',
+          }
+        };
+      },
+    );
+
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('plugins.flutter.io/path_provider'),
+      (MethodCall methodCall) async {
+        return '.';
+      },
+    );
+
+
+
+    final tempDir = Directory.systemTemp.createTempSync();
+    Hive.init(tempDir.path);
+    await Hive.openBox(HiveService.settingsBox);
+  });
+
+
   group('1. Authentication (Register, Login, Kelola Akun)', () {
     test('Positive: Login with correct credentials should succeed', () {
       final user = UserModel(id: '123', name: 'Test User', email: 'test@nutri.com', password: 'hashed_password', role: 'user', dailyCalorieNeed: 2000);
@@ -163,4 +214,138 @@ void main() {
       expect(sub.copyWith(nutriNote: 'Porsi terlalu banyak minyak').nutriNote, 'Porsi terlalu banyak minyak');
     });
   });
+
+  group('7. Subscription & Ad Control (SubscriptionHelper)', () {
+    final freeUser = UserModel(id: 'free_1', name: 'Free User', email: 'free@nutri.com', password: 'pass', role: 'user', plan: 'free');
+    final premiumUser = UserModel(id: 'prem_1', name: 'Premium User', email: 'prem@nutri.com', password: 'pass', role: 'user', plan: 'premium', subscriptionEnd: DateTime.now().add(const Duration(days: 30)));
+    final expiredPremiumUser = UserModel(id: 'prem_exp', name: 'Expired Premium User', email: 'exp@nutri.com', password: 'pass', role: 'user', plan: 'premium', subscriptionEnd: DateTime.now().subtract(const Duration(days: 1)));
+    final adminUser = UserModel(id: 'admin_1', name: 'Admin User', email: 'admin@nutri.com', password: 'pass', role: 'admin');
+
+    test('Positive: isPremium returns true for Admin and Nutritionist', () {
+      expect(SubscriptionHelper.isPremium(adminUser), true);
+      final nutritionistUser = UserModel(id: 'nutri_1', name: 'Nutri User', email: 'nutri@nutri.com', password: 'p', role: 'nutritionist');
+      expect(SubscriptionHelper.isPremium(nutritionistUser), true);
+    });
+
+    test('Positive: isPremium returns true for active premium plan', () {
+      expect(SubscriptionHelper.isPremium(premiumUser), true);
+    });
+
+    test('Negative: isPremium returns false for expired premium plan', () {
+      expect(SubscriptionHelper.isPremium(expiredPremiumUser), false);
+    });
+
+    test('Negative: isPremium returns false for free user', () {
+      expect(SubscriptionHelper.isPremium(freeUser), false);
+      expect(SubscriptionHelper.isPremium(null), false);
+    });
+
+    test('Positive: canScanGemini is always true for Premium', () {
+      expect(SubscriptionHelper.canScanGemini(premiumUser), true);
+    });
+
+    test('Positive: canScanGemini allows free user up to 2 scans', () {
+      HiveService.settings.clear();
+      expect(SubscriptionHelper.canScanGemini(freeUser), true);
+      SubscriptionHelper.incrementGeminiScanCount(freeUser.id);
+      expect(SubscriptionHelper.canScanGemini(freeUser), true);
+      SubscriptionHelper.incrementGeminiScanCount(freeUser.id);
+      expect(SubscriptionHelper.canScanGemini(freeUser), false);
+    });
+
+    test('Positive: shouldShowAdForGemini triggers on second scan', () {
+      HiveService.settings.clear();
+      expect(SubscriptionHelper.shouldShowAdForGemini(freeUser), false);
+      SubscriptionHelper.incrementGeminiScanCount(freeUser.id);
+      expect(SubscriptionHelper.shouldShowAdForGemini(freeUser), true);
+      SubscriptionHelper.incrementGeminiScanCount(freeUser.id);
+      expect(SubscriptionHelper.shouldShowAdForGemini(freeUser), false);
+    });
+
+    test('Positive: canSearchGroq is always true for Premium', () {
+      expect(SubscriptionHelper.canSearchGroq(premiumUser), true);
+    });
+
+    test('Positive: canSearchGroq allows free user up to 5 searches', () {
+      HiveService.settings.clear();
+      expect(SubscriptionHelper.canSearchGroq(freeUser), true);
+      for (int i = 0; i < 4; i++) {
+        SubscriptionHelper.incrementGroqSearchCount(freeUser.id);
+        expect(SubscriptionHelper.canSearchGroq(freeUser), true);
+      }
+      SubscriptionHelper.incrementGroqSearchCount(freeUser.id);
+      expect(SubscriptionHelper.canSearchGroq(freeUser), false);
+    });
+
+    test('Positive: shouldShowAdForGroq triggers on 3rd and 5th searches', () {
+      HiveService.settings.clear();
+      expect(SubscriptionHelper.shouldShowAdForGroq(freeUser), false);
+      SubscriptionHelper.incrementGroqSearchCount(freeUser.id);
+      expect(SubscriptionHelper.shouldShowAdForGroq(freeUser), false);
+      SubscriptionHelper.incrementGroqSearchCount(freeUser.id);
+      expect(SubscriptionHelper.shouldShowAdForGroq(freeUser), true);
+      SubscriptionHelper.incrementGroqSearchCount(freeUser.id);
+      expect(SubscriptionHelper.shouldShowAdForGroq(freeUser), false);
+      SubscriptionHelper.incrementGroqSearchCount(freeUser.id);
+      expect(SubscriptionHelper.shouldShowAdForGroq(freeUser), true);
+    });
+  });
+
+  group('8. Calorie & Macro Calculations (CalorieHelper)', () {
+    test('Positive: calculateBMR returns correct value for Men and Women', () {
+      final bmrMale = CalorieHelper.calculateBMR(weightKg: 70, heightCm: 170, age: 25, gender: 'laki-laki');
+      expect(bmrMale, closeTo(1710.605, 0.01));
+
+      final bmrFemale = CalorieHelper.calculateBMR(weightKg: 50, heightCm: 160, age: 30, gender: 'perempuan');
+      expect(bmrFemale, closeTo(1288.97, 0.01));
+    });
+
+    test('Positive: getActivityMultiplier returns correct value based on level', () {
+      expect(CalorieHelper.getActivityMultiplier('jarang olahraga'), 1.2);
+      expect(CalorieHelper.getActivityMultiplier('olahraga sedang (3-5 kali seminggu)'), 1.55);
+      expect(CalorieHelper.getActivityMultiplier('random_level'), 1.2);
+    });
+
+    test('Positive: calculateTDEE calculates based on BMR and multiplier', () {
+      final tdee = CalorieHelper.calculateTDEE(weightKg: 70, heightCm: 170, age: 25, gender: 'laki-laki', activityLevel: 'jarang olahraga');
+      expect(tdee, closeTo(2052.726, 0.01));
+    });
+
+    test('Positive: calculateDailyCalorieNeed adjusts based on weight target', () {
+      final need = CalorieHelper.calculateDailyCalorieNeed(weightKg: 70, heightCm: 170, age: 25, gender: 'laki-laki', activityLevel: 'jarang olahraga', targetWeightGainPerMonth: 1.0);
+      expect(need, closeTo(2302.726, 0.01));
+    });
+
+    test('Positive: calculateMacros returns correct targets', () {
+      final macros = CalorieHelper.calculateMacros(2000);
+      expect(macros['protein'], closeTo(75.0, 0.01));
+      expect(macros['fat'], closeTo(44.44, 0.01));
+      expect(macros['carbs'], closeTo(325.0, 0.01));
+    });
+
+    test('Positive: formatCalorie and formatNutrient formats properly', () {
+      expect(CalorieHelper.formatCalorie(2000.4), '2000');
+      expect(CalorieHelper.formatNutrient(75.26), '75.3g');
+    });
+  });
+
+  group('9. PCD Image Preprocessing (PCDHelper)', () {
+    test('Positive: processForYolo resizes and letterboxes image to 640x640', () async {
+      final image = img.Image(width: 100, height: 200);
+      img.fill(image, color: img.ColorRgb8(255, 0, 0));
+      final originalBytes = Uint8List.fromList(img.encodeJpg(image));
+      final processedBytes = await PCDHelper.processForYolo(originalBytes);
+      expect(processedBytes, isNotNull);
+      final processedImage = img.decodeImage(processedBytes!);
+      expect(processedImage, isNotNull);
+      expect(processedImage!.width, 640);
+      expect(processedImage.height, 640);
+    });
+
+    test('Negative: processForYolo returns null for invalid image bytes', () async {
+      final processedBytes = await PCDHelper.processForYolo(Uint8List.fromList([0, 1, 2, 3, 4, 5]));
+      expect(processedBytes, isNull);
+    });
+  });
 }
+
