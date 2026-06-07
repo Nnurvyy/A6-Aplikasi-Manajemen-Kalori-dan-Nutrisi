@@ -14,6 +14,10 @@ class SubmissionModel {
   final double? fat;
   final SubmissionStatus status;
   final DateTime createdAt;
+
+  /// Tanggal admin meneruskan ke ahli gizi (status → approved)
+  final DateTime? forwardedAt;
+
   final String? reviewNote;
   final String? nutriNote;
 
@@ -33,9 +37,10 @@ class SubmissionModel {
     this.fat,
     this.status = SubmissionStatus.pending,
     required this.createdAt,
+    this.forwardedAt,
     this.reviewNote,
     this.nutriNote,
-    this.isSynced = true, // default true — data dari Firestore selalu synced
+    this.isSynced = true,
   });
 
   bool get isNutriFilled =>
@@ -52,6 +57,7 @@ class SubmissionModel {
     double? fat,
     String? nutriNote,
     bool? isSynced,
+    DateTime? forwardedAt,
   }) {
     return SubmissionModel(
       id: id,
@@ -65,6 +71,7 @@ class SubmissionModel {
       fat: fat ?? this.fat,
       status: status ?? this.status,
       createdAt: createdAt,
+      forwardedAt: forwardedAt ?? this.forwardedAt,
       reviewNote: reviewNote ?? this.reviewNote,
       nutriNote: nutriNote ?? this.nutriNote,
       isSynced: isSynced ?? this.isSynced,

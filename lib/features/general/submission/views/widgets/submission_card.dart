@@ -45,6 +45,11 @@ class SubmissionCard extends StatelessWidget {
     }
   }
 
+  String _formatDate(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}/'
+      '${d.month.toString().padLeft(2, '0')}/'
+      '${d.year}';
+
   Widget _buildImage() {
     return SubmissionImage(
       imagePath: item.imagePath,
@@ -76,7 +81,6 @@ class SubmissionCard extends StatelessWidget {
     );
   }
 
-  /// Badge indikator sync cloud di pojok kanan atas gambar
   Widget _buildSyncBadge() {
     if (item.isSynced) {
       return Positioned(
@@ -147,7 +151,6 @@ class SubmissionCard extends StatelessWidget {
               offset: const Offset(0, 2),
             ),
           ],
-          // Border orange tipis kalau belum sync
           border:
               item.isSynced
                   ? null
@@ -155,13 +158,20 @@ class SubmissionCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Gambar + badge sync
+            // Gambar + badge sync — rasio 1:1 via SizedBox
             ClipRRect(
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(16),
                 bottomLeft: Radius.circular(16),
               ),
-              child: Stack(children: [_buildImage(), _buildSyncBadge()]),
+              child: SizedBox(
+                width: 90,
+                height: 90,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [_buildImage(), _buildSyncBadge()],
+                ),
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -180,13 +190,51 @@ class SubmissionCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
+                    // Tanggal pengajuan
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_today_rounded,
+                          size: 11,
+                          color: _textMuted,
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          _formatDate(item.createdAt),
+                          style: TextStyle(color: _textMuted, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                    // Tanggal diteruskan admin (jika sudah approved)
+                    if (item.forwardedAt != null) ...[
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.forward_rounded,
+                            size: 11,
+                            color: Colors.teal.shade400,
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            'Diteruskan: ${_formatDate(item.forwardedAt!)}',
+                            style: TextStyle(
+                              color: Colors.teal.shade600,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 6),
                     if (item.calories != null)
                       Text(
                         '~${item.calories!.toStringAsFixed(0)} kal',
                         style: TextStyle(color: _textMuted, fontSize: 12),
                       ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Row(
                       children: [
                         Icon(_statusIcon, color: _statusColor, size: 14),
@@ -225,4 +273,3 @@ class SubmissionCard extends StatelessWidget {
     );
   }
 }
-

@@ -28,11 +28,7 @@ class _NutriMainViewState extends State<NutriMainView>
       Icons.dashboard_outlined,
       'Dashboard',
     ),
-    _NutriNavData(
-      Icons.folder_rounded,
-      Icons.folder_outlined,
-      'Database',
-    ),
+    _NutriNavData(Icons.folder_rounded, Icons.folder_outlined, 'Database'),
     _NutriNavData(
       Icons.assignment_rounded,
       Icons.assignment_outlined,
@@ -470,47 +466,55 @@ class _NutriProfileView extends StatelessWidget {
     ],
   );
 
-  Widget _menuRow(IconData icon, String label, String subtitle, Color color, VoidCallback onTap) =>
-      InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, color: color, size: 18),
+  Widget _menuRow(
+    IconData icon,
+    String label,
+    String subtitle,
+    Color color,
+    VoidCallback onTap,
+  ) => Material(
+    color: Colors.transparent,
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: _dark,
-                        fontWeight: FontWeight.w700,
-                      ),
+              child: Icon(icon, color: color, size: 18),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: _dark,
+                      fontWeight: FontWeight.w700,
                     ),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(fontSize: 11, color: _muted),
-                    ),
-                  ],
-                ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(fontSize: 11, color: _muted),
+                  ),
+                ],
               ),
-              const Icon(Icons.chevron_right_rounded, color: _muted, size: 18),
-            ],
-          ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: _muted, size: 18),
+          ],
         ),
-      );
+      ),
+    ),
+  );
 
   void _confirmLogout(BuildContext context, AuthController authCtrl) {
     showDialog(
@@ -567,4 +571,3 @@ class _NutriProfileView extends StatelessWidget {
     );
   }
 }
-

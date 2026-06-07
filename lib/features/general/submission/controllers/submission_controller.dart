@@ -6,6 +6,7 @@ import 'package:nutritrack_app/features/general/submission/models/submission_mod
 import 'package:nutritrack_app/features/general/submission/models/pending_submission_model.dart';
 import 'package:nutritrack_app/services/submission_firebase_service.dart';
 import 'package:nutritrack_app/services/hive_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Controller global yang di-share antara User, Admin, dan Nutritionist.
 ///
@@ -84,10 +85,8 @@ class SubmissionController extends ChangeNotifier {
     );
 
     if (role == 'user') {
-      // Retry saat pertama init
       _retryPendingUploads(userId);
 
-      // ── Listener konektivitas: retry otomatis saat internet kembali ──
       _connectivitySub?.cancel();
       _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
         final isOnline = results.any((r) => r != ConnectivityResult.none);
@@ -142,14 +141,13 @@ class SubmissionController extends ChangeNotifier {
       userId: p.userId,
       userName: p.userName,
       foodName: p.foodName,
-      imagePath: p.localImagePath, // path lokal sementara sebelum sync
+      imagePath: p.localImagePath,
       status: SubmissionStatus.pending,
       createdAt: p.createdAt,
       isSynced: false,
     );
   }
 
-  /// Retry sequential — await satu per satu agar tidak race condition
   Future<void> _retryPendingUploads(String userId) async {
     if (_isRetrying) return;
     _isRetrying = true;
@@ -165,12 +163,11 @@ class SubmissionController extends ChangeNotifier {
 
   // ── User: ajukan makanan ──────────────────────────────────────────────────
 
-  /// [localImagePath] boleh kosong ('') — foto bersifat opsional.
   Future<void> addSubmission({
     required String userId,
     required String userName,
     required String foodName,
-    String localImagePath = '', // opsional
+    String localImagePath = '',
   }) async {
     debugPrint('[addSubmission] Dipanggil: $foodName');
     final id = 'sub_${DateTime.now().millisecondsSinceEpoch}';
@@ -180,7 +177,7 @@ class SubmissionController extends ChangeNotifier {
       userId: userId,
       userName: userName,
       foodName: foodName,
-      localImagePath: localImagePath, // bisa kosong
+      localImagePath: localImagePath,
       createdAt: DateTime.now(),
     );
 
@@ -190,7 +187,6 @@ class SubmissionController extends ChangeNotifier {
     _localItems.insert(0, _pendingToModel(pendingModel));
     notifyListeners();
 
-    // Upload berjalan di background
     unawaited(
       _uploadToCloud(pendingModel).catchError((e) {
         debugPrint('[Upload] Background error tertangkap: $e');
@@ -201,8 +197,6 @@ class SubmissionController extends ChangeNotifier {
   Future<void> _uploadToCloud(PendingSubmissionModel p) async {
     debugPrint('[Upload] Mulai upload: ${p.id} – ${p.foodName}');
     try {
-      // Upload gambar (jika ada). Jika path kosong atau file hilang,
-      // uploadImage() mengembalikan '' tanpa throw — submission tetap lanjut.
       final imageUrl = await SubmissionFirebaseService.uploadImage(
         p.localImagePath,
         p.id,
@@ -217,7 +211,7 @@ class SubmissionController extends ChangeNotifier {
         userId: p.userId,
         userName: p.userName,
         foodName: p.foodName,
-        imagePath: imageUrl, // '' jika tanpa foto, URL jika ada foto
+        imagePath: imageUrl,
         status: SubmissionStatus.pending,
         createdAt: p.createdAt,
         isSynced: true,
@@ -240,21 +234,15 @@ class SubmissionController extends ChangeNotifier {
 
   // ── User: hapus pengajuan yang masih pending ──────────────────────────────
 
-  /// Hanya boleh dipanggil untuk submission berstatus [SubmissionStatus.pending].
-  /// - Jika masih di Hive (belum sync) → hapus dari Hive saja.
-  /// - Jika sudah di Firestore (sync) → hapus dari Firestore.
   Future<void> deleteSubmission(SubmissionModel item) async {
     debugPrint('[deleteSubmission] Hapus: ${item.id}');
     try {
       if (!item.isSynced) {
-        // Masih di antrian lokal — cukup hapus dari Hive
         await HiveService.pendingSubs.delete(item.id);
         _localItems.removeWhere((e) => e.id == item.id);
         notifyListeners();
       } else {
-        // Sudah di Firestore — hapus dari cloud
         await SubmissionFirebaseService.delete(item.id);
-        // Stream Firestore akan otomatis update _cloudItems
       }
     } catch (e) {
       _error = 'Gagal menghapus pengajuan: $e';
@@ -270,10 +258,17 @@ class SubmissionController extends ChangeNotifier {
     String? reviewNote,
   }) async {
     try {
-      await SubmissionFirebaseService.update(id, {
+      final updates = <String, dynamic>{
         'status': newStatus.name,
         if (reviewNote != null) 'reviewNote': reviewNote,
-      });
+      };
+
+      // Catat waktu admin meneruskan ke ahli gizi
+      if (newStatus == SubmissionStatus.approved) {
+        updates['forwardedAt'] = Timestamp.fromDate(DateTime.now());
+      }
+
+      await SubmissionFirebaseService.update(id, updates);
     } catch (e) {
       _error = 'Gagal memperbarui status: $e';
       notifyListeners();
@@ -300,6 +295,24 @@ class SubmissionController extends ChangeNotifier {
         'fat': fat,
         if (nutriNote != null) 'nutriNote': nutriNote,
       });
+
+      // Cari item di cloud untuk simpan ke collection foods
+      final item = _cloudItems.where((s) => s.id == id).firstOrNull;
+      if (item != null) {
+        final updatedItem = item.copyWith(
+          foodName: foodName,
+          calories: calories,
+          protein: protein,
+          carbs: carbs,
+          fat: fat,
+          nutriNote: nutriNote,
+        );
+        // Simpan ke collection foods agar langsung masuk database global
+        await SubmissionFirebaseService.saveNutriToFoods(updatedItem);
+        debugPrint(
+          '[saveNutriData] Berhasil simpan ke foods: ${updatedItem.foodName}',
+        );
+      }
     } catch (e) {
       _error = 'Gagal menyimpan data nutrisi: $e';
       notifyListeners();

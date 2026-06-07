@@ -11,8 +11,7 @@ class SubmissionFirebaseService {
 
   static String get _backendUrl => dotenv.env['BACKEND_URL'] ?? '';
   static String get _secretToken => dotenv.env['APP_SECRET_TOKEN'] ?? '';
-  static String get _cloudinaryUrl =>
-      '$_backendUrl/api/ai/cloudinary/upload';
+  static String get _cloudinaryUrl => '$_backendUrl/api/ai/cloudinary/upload';
 
   static Map<String, dynamic> _toMap(SubmissionModel m) => {
     'id': m.id,
@@ -26,6 +25,8 @@ class SubmissionFirebaseService {
     'fat': m.fat,
     'status': m.status.name,
     'createdAt': Timestamp.fromDate(m.createdAt),
+    'forwardedAt':
+        m.forwardedAt != null ? Timestamp.fromDate(m.forwardedAt!) : null,
     'reviewNote': m.reviewNote,
     'nutriNote': m.nutriNote,
   };
@@ -47,6 +48,10 @@ class SubmissionFirebaseService {
         orElse: () => SubmissionStatus.pending,
       ),
       createdAt: (d['createdAt'] as Timestamp).toDate(),
+      forwardedAt:
+          d['forwardedAt'] != null
+              ? (d['forwardedAt'] as Timestamp).toDate()
+              : null,
       reviewNote: d['reviewNote'] as String?,
       nutriNote: d['nutriNote'] as String?,
       isSynced: true,
@@ -65,7 +70,7 @@ class SubmissionFirebaseService {
     if (localPath.startsWith('http')) return localPath;
 
     final file = File(localPath);
-    if (!file.existsSync()) return ''; // file hilang → anggap tanpa foto
+    if (!file.existsSync()) return '';
 
     onProgress?.call(0.1);
     final bytes = await file.readAsBytes();
@@ -74,9 +79,7 @@ class SubmissionFirebaseService {
 
     final response = await http.post(
       Uri.parse(_cloudinaryUrl),
-      headers: {
-        'X-App-Secret': _secretToken,
-      },
+      headers: {'X-App-Secret': _secretToken},
       body: {
         'file': 'data:image/jpeg;base64,$base64Image',
         'folder': folder ?? 'submissions',
@@ -106,6 +109,31 @@ class SubmissionFirebaseService {
 
   static Future<void> delete(String id) async {
     await _db.collection(_col).doc(id).delete();
+  }
+
+  /// Simpan hasil isi nutrisi dari ahli gizi ke collection `foods`
+  /// agar langsung tersedia sebagai makanan global di database.
+  static Future<void> saveNutriToFoods(SubmissionModel item) async {
+    if (!item.isNutriFilled) return;
+
+    // ID food mengikuti id submission supaya idempotent
+    final foodId = 'sub_${item.id}';
+
+    await _db.collection('foods').doc(foodId).set({
+      'id': foodId,
+      'name': item.foodName,
+      'category': 'Lainnya', // default; bisa diupdate manual di admin food
+      'calories': item.calories,
+      'protein': item.protein,
+      'carbs': item.carbs,
+      'fat': item.fat,
+      'defaultServingSize': 100.0,
+      'isApproved': true,
+      'userId': null, // null = global/universal
+      'imageUrl': item.imagePath.startsWith('http') ? item.imagePath : null,
+      'createdAt': Timestamp.fromDate(DateTime.now()),
+      'isSynced': true,
+    }, SetOptions(merge: true));
   }
 
   static Stream<List<SubmissionModel>> streamAll() {

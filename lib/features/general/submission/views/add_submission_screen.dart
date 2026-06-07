@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:provider/provider.dart';
 import 'package:nutritrack_app/features/general/auth/controllers/auth_controller.dart';
 import 'package:nutritrack_app/features/general/submission/controllers/submission_controller.dart';
@@ -26,8 +27,8 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
 
   File? _imageFile;
   bool _isSaving = false;
-  double _uploadProgress = 0; // 0.0 – 1.0
-  String _uploadStatus = ''; // teks keterangan progress
+  double _uploadProgress = 0;
+  String _uploadStatus = '';
 
   @override
   void dispose() {
@@ -35,7 +36,7 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
     super.dispose();
   }
 
-  // ── Pick image dengan kualitas & ukuran dibatasi langsung dari image_picker ──
+  // ── Pick image → langsung crop 1:1 ──────────────────────────────────────
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
@@ -59,13 +60,11 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
                     Navigator.pop(context);
                     final picked = await picker.pickImage(
                       source: ImageSource.camera,
-                      imageQuality: 60, // turun dari 80 → 60
-                      maxWidth: 1024, // resize lebar max 1024px
-                      maxHeight: 1024, // resize tinggi max 1024px
+                      imageQuality: 60,
+                      maxWidth: 1024,
+                      maxHeight: 1024,
                     );
-                    if (picked != null) {
-                      setState(() => _imageFile = File(picked.path));
-                    }
+                    if (picked != null) await _cropAndSet(picked.path);
                   },
                 ),
                 ListTile(
@@ -78,13 +77,11 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
                     Navigator.pop(context);
                     final picked = await picker.pickImage(
                       source: ImageSource.gallery,
-                      imageQuality: 60, // turun dari 80 → 60
+                      imageQuality: 60,
                       maxWidth: 1024,
                       maxHeight: 1024,
                     );
-                    if (picked != null) {
-                      setState(() => _imageFile = File(picked.path));
-                    }
+                    if (picked != null) await _cropAndSet(picked.path);
                   },
                 ),
                 if (_imageFile != null)
@@ -108,7 +105,32 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
     );
   }
 
-  // ── Submit: optimistic UI — langsung kembali ke list, upload jalan di background ──
+  /// Crop gambar dengan rasio 1:1 paksa sebelum disimpan ke state
+  Future<void> _cropAndSet(String sourcePath) async {
+    final cropped = await ImageCropper().cropImage(
+      sourcePath: sourcePath,
+      aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarTitle: 'Sesuaikan Foto',
+          toolbarColor: _primaryDark,
+          toolbarWidgetColor: Colors.white,
+          initAspectRatio: CropAspectRatioPreset.square,
+          lockAspectRatio: true,
+        ),
+        IOSUiSettings(
+          title: 'Sesuaikan Foto',
+          aspectRatioLockEnabled: true,
+          resetAspectRatioEnabled: false,
+        ),
+      ],
+    );
+    if (cropped != null && mounted) {
+      setState(() => _imageFile = File(cropped.path));
+    }
+  }
+
+  // ── Submit ───────────────────────────────────────────────────────────────
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -123,7 +145,6 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
     });
 
     try {
-      // Tahap 1 — persiapan (cepat)
       setState(() {
         _uploadProgress = 0.1;
         _uploadStatus = 'Memproses foto...';
@@ -131,21 +152,14 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
 
       await Future.delayed(const Duration(milliseconds: 300));
 
-      // Tahap 2 — panggil controller (upload berjalan di background)
       setState(() {
         _uploadProgress = 0.3;
         _uploadStatus = 'Mengirim ke server...';
       });
 
-      // addSubmission sekarang pakai optimistic UI:
-      // item langsung muncul di list dengan isSynced=false,
-      // lalu upload Storage + Firestore jalan di background.
-      // Kita tidak perlu await sampai selesai — cukup kick off lalu pop.
       if (!mounted) return;
       final ctrl = context.read<SubmissionController>();
 
-      // Jalankan tanpa await — upload jalan di background.
-      // localImagePath boleh kosong (foto opsional).
       ctrl.addSubmission(
         userId: user.id,
         userName: user.name,
@@ -153,7 +167,6 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
         localImagePath: _imageFile?.path ?? '',
       );
 
-      // Langsung update progress ke "selesai" dan keluar
       setState(() {
         _uploadProgress = 1.0;
         _uploadStatus = 'Pengajuan dikirim!';
@@ -291,7 +304,6 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Ikon animasi
                       Container(
                         width: 64,
                         height: 64,
@@ -316,7 +328,6 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 14),
-                      // Progress bar
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
                         child: LinearProgressIndicator(
@@ -352,125 +363,128 @@ class _AddSubmissionScreenState extends State<AddSubmissionScreen> {
   Widget _buildImagePicker() {
     return GestureDetector(
       onTap: _isSaving ? null : _pickImage,
-      child: Container(
-        height: 200,
-        decoration: BoxDecoration(
-          color:
-              _imageFile != null
-                  ? _primary.withValues(alpha: 0.08)
-                  : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: _imageFile != null ? _primary : _border,
-            width: _imageFile != null ? 2 : 1.5,
+      child: AspectRatio(
+        // Rasio 1:1 di preview
+        aspectRatio: 1.0,
+        child: Container(
+          decoration: BoxDecoration(
+            color:
+                _imageFile != null
+                    ? _primary.withValues(alpha: 0.08)
+                    : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: _imageFile != null ? _primary : _border,
+              width: _imageFile != null ? 2 : 1.5,
+            ),
           ),
-        ),
-        child:
-            _imageFile != null
-                ? Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(14),
-                      child: Image.file(
-                        _imageFile!,
-                        width: double.infinity,
-                        height: 200,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                    // Info ukuran file
-                    Positioned(
-                      left: 10,
-                      bottom: 10,
-                      child: FutureBuilder<int>(
-                        future: _imageFile!.length(),
-                        builder: (_, snap) {
-                          if (!snap.hasData) return const SizedBox();
-                          final kb = snap.data! / 1024;
-                          final label =
-                              kb > 1024
-                                  ? '${(kb / 1024).toStringAsFixed(1)} MB'
-                                  : '${kb.toStringAsFixed(0)} KB';
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.black54,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              label,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    Positioned(
-                      right: 10,
-                      bottom: 10,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
+          child:
+              _imageFile != null
+                  ? Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: Image.file(
+                          _imageFile!,
+                          width: double.infinity,
+                          height: double.infinity,
+                          fit: BoxFit.cover,
                         ),
+                      ),
+                      // Info ukuran file
+                      Positioned(
+                        left: 10,
+                        bottom: 10,
+                        child: FutureBuilder<int>(
+                          future: _imageFile!.length(),
+                          builder: (_, snap) {
+                            if (!snap.hasData) return const SizedBox();
+                            final kb = snap.data! / 1024;
+                            final label =
+                                kb > 1024
+                                    ? '${(kb / 1024).toStringAsFixed(1)} MB'
+                                    : '${kb.toStringAsFixed(0)} KB';
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black54,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                label,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      Positioned(
+                        right: 10,
+                        bottom: 10,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.edit, color: Colors.white, size: 14),
+                              SizedBox(width: 4),
+                              Text(
+                                'Ganti',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                  : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: Colors.black54,
-                          borderRadius: BorderRadius.circular(10),
+                          color: _primary.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
                         ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.edit, color: Colors.white, size: 14),
-                            SizedBox(width: 4),
-                            Text(
-                              'Ganti',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
+                        child: const Icon(
+                          Icons.add_a_photo_rounded,
+                          color: _primary,
+                          size: 30,
                         ),
                       ),
-                    ),
-                  ],
-                )
-                : Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: _primary.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
+                      const SizedBox(height: 10),
+                      const Text(
+                        'Ketuk untuk tambah foto (Opsional)',
+                        style: TextStyle(
+                          color: _textDark,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.add_a_photo_rounded,
-                        color: _primary,
-                        size: 30,
+                      const SizedBox(height: 4),
+                      Text(
+                        'Foto akan di-crop 1:1 & dikompres otomatis',
+                        style: TextStyle(color: _textMuted, fontSize: 12),
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'Ketuk untuk tambah foto (Opsional)',
-                      style: TextStyle(
-                        color: _textDark,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Otomatis dikompres sebelum dikirim',
-                      style: TextStyle(color: _textMuted, fontSize: 12),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+        ),
       ),
     );
   }
