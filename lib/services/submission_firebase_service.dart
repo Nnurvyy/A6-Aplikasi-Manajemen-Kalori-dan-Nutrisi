@@ -2,30 +2,20 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
-<<<<<<< HEAD
-import '../features/general/submission/submission_model.dart';
-=======
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:nutritrack_app/features/general/submission/models/submission_model.dart';
->>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
 
 class SubmissionFirebaseService {
   static final _db = FirebaseFirestore.instance;
   static const _col = 'submissions';
 
-<<<<<<< HEAD
+
   static const _cloudName = 'dxvg4czip';
   static const _uploadPreset = 'submission_images';
   static const _cloudinaryUrl =
-=======
-  static String get _cloudName => dotenv.env['CLOUDINARY_CLOUD_NAME'] ?? 'dxvg4czip';
-  static String get _uploadPreset => dotenv.env['CLOUDINARY_UPLOAD_PRESET'] ?? 'submission_images';
-  static String get _cloudinaryUrl =>
->>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
       'https://api.cloudinary.com/v1_1/$_cloudName/image/upload';
 
   static Map<String, dynamic> _toMap(SubmissionModel m) => {
-    'id': m.id,
     'userId': m.userId,
     'userName': m.userName,
     'foodName': m.foodName,

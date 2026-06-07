@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-<<<<<<<< HEAD:lib/features/general/submission/admin_submission_screen.dart
 import './submission_model.dart';
-========
 import 'package:nutritrack_app/features/general/submission/models/submission_model.dart';
->>>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d:lib/features/general/submission/views/admin_submission_screen.dart
 import './widgets/submission_card.dart';
 
 class AdminSubmissionScreen extends StatefulWidget {

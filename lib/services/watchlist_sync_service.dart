@@ -38,14 +38,11 @@ class WatchlistSyncService {
       // 2. Download from Firestore
       final remoteItems = await WatchlistFirestoreService.getUserWatchlist(userId);
       for (var remote in remoteItems) {
-<<<<<<< HEAD
-=======
         
         if (remote.id.contains('combo_')) {
           continue; 
         }
 
->>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
         final local = HiveService.watchlists.get(remote.id);
         if (local == null) {
           await HiveService.watchlists.put(remote.id, remote);

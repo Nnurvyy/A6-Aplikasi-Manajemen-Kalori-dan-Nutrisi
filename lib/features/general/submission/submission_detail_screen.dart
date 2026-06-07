@@ -145,11 +145,7 @@ class SubmissionDetailScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-<<<<<<<< HEAD:lib/features/general/submission/submission_detail_screen.dart
-          _buildImageWidget(),
-========
           _buildImageWidget(context),
->>>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d:lib/features/general/submission/views/submission_detail_screen.dart
           const SizedBox(height: 16),
 
           // Banner belum tersync

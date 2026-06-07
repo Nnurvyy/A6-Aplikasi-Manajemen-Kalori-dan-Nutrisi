@@ -25,11 +25,8 @@ class UserModel extends HiveObject {
   String? profileImageUrl;
   String? localProfileImagePath;
   bool isProfileImageSynced;
-<<<<<<< HEAD
-=======
   List<String>? monitoredBy; // List ID orang tua yang memantau akun ini
   DateTime? createdAt;
->>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
 
   UserModel({
     required this.id,
@@ -52,11 +49,8 @@ class UserModel extends HiveObject {
     this.profileImageUrl,
     this.localProfileImagePath,
     this.isProfileImageSynced = true,
-<<<<<<< HEAD
-=======
     this.monitoredBy,
     this.createdAt,
->>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
   });
 
   /// Target makro harian (gram) - Menggunakan logic baru dari CalorieHelper
@@ -65,8 +59,6 @@ class UserModel extends HiveObject {
     return CalorieHelper.calculateMacros(cal);
   }
 
-<<<<<<< HEAD
-=======
   /// Membuat salinan UserModel dengan field yang diubah secara selektif
   UserModel copyWith({
     String? id,
@@ -118,7 +110,6 @@ class UserModel extends HiveObject {
     );
   }
 
->>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -138,11 +129,8 @@ class UserModel extends HiveObject {
       'initialWeight': initialWeight,
       'targetHistory': targetHistory,
       'profileImageUrl': profileImageUrl,
-<<<<<<< HEAD
-=======
       'monitoredBy': monitoredBy,
       'createdAt': createdAt?.toIso8601String(),
->>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
     };
   }
 
@@ -168,12 +156,9 @@ class UserModel extends HiveObject {
       targetHistory: map['targetHistory'] != null ? Map<String, double>.from(map['targetHistory']) : null,
       isSynced: map['isSynced'] ?? true,
       profileImageUrl: map['profileImageUrl'],
-<<<<<<< HEAD
-=======
       monitoredBy: (map['monitoredBy'] as List?)?.cast<String>(),
       createdAt:
           map['createdAt'] != null ? DateTime.parse(map['createdAt']) : null,
->>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
     );
   }
 }
@@ -209,22 +194,15 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
       profileImageUrl: f[18] as String?,
       localProfileImagePath: f[19] as String?,
       isProfileImageSynced: f[20] as bool? ?? true,
-<<<<<<< HEAD
-=======
       monitoredBy: (f[21] as List?)?.cast<String>(),
       createdAt: f[22] as DateTime?,
->>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
     );
   }
 
   @override
   void write(BinaryWriter writer, UserModel obj) {
     writer
-<<<<<<< HEAD
-      ..writeByte(20) 
-=======
       ..writeByte(22) 
->>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
       ..writeByte(0)..write(obj.id)
       ..writeByte(1)..write(obj.name)
       ..writeByte(2)..write(obj.email)
@@ -244,12 +222,8 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
       ..writeByte(17)..write(obj.isSynced)
       ..writeByte(18)..write(obj.profileImageUrl)
       ..writeByte(19)..write(obj.localProfileImagePath)
-<<<<<<< HEAD
-      ..writeByte(20)..write(obj.isProfileImageSynced);
-=======
       ..writeByte(20)..write(obj.isProfileImageSynced)
       ..writeByte(21)..write(obj.monitoredBy)
       ..writeByte(22)..write(obj.createdAt);
->>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
   }
 }

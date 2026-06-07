@@ -18,14 +18,9 @@ pluginManagement {
 
 plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
-<<<<<<< HEAD
     id("com.android.application") version "8.9.1" apply false
     id("com.google.gms.google-services") version("4.3.15") apply false
     id("com.android.library") version "8.9.1" apply false
-=======
-    id("com.android.application") version "8.6.0" apply false  // ← naik ke 8.6.0
-    id("com.google.gms.google-services") version("4.3.15") apply false
->>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
     id("org.jetbrains.kotlin.android") version "2.1.0" apply false
 }
 

@@ -11,11 +11,7 @@ plugins {
 android {
     namespace = "com.example.nutritrack_app"
     compileSdk = 36
-<<<<<<< HEAD
     ndkVersion = "28.2.13676358"
-=======
-    ndkVersion = "27.0.12077973"
->>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

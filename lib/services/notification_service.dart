@@ -22,12 +22,8 @@ class NotificationService {
 
   static Future<void> init() async {
     tz_data.initializeTimeZones();
-<<<<<<< HEAD
-    tz.setLocalLocation(tz.getLocation('Asia/Jakarta'));
-=======
     final tzName = _getLocalTimeZoneName();
     tz.setLocalLocation(tz.getLocation(tzName));
->>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
 
     const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -46,8 +42,6 @@ class NotificationService {
     await _plugin.initialize(initSettings);
   }
 
-<<<<<<< HEAD
-=======
   static String _getLocalTimeZoneName() {
     final offset = DateTime.now().timeZoneOffset;
     final hours = offset.inHours;
@@ -63,7 +57,6 @@ class NotificationService {
     return 'Asia/Jakarta'; // Fallback default
   }
 
->>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
   // ─────────────────────────────────────────────────────────────────────────
   // PERMISSION
   // ─────────────────────────────────────────────────────────────────────────

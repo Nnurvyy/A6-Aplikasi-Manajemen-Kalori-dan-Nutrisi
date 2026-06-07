@@ -4,20 +4,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class FoodModel extends HiveObject {
   String id;
   String name;
-<<<<<<< HEAD
-  String
-  category; // 'makanan pokok', 'lauk', 'sayuran', 'buah', 'minuman', 'snack', 'lainnya'
-  double calories; // kcal per 100g
-  double protein; // g per 100g
-  double carbs; // g per 100g
-  double fat; // g per 100g
-=======
   String category;  // 'makanan pokok', 'lauk', 'sayuran', 'buah', 'minuman', 'snack', 'lainnya'
   double calories;  // kcal per 100g
   double protein;   // g per 100g
   double carbs;     // g per 100g
   double fat;       // g per 100g
->>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
   double defaultServingSize; // grams (default quantity when scanned)
   bool isApproved;
   DateTime createdAt;
@@ -43,11 +34,7 @@ class FoodModel extends HiveObject {
     this.description,
     this.ingredientsJson,
     this.isManualIngredient = false,
-<<<<<<< HEAD
-    this.userId,
-=======
     this.userId, 
->>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
     this.isSynced = true,
   });
 
@@ -60,17 +47,6 @@ class FoodModel extends HiveObject {
       protein: (map['protein'] as num?)?.toDouble() ?? 0.0,
       carbs: (map['carbs'] as num?)?.toDouble() ?? 0.0,
       fat: (map['fat'] as num?)?.toDouble() ?? 0.0,
-<<<<<<< HEAD
-      defaultServingSize:
-          (map['defaultServingSize'] as num?)?.toDouble() ?? 100.0,
-      isApproved: map['isApproved'] ?? true,
-      createdAt:
-          map['createdAt'] != null
-              ? (map['createdAt'] is Timestamp
-                  ? (map['createdAt'] as Timestamp).toDate()
-                  : DateTime.parse(map['createdAt']))
-              : DateTime.now(),
-=======
       defaultServingSize: (map['defaultServingSize'] as num?)?.toDouble() ?? 100.0,
       isApproved: map['isApproved'] ?? true,
       createdAt: map['createdAt'] != null 
@@ -78,16 +54,11 @@ class FoodModel extends HiveObject {
               ? (map['createdAt'] as Timestamp).toDate() 
               : DateTime.parse(map['createdAt']))
           : DateTime.now(),
->>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
       imageUrl: map['imageUrl'],
       description: map['description'],
       ingredientsJson: map['ingredientsJson'],
       isManualIngredient: map['isManualIngredient'] ?? false,
-<<<<<<< HEAD
-      userId: map['userId'],
-=======
       userId: map['userId'], // ← TAMBAHKAN INI
->>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
       isSynced: true,
     );
   }
@@ -108,18 +79,11 @@ class FoodModel extends HiveObject {
       'description': description,
       'ingredientsJson': ingredientsJson,
       'isManualIngredient': isManualIngredient,
-<<<<<<< HEAD
-      'userId': userId,
-    };
-  }
-
-=======
       'userId': userId, 
     };
   }
 
 
->>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
   /// Hitung nutrisi untuk jumlah tertentu (gram)
   Map<String, double> nutritionForAmount(double grams) {
     final ratio = grams / 100;
@@ -146,11 +110,7 @@ class FoodModel extends HiveObject {
     String? description,
     String? ingredientsJson,
     bool? isManualIngredient,
-<<<<<<< HEAD
-    String? userId,
-=======
     String? userId, 
->>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
     bool? isSynced,
   }) {
     return FoodModel(
@@ -189,11 +149,7 @@ class FoodModel extends HiveObject {
       'description': description,
       'ingredientsJson': ingredientsJson,
       'isManualIngredient': isManualIngredient,
-<<<<<<< HEAD
-      'userId': userId,
-=======
       'userId': userId, 
->>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
       'isSynced': isSynced,
     };
   }
@@ -207,19 +163,9 @@ class FoodModel extends HiveObject {
       protein: (map['protein'] as num?)?.toDouble() ?? 0.0,
       carbs: (map['carbs'] as num?)?.toDouble() ?? 0.0,
       fat: (map['fat'] as num?)?.toDouble() ?? 0.0,
-<<<<<<< HEAD
-      defaultServingSize:
-          (map['defaultServingSize'] as num?)?.toDouble() ?? 100.0,
-      isApproved: map['isApproved'] ?? true,
-      createdAt:
-          map['createdAt'] != null
-              ? DateTime.parse(map['createdAt'])
-              : DateTime.now(),
-=======
       defaultServingSize: (map['defaultServingSize'] as num?)?.toDouble() ?? 100.0,
       isApproved: map['isApproved'] ?? true,
       createdAt: map['createdAt'] != null ? DateTime.parse(map['createdAt']) : DateTime.now(),
->>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
       imageUrl: map['imageUrl'],
       description: map['description'],
       ingredientsJson: map['ingredientsJson'],
@@ -256,52 +202,13 @@ class FoodModelAdapter extends TypeAdapter<FoodModel> {
       ingredientsJson: f[12] as String?,
       isManualIngredient: f[13] as bool? ?? false,
       userId: f[14] as String?,
-<<<<<<< HEAD
-      isSynced: f[15] as bool? ?? true,
-=======
       isSynced: f[15] as bool ?? true,
->>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
     );
   }
 
   @override
   void write(BinaryWriter writer, FoodModel obj) {
     writer
-<<<<<<< HEAD
-      ..writeByte(16)
-      ..writeByte(0)
-      ..write(obj.id)
-      ..writeByte(1)
-      ..write(obj.name)
-      ..writeByte(2)
-      ..write(obj.category)
-      ..writeByte(3)
-      ..write(obj.calories)
-      ..writeByte(4)
-      ..write(obj.protein)
-      ..writeByte(5)
-      ..write(obj.carbs)
-      ..writeByte(6)
-      ..write(obj.fat)
-      ..writeByte(7)
-      ..write(obj.isApproved)
-      ..writeByte(8)
-      ..write(obj.createdAt)
-      ..writeByte(9)
-      ..write(obj.imageUrl)
-      ..writeByte(10)
-      ..write(obj.description)
-      ..writeByte(11)
-      ..write(obj.defaultServingSize)
-      ..writeByte(12)
-      ..write(obj.ingredientsJson)
-      ..writeByte(13)
-      ..write(obj.isManualIngredient)
-      ..writeByte(14)
-      ..write(obj.userId)
-      ..writeByte(15)
-      ..write(obj.isSynced);
-=======
       ..writeByte(16) 
       ..writeByte(0)..write(obj.id)
       ..writeByte(1)..write(obj.name)
@@ -319,6 +226,5 @@ class FoodModelAdapter extends TypeAdapter<FoodModel> {
       ..writeByte(13)..write(obj.isManualIngredient)
       ..writeByte(14)..write(obj.userId)
       ..writeByte(15)..write(obj.isSynced);
->>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
   }
 }

@@ -1,8 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-<<<<<<< HEAD
-=======
 import 'package:flutter/foundation.dart';
->>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d
 import '../features/general/food/models/watchlist_model.dart';
 
 class WatchlistFirestoreService {
