@@ -24,14 +24,11 @@ NutriTrack adalah aplikasi asisten kesehatan dan pelacak gizi harian (*calorie &
 ### 4. 👨‍👩‍👧‍👦 Fitur Pemantauan Orang Tua (Parental Control) 🤝
 *   Orang tua dapat memantau catatan makanan, grafik kalori, dan riwayat berat badan anak secara real-time dari jarak jauh.
 
-### 5. ⌚ Smartwatch Sync (Detak Jantung) 💓
-*   Sinkronisasi detak jantung (*BPM*) harian langsung ke dasbor profil untuk memantau kesehatan jantung secara menyeluruh.
-
-### 6. 👑 Premium Upgrade (Midtrans Snap Integration) 💳
+### 5. 👑 Premium Upgrade (Midtrans Snap Integration) 💳
 *   Buka semua batasan AI dan matikan iklan hanya dengan **Rp 20.000/bulan**!
 *   Terintegrasi dengan payment gateway **Midtrans Snap Sandbox** yang membuka browser secara otomatis, serta dilengkapi **Background Auto-Polling** (aplikasi langsung mendeteksi kesuksesan transaksi dan merubah akun menjadi premium secara otomatis tanpa harus klik apa-apa! 🎩✨).
 
-### 7. 🛡️ Admin Dashboard (Kelola Pengguna) 👑
+### 6. 🛡️ Admin Dashboard (Kelola Pengguna) 👑
 *   Dashboard khusus untuk administrator untuk memantau daftar pengguna.
 *   Tampilan visual yang unik: Pengguna **Free** memiliki border kartu **biru lembut** 🟦, sedangkan pengguna **Premium** bersinar dengan border **emas mewah** 🟨.
 *   Admin dapat mengedit plan pengguna secara manual serta mengatur masa aktif langganan.
