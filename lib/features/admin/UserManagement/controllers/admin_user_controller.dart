@@ -198,6 +198,83 @@ class AdminUserController extends ChangeNotifier {
     return null; 
   }
 
+  // ─── UPDATE USER PLAN (Admin only) ───
+  Future<void> updateUserPlan(
+    UserModel user, {
+    required String plan,
+    required DateTime? subscriptionStart,
+    required DateTime? subscriptionEnd,
+  }) async {
+    final updated = user.copyWith(
+      plan: plan,
+      subscriptionStart: subscriptionStart,
+      subscriptionEnd: subscriptionEnd,
+      isSynced: false,
+    );
+
+    await HiveService.users.put(updated.id, updated);
+    final index = _allUsers.indexWhere((u) => u.id == user.id);
+    if (index != -1) _allUsers[index] = updated;
+    applyFilter();
+
+    _db.collection('users').doc(updated.id).set({
+      'plan': plan,
+      'subscriptionStart': subscriptionStart?.toIso8601String(),
+      'subscriptionEnd': subscriptionEnd?.toIso8601String(),
+    }, SetOptions(merge: true)).then((_) async {
+      updated.isSynced = true;
+      await HiveService.users.put(updated.id, updated);
+      final idx = _allUsers.indexWhere((u) => u.id == updated.id);
+      if (idx != -1) _allUsers[idx] = updated;
+      applyFilter();
+    }).catchError((e) {
+      debugPrint('Firebase error updating plan: $e');
+    });
+  }
+
+  // ─── UPGRADE ALL EXISTING USERS TO PREMIUM (One-time migration) ───
+  Future<void> upgradeAllExistingToPremium({
+    required DateTime subscriptionEnd,
+  }) async {
+    final now = DateTime.now();
+    final batch = _db.batch();
+
+    for (final user in List.from(_allUsers)) {
+      final updated = user.copyWith(
+        plan: 'premium',
+        subscriptionStart: now,
+        subscriptionEnd: subscriptionEnd,
+        isSynced: false,
+      );
+      await HiveService.users.put(updated.id, updated);
+      final idx = _allUsers.indexWhere((u) => u.id == user.id);
+      if (idx != -1) _allUsers[idx] = updated;
+
+      batch.set(
+        _db.collection('users').doc(user.id),
+        {
+          'plan': 'premium',
+          'subscriptionStart': now.toIso8601String(),
+          'subscriptionEnd': subscriptionEnd.toIso8601String(),
+        },
+        SetOptions(merge: true),
+      );
+    }
+
+    applyFilter();
+
+    try {
+      await batch.commit();
+      for (final user in _allUsers) {
+        user.isSynced = true;
+        await HiveService.users.put(user.id, user);
+      }
+      applyFilter();
+    } catch (e) {
+      debugPrint('Firebase batch upgrade error: $e');
+    }
+  }
+
   // ─── DOWNLOAD & CACHE PROFILE IMAGE (Offline-First) ───
   Future<void> downloadAndCacheProfileImage(UserModel user) async {
     if (user.profileImageUrl == null || user.profileImageUrl!.isEmpty) return;

@@ -18,6 +18,8 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:nutritrack_app/services/submission_firebase_service.dart';
 import 'package:nutritrack_app/features/user/notification/views/notification_settings_view.dart';
 import 'package:nutritrack_app/features/user/profile/views/widgets/profile_edit_dialogs.dart';
+import 'package:nutritrack_app/helpers/subscription_helper.dart';
+import 'package:nutritrack_app/features/user/profile/views/premium_upgrade_view.dart';
 
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
@@ -833,6 +835,8 @@ class _ProfileViewState extends State<ProfileView> {
                 children: [
                   _buildHeader(user, auth),
                   const SizedBox(height: 20),
+                  _buildPremiumSection(user, auth),
+                  const SizedBox(height: 20),
                   _buildNutrisiTarget(kaloriTarget, macros),
                   const SizedBox(height: 20),
                   _buildPersonalisasi(user, auth),
@@ -980,6 +984,22 @@ class _ProfileViewState extends State<ProfileView> {
                               fontWeight: FontWeight.w900,
                             ),
                             overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: SubscriptionHelper.isPremium(user) ? const Color(0xFFFFA000) : Colors.white24,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            SubscriptionHelper.isPremium(user) ? 'PREMIUM' : 'FREE',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                         if (!auth.isMonitoring) ...[
@@ -1964,6 +1984,50 @@ class _ProfileViewState extends State<ProfileView> {
         ),
       );
     }
+  }
+
+  Widget _buildPremiumSection(UserModel user, AuthController auth) {
+    if (auth.isMonitoring) return const SizedBox.shrink();
+
+    final isPremium = SubscriptionHelper.isPremium(user);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionTitle('🌟 Keanggotaan'),
+          const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: _actionRow(
+              icon: Icons.workspace_premium_rounded,
+              label: isPremium ? 'Premium Aktif (Kelola)' : 'Upgrade ke Premium',
+              iconBg: isPremium ? const Color(0xFFFFF3E0) : const Color(0xFFE8F5E9),
+              iconColor: isPremium ? const Color(0xFFFFA000) : _green,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PremiumUpgradeView()),
+                );
+              },
+              isFirst: true,
+              isLast: true,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

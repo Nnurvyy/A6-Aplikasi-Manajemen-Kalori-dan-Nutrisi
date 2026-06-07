@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
-<<<<<<<< HEAD:lib/features/general/submission/widgets/submission_card.dart
-import '../submission_model.dart';
-========
 import 'package:nutritrack_app/features/general/submission/models/submission_model.dart';
->>>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d:lib/features/general/submission/views/widgets/submission_card.dart
 import './submission_image_widget.dart';
 
 class SubmissionCard extends StatelessWidget {
@@ -234,4 +230,3 @@ class SubmissionCard extends StatelessWidget {
     );
   }
 }
-

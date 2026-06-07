@@ -13,6 +13,9 @@ import 'package:nutritrack_app/features/general/food/models/log_model.dart';
 import 'package:nutritrack_app/helpers/date_controller.dart';
 import 'package:nutritrack_app/services/hive_service.dart';
 import 'package:nutritrack_app/helpers/string_helper.dart';
+import 'package:nutritrack_app/helpers/subscription_helper.dart';
+import 'package:nutritrack_app/features/user/profile/views/premium_upgrade_view.dart';
+import 'package:nutritrack_app/features/general/views/ad_screen.dart';
 
 class FoodListView extends StatefulWidget {
   final String? initialSearch;
@@ -40,10 +43,66 @@ class _FoodListViewState extends State<FoodListView> {
 
   Future<void> _searchAI(String query) async {
     if (query.trim().isEmpty) return;
+    
+    final auth = context.read<AuthController>();
+    final user = auth.currentUser;
+
+    if (!SubscriptionHelper.canSearchGroq(user)) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.orange),
+              SizedBox(width: 8),
+              Text('Batas Cari Habis', style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: const Text(
+            'Batas harian pencarian gizi AI gratis Anda telah habis (Maksimal 5 kali sehari).\n\nUpgrade ke Premium sekarang untuk menikmati cari gizi AI Groq tanpa batas tanpa iklan!',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Nanti Saja', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                Navigator.pop(ctx);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PremiumUpgradeView()),
+                );
+              },
+              child: const Text('Upgrade'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    if (SubscriptionHelper.shouldShowAdForGroq(user)) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const AdScreen(durationSeconds: 15),
+        ),
+      );
+    }
+
     setState(() => _isSearchingAI = true);
     try {
       final result = await _aiService.fetchNutritionData(query);
       if (result != null) {
+        if (user != null) {
+          SubscriptionHelper.incrementGroqSearchCount(user.id);
+        }
         final ctrl = context.read<FoodController>();
         final double porsiGram = (result['porsi_gram'] as num?)?.toDouble() ?? 100.0;
         final double ratio = porsiGram > 0 ? 100.0 / porsiGram : 1.0;

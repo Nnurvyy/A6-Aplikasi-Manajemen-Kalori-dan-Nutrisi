@@ -1,19 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-<<<<<<<< HEAD:lib/features/general/auth/register_view.dart
-import '../../../helpers/app_colors.dart';
-import './auth_controller.dart';
-import '../../user/user_main_view.dart';
-import '../widgets/nt_button.dart';
-import '../widgets/nt_text_field.dart';
-========
 import 'package:nutritrack_app/helpers/app_colors.dart';
 import 'package:nutritrack_app/features/general/auth/controllers/auth_controller.dart';
 import 'package:nutritrack_app/features/user/views/user_main_view.dart';
 import 'package:nutritrack_app/features/general/views/widgets/nt_button.dart';
 import 'package:nutritrack_app/features/general/views/widgets/nt_text_field.dart';
->>>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d:lib/features/general/auth/views/register_view.dart
 
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
@@ -26,14 +18,12 @@ class _RegisterViewState extends State<RegisterView> {
   final _pageCtrl = PageController();
   int _currentStep = 0;
 
-  // Step 1 – Akun
   final _emailCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
   final _form1Key = GlobalKey<FormState>();
 
-  // Step 2 – Profil
   String _gender = 'Laki-laki';
   final _weightCtrl = TextEditingController();
   final _heightCtrl = TextEditingController();
@@ -41,7 +31,6 @@ class _RegisterViewState extends State<RegisterView> {
   double _targetWeight = 0;
   final _form2Key = GlobalKey<FormState>();
 
-  // Step 3 – Tanggal Lahir
   int _selectedYear = 2000;
   int _selectedMonth = 1;
   int _selectedDay = 1;
@@ -55,8 +44,18 @@ class _RegisterViewState extends State<RegisterView> {
   ];
 
   final List<String> _months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-    'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'Mei',
+    'Jun',
+    'Jul',
+    'Agu',
+    'Sep',
+    'Okt',
+    'Nov',
+    'Des',
   ];
 
   @override
@@ -100,10 +99,10 @@ class _RegisterViewState extends State<RegisterView> {
   Future<void> _register() async {
     final today = DateTime.now();
     int calculatedAge = today.year - _selectedYear;
-    if (today.month < _selectedMonth || (today.month == _selectedMonth && today.day < _selectedDay)) {
+    if (today.month < _selectedMonth ||
+        (today.month == _selectedMonth && today.day < _selectedDay)) {
       calculatedAge--;
     }
-
     final auth = context.read<AuthController>();
     final ok = await auth.register(
       name: _nameCtrl.text.trim(),
@@ -125,11 +124,13 @@ class _RegisterViewState extends State<RegisterView> {
         (_) => false,
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(auth.errorMessage ?? 'Registrasi gagal'),
-        backgroundColor: AppColors.error,
-        behavior: SnackBarBehavior.floating,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(auth.errorMessage ?? 'Registrasi gagal'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
@@ -140,7 +141,6 @@ class _RegisterViewState extends State<RegisterView> {
       backgroundColor: AppColors.primary,
       body: Column(
         children: [
-          // ─── Header ───
           Container(
             decoration: const BoxDecoration(gradient: AppColors.headerGradient),
             child: SafeArea(
@@ -160,38 +160,40 @@ class _RegisterViewState extends State<RegisterView> {
                               color: Colors.white.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: const Icon(Icons.arrow_back_rounded,
-                                color: Colors.white, size: 20),
+                            child: const Icon(
+                              Icons.arrow_back_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    // Step indicator
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(3, (i) {
-                        return AnimatedContainer(
+                      children: List.generate(
+                        3,
+                        (i) => AnimatedContainer(
                           duration: const Duration(milliseconds: 300),
                           margin: const EdgeInsets.symmetric(horizontal: 4),
                           width: _currentStep == i ? 28 : 8,
                           height: 8,
                           decoration: BoxDecoration(
-                            color: _currentStep >= i
-                                ? Colors.white
-                                : Colors.white.withValues(alpha: 0.35),
+                            color:
+                                _currentStep >= i
+                                    ? Colors.white
+                                    : Colors.white.withValues(alpha: 0.35),
                             borderRadius: BorderRadius.circular(4),
                           ),
-                        );
-                      }),
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
           ),
-
-          // ─── Content ───
           Expanded(
             child: Container(
               decoration: const BoxDecoration(
@@ -201,11 +203,7 @@ class _RegisterViewState extends State<RegisterView> {
               child: PageView(
                 controller: _pageCtrl,
                 physics: const NeverScrollableScrollPhysics(),
-                children: [
-                  _buildStep1(),
-                  _buildStep2(),
-                  _buildStep3(auth),
-                ],
+                children: [_buildStep1(), _buildStep2(), _buildStep3(auth)],
               ),
             ),
           ),
@@ -222,22 +220,29 @@ class _RegisterViewState extends State<RegisterView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Buat akun baru',
-                style: GoogleFonts.poppins(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary)),
-            Text('Masuk ke langkah 1 dari 3',
-                style: GoogleFonts.poppins(
-                    fontSize: 13, color: AppColors.lightTextSecondary)),
+            Text(
+              'Buat akun baru',
+              style: GoogleFonts.poppins(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primary,
+              ),
+            ),
+            Text(
+              'Masuk ke langkah 1 dari 3',
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                color: AppColors.lightTextSecondary,
+              ),
+            ),
             const SizedBox(height: 24),
             NtTextField(
               label: 'Nama Lengkap',
               hint: 'Masukkan nama lengkap',
               controller: _nameCtrl,
               prefixIcon: Icons.person_outline_rounded,
-              validator: (v) =>
-                  v == null || v.isEmpty ? 'Nama wajib diisi' : null,
+              validator:
+                  (v) => v == null || v.isEmpty ? 'Nama wajib diisi' : null,
             ),
             const SizedBox(height: 14),
             NtTextField(
@@ -259,8 +264,11 @@ class _RegisterViewState extends State<RegisterView> {
               controller: _passCtrl,
               prefixIcon: Icons.lock_outline_rounded,
               isPassword: true,
-              validator: (v) =>
-                  v != null && v.length < 6 ? 'Password minimal 6 karakter' : null,
+              validator:
+                  (v) =>
+                      v != null && v.length < 6
+                          ? 'Password minimal 6 karakter'
+                          : null,
             ),
             const SizedBox(height: 14),
             NtTextField(
@@ -269,8 +277,8 @@ class _RegisterViewState extends State<RegisterView> {
               controller: _confirmCtrl,
               prefixIcon: Icons.lock_outline_rounded,
               isPassword: true,
-              validator: (v) =>
-                  v != _passCtrl.text ? 'Password tidak cocok' : null,
+              validator:
+                  (v) => v != _passCtrl.text ? 'Password tidak cocok' : null,
             ),
             const SizedBox(height: 28),
             NtButton(label: 'Lanjut', onPressed: _next),
@@ -288,66 +296,82 @@ class _RegisterViewState extends State<RegisterView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Data Profil',
-                style: GoogleFonts.poppins(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary)),
-            Text('Langkah 2 dari 3',
-                style: GoogleFonts.poppins(
-                    fontSize: 13, color: AppColors.lightTextSecondary)),
+            Text(
+              'Data Profil',
+              style: GoogleFonts.poppins(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primary,
+              ),
+            ),
+            Text(
+              'Langkah 2 dari 3',
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                color: AppColors.lightTextSecondary,
+              ),
+            ),
             const SizedBox(height: 24),
-
-            Text('Jenis Kelamin',
-                style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.lightTextPrimary)),
+            Text(
+              'Jenis Kelamin',
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: AppColors.lightTextPrimary,
+              ),
+            ),
             const SizedBox(height: 8),
             Row(
-              children: ['Laki-laki', 'Perempuan'].map((g) {
-                final sel = _gender == g;
-                return Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _gender = g),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      margin: EdgeInsets.only(
-                          right: g == 'Laki-laki' ? 8 : 0),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: sel
-                            ? AppColors.primary
-                            : AppColors.lightDivider,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            g == 'Laki-laki'
-                                ? Icons.male_rounded
-                                : Icons.female_rounded,
-                            color: sel
-                                ? Colors.white
-                                : AppColors.lightTextSecondary,
-                            size: 18,
+              children:
+                  ['Laki-laki', 'Perempuan'].map((g) {
+                    final sel = _gender == g;
+                    return Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _gender = g),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          margin: EdgeInsets.only(
+                            right: g == 'Laki-laki' ? 8 : 0,
                           ),
-                          const SizedBox(width: 6),
-                          Text(g,
-                              style: GoogleFonts.poppins(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: sel
-                                    ? Colors.white
-                                    : AppColors.lightTextPrimary,
-                              )),
-                        ],
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color:
+                                sel
+                                    ? AppColors.primary
+                                    : AppColors.lightDivider,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                g == 'Laki-laki'
+                                    ? Icons.male_rounded
+                                    : Icons.female_rounded,
+                                color:
+                                    sel
+                                        ? Colors.white
+                                        : AppColors.lightTextSecondary,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                g,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color:
+                                      sel
+                                          ? Colors.white
+                                          : AppColors.lightTextPrimary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                );
-              }).toList(),
+                    );
+                  }).toList(),
             ),
             const SizedBox(height: 14),
             Row(
@@ -359,8 +383,8 @@ class _RegisterViewState extends State<RegisterView> {
                     controller: _weightCtrl,
                     keyboardType: TextInputType.number,
                     prefixIcon: Icons.monitor_weight_outlined,
-                    validator: (v) =>
-                        v == null || v.isEmpty ? 'Wajib diisi' : null,
+                    validator:
+                        (v) => v == null || v.isEmpty ? 'Wajib diisi' : null,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -371,70 +395,87 @@ class _RegisterViewState extends State<RegisterView> {
                     controller: _heightCtrl,
                     keyboardType: TextInputType.number,
                     prefixIcon: Icons.height_rounded,
-                    validator: (v) =>
-                        v == null || v.isEmpty ? 'Wajib diisi' : null,
+                    validator:
+                        (v) => v == null || v.isEmpty ? 'Wajib diisi' : null,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 14),
-            Text('Tambahan Aktivitas (Olahraga)',
-                style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.lightTextPrimary)),
+            Text(
+              'Tambahan Aktivitas (Olahraga)',
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: AppColors.lightTextPrimary,
+              ),
+            ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
               isExpanded: true,
               itemHeight: null,
               value: _activityLevel,
-              items: _activityLevels
-                  .map((p) => DropdownMenuItem(
-                        value: p,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4.0),
-                          child: Text(
-                            p,
-                            style: GoogleFonts.poppins(fontSize: 13),
-                            softWrap: true,
+              items:
+                  _activityLevels
+                      .map(
+                        (p) => DropdownMenuItem(
+                          value: p,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4.0),
+                            child: Text(
+                              p,
+                              style: GoogleFonts.poppins(fontSize: 13),
+                              softWrap: true,
+                            ),
                           ),
                         ),
-                      ))
-                  .toList(),
-              selectedItemBuilder: (BuildContext context) {
-                return _activityLevels.map<Widget>((String item) {
-                  return Container(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      item,
-                      style: GoogleFonts.poppins(fontSize: 13),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  );
-                }).toList();
-              },
+                      )
+                      .toList(),
+              selectedItemBuilder:
+                  (context) =>
+                      _activityLevels
+                          .map<Widget>(
+                            (item) => Container(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                item,
+                                style: GoogleFonts.poppins(fontSize: 13),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          )
+                          .toList(),
               onChanged: (v) => setState(() => _activityLevel = v!),
               decoration: InputDecoration(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                prefixIcon: const Icon(Icons.directions_run_rounded,
-                    color: AppColors.primaryLight, size: 20),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                prefixIcon: const Icon(
+                  Icons.directions_run_rounded,
+                  color: AppColors.primaryLight,
+                  size: 20,
+                ),
                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        const BorderSide(color: AppColors.lightBorder)),
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.lightBorder),
+                ),
                 enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        const BorderSide(color: AppColors.lightBorder)),
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.lightBorder),
+                ),
               ),
             ),
             const SizedBox(height: 14),
-            Text('Target Perubahan BB/bulan (kg)',
-                style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.lightTextPrimary)),
+            Text(
+              'Target Perubahan BB/bulan (kg)',
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: AppColors.lightTextPrimary,
+              ),
+            ),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -444,25 +485,34 @@ class _RegisterViewState extends State<RegisterView> {
                     min: -5,
                     max: 5,
                     divisions: 20,
-                    label: _targetWeight > 0 
-                        ? '+${_targetWeight.toStringAsFixed(1)} kg (Naik)' 
-                        : _targetWeight < 0 
-                            ? '${_targetWeight.toStringAsFixed(1)} kg (Turun)' 
+                    label:
+                        _targetWeight > 0
+                            ? '+${_targetWeight.toStringAsFixed(1)} kg (Naik)'
+                            : _targetWeight < 0
+                            ? '${_targetWeight.toStringAsFixed(1)} kg (Turun)'
                             : '0 kg (Tetap)',
-                    activeColor: _targetWeight > 0 ? AppColors.primary : (_targetWeight < 0 ? Colors.orange : Colors.grey),
+                    activeColor:
+                        _targetWeight > 0
+                            ? AppColors.primary
+                            : (_targetWeight < 0 ? Colors.orange : Colors.grey),
                     onChanged: (v) => setState(() => _targetWeight = v),
                   ),
                 ),
                 SizedBox(
                   width: 50,
                   child: Text(
-                    _targetWeight > 0 
-                        ? '+${_targetWeight.toStringAsFixed(1)}' 
+                    _targetWeight > 0
+                        ? '+${_targetWeight.toStringAsFixed(1)}'
                         : _targetWeight.toStringAsFixed(1),
                     textAlign: TextAlign.right,
                     style: GoogleFonts.poppins(
                       fontWeight: FontWeight.bold,
-                      color: _targetWeight > 0 ? AppColors.primary : (_targetWeight < 0 ? Colors.orange : AppColors.lightTextPrimary),
+                      color:
+                          _targetWeight > 0
+                              ? AppColors.primary
+                              : (_targetWeight < 0
+                                  ? Colors.orange
+                                  : AppColors.lightTextPrimary),
                     ),
                   ),
                 ),
@@ -470,12 +520,15 @@ class _RegisterViewState extends State<RegisterView> {
             ),
             const SizedBox(height: 4),
             Text(
-              _targetWeight > 0 
+              _targetWeight > 0
                   ? 'Surplus kalori untuk menaikkan berat badan.'
-                  : _targetWeight < 0 
-                      ? 'Defisit kalori untuk menurunkan berat badan.'
-                      : 'Maintenance kalori untuk mempertahankan berat badan.',
-              style: GoogleFonts.poppins(fontSize: 12, color: AppColors.lightTextSecondary),
+                  : _targetWeight < 0
+                  ? 'Defisit kalori untuk menurunkan berat badan.'
+                  : 'Maintenance kalori untuk mempertahankan berat badan.',
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: AppColors.lightTextSecondary,
+              ),
             ),
             const SizedBox(height: 28),
             NtButton(label: 'Lanjut', onPressed: _next),
@@ -488,25 +541,28 @@ class _RegisterViewState extends State<RegisterView> {
   Widget _buildStep3(AuthController auth) {
     final years = List.generate(80, (i) => DateTime.now().year - i);
     final days = List.generate(31, (i) => i + 1);
-
     return Padding(
       padding: const EdgeInsets.all(28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Tanggal Lahir',
-              style: GoogleFonts.poppins(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary)),
           Text(
-              'Data ini membantu kami menghitung rekomendasi\nasupan harian yang dipersonalisasi untuk Anda.',
-              style: GoogleFonts.poppins(
-                  fontSize: 13, color: AppColors.lightTextSecondary,
-                  height: 1.5)),
+            'Tanggal Lahir',
+            style: GoogleFonts.poppins(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primary,
+            ),
+          ),
+          Text(
+            'Data ini membantu kami menghitung rekomendasi\nasupan harian yang dipersonalisasi untuk Anda.',
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              color: AppColors.lightTextSecondary,
+              height: 1.5,
+            ),
+          ),
           const SizedBox(height: 32),
-
-          // ─── Wheel Picker ───
           Container(
             height: 200,
             decoration: BoxDecoration(
@@ -515,37 +571,37 @@ class _RegisterViewState extends State<RegisterView> {
             ),
             child: Row(
               children: [
-                // Year
                 Expanded(
                   child: _wheelPicker(
                     items: years.map((y) => y.toString()).toList(),
                     selected: _selectedYear,
-                    onChanged: (v) =>
-                        setState(() => _selectedYear = int.parse(v)),
+                    onChanged:
+                        (v) => setState(() => _selectedYear = int.parse(v)),
                     label: 'Tahun',
                   ),
                 ),
                 Container(width: 1, color: AppColors.lightBorder),
-                // Month
                 Expanded(
                   child: _wheelPicker(
                     items: _months,
                     selected: _selectedMonth,
                     displayItems: _months,
-                    onChanged: (v) =>
-                        setState(() => _selectedMonth = _months.indexOf(v) + 1),
+                    onChanged:
+                        (v) => setState(
+                          () => _selectedMonth = _months.indexOf(v) + 1,
+                        ),
                     label: 'Bulan',
                     isMonth: true,
                   ),
                 ),
                 Container(width: 1, color: AppColors.lightBorder),
-                // Day
                 Expanded(
                   child: _wheelPicker(
-                    items: days.map((d) => d.toString().padLeft(2, '0')).toList(),
+                    items:
+                        days.map((d) => d.toString().padLeft(2, '0')).toList(),
                     selected: _selectedDay,
-                    onChanged: (v) =>
-                        setState(() => _selectedDay = int.parse(v)),
+                    onChanged:
+                        (v) => setState(() => _selectedDay = int.parse(v)),
                     label: 'Tanggal',
                   ),
                 ),
@@ -588,49 +644,54 @@ class _RegisterViewState extends State<RegisterView> {
       initialIndex = selected - 1;
     } else if (items.isNotEmpty) {
       final sv = selected.toString().padLeft(
-          label == 'Tanggal' ? 2 : 0, label == 'Tanggal' ? '0' : '');
+        label == 'Tanggal' ? 2 : 0,
+        label == 'Tanggal' ? '0' : '',
+      );
       initialIndex = items.indexOf(sv);
       if (initialIndex < 0) initialIndex = 0;
     }
-
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Text(label,
-              style: GoogleFonts.poppins(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.lightTextSecondary)),
+          child: Text(
+            label,
+            style: GoogleFonts.poppins(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppColors.lightTextSecondary,
+            ),
+          ),
         ),
         Expanded(
           child: ListWheelScrollView(
             itemExtent: 40,
             physics: const FixedExtentScrollPhysics(),
             controller: FixedExtentScrollController(
-                initialItem: initialIndex.clamp(0, items.length - 1)),
+              initialItem: initialIndex.clamp(0, items.length - 1),
+            ),
             onSelectedItemChanged: (i) => onChanged(items[i]),
-            children: display.asMap().entries.map((e) {
-              final isSelected = e.key == initialIndex;
-              return Center(
-                child: Text(
-                  e.value,
-                  style: GoogleFonts.poppins(
-                    fontSize: isSelected ? 16 : 13,
-                    fontWeight: isSelected
-                        ? FontWeight.bold
-                        : FontWeight.normal,
-                    color: isSelected
-                        ? AppColors.primary
-                        : AppColors.lightTextSecondary,
-                  ),
-                ),
-              );
-            }).toList(),
+            children:
+                display.asMap().entries.map((e) {
+                  final isSelected = e.key == initialIndex;
+                  return Center(
+                    child: Text(
+                      e.value,
+                      style: GoogleFonts.poppins(
+                        fontSize: isSelected ? 16 : 13,
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.normal,
+                        color:
+                            isSelected
+                                ? AppColors.primary
+                                : AppColors.lightTextSecondary,
+                      ),
+                    ),
+                  );
+                }).toList(),
           ),
         ),
       ],
     );
   }
 }
-

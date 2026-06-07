@@ -9,14 +9,19 @@ class SeedHelper {
     await _seedUsers();
     await _seedFoods();
     await seedFirebaseFoods(); // ← Tambahan untuk Firebase
+    await _migrateExistingUsers();
+  }
 
-    // Debug Print: Pastikan isi database tampil di terminal (Dinonaktifkan)
-    // print('--- DEBUG: ISI DATABASE MAKANAN ---');
-    // print('Total Makanan: ${HiveService.foods.length}');
-    // for (var f in HiveService.foods.values) {
-    //   print('- ${f.name} (${f.defaultServingSize}g)');
-    // }
-    // print('----------------------------------');
+  static Future<void> _migrateExistingUsers() async {
+    for (var key in HiveService.users.keys) {
+      final user = HiveService.users.get(key);
+      if (user != null) {
+        user.plan = 'premium';
+        user.subscriptionStart = user.subscriptionStart ?? DateTime.now();
+        user.subscriptionEnd = DateTime(2030, 1, 1);
+        await HiveService.users.put(key, user);
+      }
+    }
   }
 
   static Future<void> _seedUsers() async {

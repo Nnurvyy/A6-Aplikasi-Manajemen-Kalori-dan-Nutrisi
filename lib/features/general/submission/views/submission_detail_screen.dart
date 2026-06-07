@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
-<<<<<<<< HEAD:lib/features/general/submission/submission_detail_screen.dart
-import './submission_model.dart';
-========
 import 'package:nutritrack_app/features/general/submission/models/submission_model.dart';
->>>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d:lib/features/general/submission/views/submission_detail_screen.dart
 import './widgets/submission_image_widget.dart';
 
 class SubmissionDetailScreen extends StatelessWidget {
@@ -49,23 +45,14 @@ class SubmissionDetailScreen extends StatelessWidget {
     }
   }
 
-<<<<<<<< HEAD:lib/features/general/submission/submission_detail_screen.dart
-  Widget _buildImageWidget() {
-    return SubmissionImage(
-      imagePath: submission.imagePath,
-      width: double.infinity,
-      height: 220,
-      fit: BoxFit.cover,
-      borderRadius: BorderRadius.circular(16),
-      placeholder: _imagePlaceholder(),
-========
   Widget _buildImageWidget(BuildContext context) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => FullScreenImageViewer(imagePath: submission.imagePath),
+            builder:
+                (_) => FullScreenImageViewer(imagePath: submission.imagePath),
           ),
         );
       },
@@ -85,7 +72,10 @@ class SubmissionDetailScreen extends StatelessWidget {
               bottom: 12,
               right: 12,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.6),
                   borderRadius: BorderRadius.circular(20),
@@ -110,16 +100,12 @@ class SubmissionDetailScreen extends StatelessWidget {
           ],
         ),
       ),
->>>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d:lib/features/general/submission/views/submission_detail_screen.dart
     );
   }
 
   Widget _imagePlaceholder() {
     return Container(
-<<<<<<<< HEAD:lib/features/general/submission/submission_detail_screen.dart
       height: 220,
-========
->>>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d:lib/features/general/submission/views/submission_detail_screen.dart
       decoration: BoxDecoration(
         color: _primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
@@ -153,14 +139,9 @@ class SubmissionDetailScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-<<<<<<<< HEAD:lib/features/general/submission/submission_detail_screen.dart
-          _buildImageWidget(),
-========
           _buildImageWidget(context),
->>>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d:lib/features/general/submission/views/submission_detail_screen.dart
           const SizedBox(height: 16),
 
-          // Banner belum tersync
           if (!submission.isSynced) ...[
             Container(
               padding: const EdgeInsets.all(12),
@@ -394,8 +375,10 @@ class SubmissionDetailScreen extends StatelessWidget {
       '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
 }
 
-<<<<<<<< HEAD:lib/features/general/submission/submission_detail_screen.dart
-========
+// ─────────────────────────────────────────────────────────────────────────────
+// FULL SCREEN IMAGE VIEWER
+// ─────────────────────────────────────────────────────────────────────────────
+
 class FullScreenImageViewer extends StatelessWidget {
   final String imagePath;
   const FullScreenImageViewer({super.key, required this.imagePath});
@@ -417,7 +400,11 @@ class FullScreenImageViewer extends StatelessWidget {
                 fit: BoxFit.contain,
                 borderRadius: BorderRadius.zero,
                 placeholder: const Center(
-                  child: Icon(Icons.fastfood_rounded, size: 72, color: Colors.white70),
+                  child: Icon(
+                    Icons.fastfood_rounded,
+                    size: 72,
+                    color: Colors.white70,
+                  ),
                 ),
               ),
             ),
@@ -439,5 +426,3 @@ class FullScreenImageViewer extends StatelessWidget {
     );
   }
 }
-
->>>>>>>> 5915c665443afba88f8a44ab555e38136bd94a3d:lib/features/general/submission/views/submission_detail_screen.dart

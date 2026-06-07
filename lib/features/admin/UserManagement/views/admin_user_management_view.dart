@@ -118,6 +118,10 @@ class _AdminUserManagementViewState extends State<AdminUserManagementView> {
               Navigator.pop(context);
               _deleteUser(user);
             },
+            onEditPlan: () {
+              Navigator.pop(context);
+              _showEditPlanDialog(user);
+            },
           ),
     );
   }
@@ -137,6 +141,178 @@ class _AdminUserManagementViewState extends State<AdminUserManagementView> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
       ),
+    );
+  }
+
+  /// Dialog untuk mengubah plan, subscriptionStart, subscriptionEnd
+  Future<void> _showEditPlanDialog(UserModel user) async {
+    String selectedPlan = user.plan;
+    DateTime? startDate = user.subscriptionStart;
+    DateTime? endDate = user.subscriptionEnd;
+
+    await showDialog(
+      context: context,
+      builder: (dialogCtx) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            Future<void> pickDate({required bool isEnd}) async {
+              final picked = await showDatePicker(
+                context: ctx,
+                initialDate: isEnd
+                    ? (endDate ?? DateTime.now().add(const Duration(days: 30)))
+                    : (startDate ?? DateTime.now()),
+                firstDate: DateTime(2020),
+                lastDate: DateTime(2035),
+              );
+              if (picked != null) {
+                setDialogState(() {
+                  if (isEnd) {
+                    endDate = picked;
+                  } else {
+                    startDate = picked;
+                  }
+                });
+              }
+            }
+
+            final df = DateFormat('d MMM yyyy', 'id');
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
+              title: const Text(
+                'Edit Plan Pengguna',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Plan',
+                    style: TextStyle(
+                        color: Color(0xFF5A7A5A),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 6),
+                  SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(
+                          value: 'free',
+                          label: Text('Free'),
+                          icon: Icon(Icons.person_outline_rounded)),
+                      ButtonSegment(
+                          value: 'premium',
+                          label: Text('Premium'),
+                          icon: Icon(Icons.workspace_premium_rounded)),
+                    ],
+                    selected: {selectedPlan},
+                    onSelectionChanged: (s) =>
+                        setDialogState(() => selectedPlan = s.first),
+                    style: ButtonStyle(
+                      foregroundColor:
+                          WidgetStateProperty.resolveWith<Color>((states) {
+                        if (states.contains(WidgetState.selected)) {
+                          return Colors.white;
+                        }
+                        return const Color(0xFF5A7A5A);
+                      }),
+                      backgroundColor:
+                          WidgetStateProperty.resolveWith<Color>((states) {
+                        if (states.contains(WidgetState.selected)) {
+                          return selectedPlan == 'premium'
+                              ? const Color(0xFFFFB300)
+                              : const Color(0xFF4CAF50);
+                        }
+                        return Colors.transparent;
+                      }),
+                    ),
+                  ),
+                  if (selectedPlan == 'premium') ...[
+                    const SizedBox(height: 14),
+                    // Start date
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.calendar_today_rounded,
+                          color: Color(0xFF4CAF50), size: 20),
+                      title: const Text('Mulai Berlangganan',
+                          style: TextStyle(fontSize: 13, color: Color(0xFF5A7A5A))),
+                      subtitle: Text(
+                        startDate != null ? df.format(startDate!) : 'Belum diatur',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1B2A1B),
+                            fontSize: 13),
+                      ),
+                      trailing: TextButton(
+                        onPressed: () => pickDate(isEnd: false),
+                        child: const Text('Pilih'),
+                      ),
+                    ),
+                    // End date
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.event_rounded,
+                          color: Color(0xFFFFB300), size: 20),
+                      title: const Text('Akhir Berlangganan',
+                          style: TextStyle(fontSize: 13, color: Color(0xFF5A7A5A))),
+                      subtitle: Text(
+                        endDate != null ? df.format(endDate!) : 'Belum diatur',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1B2A1B),
+                            fontSize: 13),
+                      ),
+                      trailing: TextButton(
+                        onPressed: () => pickDate(isEnd: true),
+                        child: const Text('Pilih'),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogCtx),
+                  child: const Text('Batal',
+                      style: TextStyle(color: Color(0xFF5A7A5A))),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: selectedPlan == 'premium'
+                        ? const Color(0xFFFFB300)
+                        : const Color(0xFF4CAF50),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onPressed: () async {
+                    Navigator.pop(dialogCtx);
+                    await context.read<AdminUserController>().updateUserPlan(
+                          user,
+                          plan: selectedPlan,
+                          subscriptionStart:
+                              selectedPlan == 'premium' ? startDate : null,
+                          subscriptionEnd:
+                              selectedPlan == 'premium' ? endDate : null,
+                        );
+                    if (mounted) {
+                      _showSnack(
+                        'Plan ${user.name} diperbarui ke $selectedPlan',
+                        selectedPlan == 'premium'
+                            ? const Color(0xFFFFB300)
+                            : _primary,
+                      );
+                    }
+                  },
+                  child: const Text('Simpan',
+                      style: TextStyle(fontWeight: FontWeight.w800)),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -199,10 +375,7 @@ class _AdminUserManagementViewState extends State<AdminUserManagementView> {
                             Expanded(
                               child: ListView.builder(
                                 padding: const EdgeInsets.fromLTRB(
-                                  20,
-                                  4,
-                                  20,
-                                  8,
+                                  20, 4, 20, 8,
                                 ),
                                 itemCount: pageItems.length,
                                 itemBuilder:
@@ -211,7 +384,8 @@ class _AdminUserManagementViewState extends State<AdminUserManagementView> {
                                       onDetail: () => _showDetail(pageItems[i]),
                                       onBlock: () => _toggleBlock(pageItems[i]),
                                       onEdit: () => _editUser(pageItems[i]),
-                                      onDelete: () => _deleteUser(pageItems[i]),
+                                      onDelete: () =>
+                                          _deleteUser(pageItems[i]),
                                     ),
                               ),
                             ),
@@ -405,7 +579,26 @@ class _AdminUserManagementViewState extends State<AdminUserManagementView> {
   }
 }
 
-// ─── Card User ────────────────────────────────────────────────
+// ─── Plan Badge Helper ────────────────────────────────────────────────────────
+Color _planBorderColor(String plan) {
+  return plan == 'premium' ? const Color(0xFFFFB300) : const Color(0xFF1E88E5);
+}
+
+Color _planBadgeBg(String plan) {
+  return plan == 'premium' ? const Color(0xFFFFF8E1) : const Color(0xFFE3F2FD);
+}
+
+Color _planBadgeText(String plan) {
+  return plan == 'premium' ? const Color(0xFFE65100) : const Color(0xFF1565C0);
+}
+
+IconData _planIcon(String plan) {
+  return plan == 'premium'
+      ? Icons.workspace_premium_rounded
+      : Icons.person_outline_rounded;
+}
+
+// ─── Card User ────────────────────────────────────────────────────────────────
 class _UserCard extends StatelessWidget {
   final UserModel user;
   final VoidCallback onDetail;
@@ -421,13 +614,14 @@ class _UserCard extends StatelessWidget {
     required this.onDelete,
   });
 
-  static const Color _primary = Color(0xFF4CAF50);
   static const Color _textDark = Color(0xFF1B2A1B);
   static const Color _textMuted = Color(0xFF5A7A5A);
   static const Color _danger = Color(0xFFE53935);
+  static const Color _primary = Color(0xFF4CAF50);
 
   @override
   Widget build(BuildContext context) {
+    final planColor = _planBorderColor(user.plan);
     return GestureDetector(
       onTap: onDetail,
       child: Container(
@@ -436,34 +630,24 @@ class _UserCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color:
-                user.isBlocked
-                    ? const Color(0xFFFFCDD2)
-                    : const Color(0xFFE0E0E0),
-            width: user.isBlocked ? 1.2 : 1,
-          ),
+          border: Border.all(color: planColor, width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: planColor.withValues(alpha: 0.12),
               blurRadius: 10,
-              offset: const Offset(0, 4),
+              offset: const Offset(0, 2),
             ),
           ],
         ),
         child: Row(
           children: [
-            UserAvatar(
-              user: user,
-              size: 46,
-              fontSize: 18,
-            ),
+            UserAvatar(user: user, size: 48, fontSize: 16),
             const SizedBox(width: 14),
-
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Name + blocked badge
                   Row(
                     children: [
                       Flexible(
@@ -510,6 +694,7 @@ class _UserCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 2),
+                  // Email
                   Row(
                     children: [
                       Container(
@@ -532,6 +717,34 @@ class _UserCard extends StatelessWidget {
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 6),
+                  // Plan badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: _planBadgeBg(user.plan),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                          color: _planBorderColor(user.plan), width: 0.8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(_planIcon(user.plan),
+                            size: 12, color: _planBadgeText(user.plan)),
+                        const SizedBox(width: 4),
+                        Text(
+                          user.plan == 'premium' ? 'Premium' : 'Free',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: _planBadgeText(user.plan),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -582,18 +795,20 @@ class _UserCard extends StatelessWidget {
   }
 }
 
-// ─── Bottom Sheet: Detail User ────────────────────────────────────────────────
+// ─── Bottom Sheet: Detail User ─────────────────────────────────────────────────
 class _UserDetailSheet extends StatelessWidget {
   final UserModel user;
   final VoidCallback onBlock;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onEditPlan;
 
   const _UserDetailSheet({
     required this.user,
     required this.onBlock,
     required this.onEdit,
     required this.onDelete,
+    required this.onEditPlan,
   });
 
   static const Color _primary = Color(0xFF4CAF50);
@@ -623,7 +838,7 @@ class _UserDetailSheet extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.88,
+        maxHeight: MediaQuery.of(context).size.height * 0.9,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -697,6 +912,88 @@ class _UserDetailSheet extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // ── Plan Info ──────────────────────────────────────
+                  _sectionTitle('Status Langganan'),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: _planBadgeBg(user.plan),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                          color: _planBorderColor(user.plan), width: 1.2),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(_planIcon(user.plan),
+                            color: _planBadgeText(user.plan), size: 28),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                user.plan == 'premium' ? 'PREMIUM' : 'FREE',
+                                style: TextStyle(
+                                  color: _planBadgeText(user.plan),
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 15,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                              if (user.plan == 'premium') ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Mulai: ${user.subscriptionStart != null ? dateFormat.format(user.subscriptionStart!) : '-'}',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color: _planBadgeText(user.plan)),
+                                ),
+                                Text(
+                                  'Berakhir: ${user.subscriptionEnd != null ? dateFormat.format(user.subscriptionEnd!) : '-'}',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color: _planBadgeText(user.plan),
+                                      fontWeight: FontWeight.w700),
+                                ),
+                              ] else
+                                Text(
+                                  'Tidak ada masa berlangganan aktif',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color: _planBadgeText(user.plan)),
+                                ),
+                            ],
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: onEditPlan,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: _planBorderColor(user.plan)
+                                  .withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                  color: _planBorderColor(user.plan),
+                                  width: 0.8),
+                            ),
+                            child: Text(
+                              'Edit',
+                              style: TextStyle(
+                                  color: _planBadgeText(user.plan),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // ── Fisik ──────────────────────────────────────────
                   _sectionTitle('Data Fisik'),
                   const SizedBox(height: 8),
                   Row(
@@ -728,6 +1025,8 @@ class _UserDetailSheet extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 14),
+
+                  // ── Akun ──────────────────────────────────────────
                   _sectionTitle('Informasi Akun'),
                   const SizedBox(height: 8),
                   _infoRow(
@@ -748,6 +1047,8 @@ class _UserDetailSheet extends StatelessWidget {
                     _shortActivity(user.activityLevel),
                   ),
                   const SizedBox(height: 14),
+
+                  // ── Nutrisi ────────────────────────────────────────
                   _sectionTitle('Target Nutrisi Harian'),
                   const SizedBox(height: 8),
                   _infoRow(
@@ -1021,7 +1322,7 @@ class _ConfirmDialog extends StatelessWidget {
   }
 }
 
-// ─── Edit User View ──────────────────────
+// ─── Edit User View ───────────────────────────────────────────────────────────
 class _EditUserView extends StatefulWidget {
   final UserModel user;
   const _EditUserView({required this.user});
@@ -1062,12 +1363,15 @@ class _EditUserViewState extends State<_EditUserView> {
         raw.trim().split(RegExp(r'\s+')).take(2).join(' ').toLowerCase();
 
     if (words.contains('ekstra')) return 'Ekstra aktif';
-    if (words.contains('sangat') || words.contains('berat'))
+    if (words.contains('sangat') || words.contains('berat')) {
       return 'Sangat aktif';
-    if (words.contains('cukup') || words.contains('sedang'))
+    }
+    if (words.contains('cukup') || words.contains('sedang')) {
       return 'Cukup aktif';
-    if (words.contains('sedikit') || words.contains('ringan'))
+    }
+    if (words.contains('sedikit') || words.contains('ringan')) {
       return 'Sedikit aktif';
+    }
 
     return 'Jarang olahraga';
   }
@@ -1373,7 +1677,7 @@ class _EditUserViewState extends State<_EditUserView> {
   }
 }
 
-// ─── UserAvatar Widget (Offline-First) ───
+// ─── UserAvatar Widget (Offline-First) ───────────────────────────────────────
 class UserAvatar extends StatefulWidget {
   final UserModel user;
   final double size;
@@ -1433,16 +1737,17 @@ class _UserAvatarState extends State<UserAvatar> {
         .map((w) => w.isNotEmpty ? w[0].toUpperCase() : '')
         .join();
 
-    final Color primary = const Color(0xFF4CAF50);
-    final Color danger = const Color(0xFFE53935);
-    final Color textColor = user.isBlocked ? danger : primary;
+    const Color danger = Color(0xFFE53935);
+    final Color borderColor = _planBorderColor(user.plan);
+    final Color textColor = user.isBlocked ? danger : borderColor;
 
     final hasLocal = user.localProfileImagePath != null &&
         user.localProfileImagePath!.isNotEmpty &&
         File(user.localProfileImagePath!).existsSync();
 
+    Widget avatarContent;
     if (hasLocal) {
-      return ClipRRect(
+      avatarContent = ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Image.file(
           File(user.localProfileImagePath!),
@@ -1454,7 +1759,7 @@ class _UserAvatarState extends State<UserAvatar> {
       );
     } else if (user.profileImageUrl != null &&
         user.profileImageUrl!.isNotEmpty) {
-      return ClipRRect(
+      avatarContent = ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Image.network(
           user.profileImageUrl!,
@@ -1469,21 +1774,37 @@ class _UserAvatarState extends State<UserAvatar> {
         ),
       );
     } else {
-      return _buildInitials(initials, textColor);
+      avatarContent = _buildInitials(initials, textColor);
     }
+
+    // Wrap with plan-colored border ring
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: borderColor, width: 2),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(11),
+        child: avatarContent,
+      ),
+    );
   }
 
   Widget _buildInitials(String initials, Color textColor) {
     final user = widget.user;
+    final bgColor = user.isBlocked
+        ? const Color(0xFFFFEBEE)
+        : user.plan == 'premium'
+            ? const Color(0xFFFFF8E1)
+            : const Color(0xFFE3F2FD);
     return Container(
       width: widget.size,
       height: widget.size,
       decoration: BoxDecoration(
-        color:
-            user.isBlocked
-                ? const Color(0xFFFFEBEE)
-                : const Color(0xFFE8F5E9),
-        borderRadius: BorderRadius.circular(12),
+        color: bgColor,
+        borderRadius: BorderRadius.circular(11),
       ),
       child: Center(
         child: Text(

@@ -8,12 +8,9 @@ import 'package:nutritrack_app/features/general/submission/models/submission_mod
 class SubmissionFirebaseService {
   static final _db = FirebaseFirestore.instance;
   static const _col = 'submissions';
-
-
-  static const _cloudName = 'dxvg4czip';
-  static const _uploadPreset = 'submission_images';
-  static const _cloudinaryUrl =
-      'https://api.cloudinary.com/v1_1/$_cloudName/image/upload';
+  static String get _backendUrl => dotenv.env['BACKEND_URL'] ?? '';
+  static String get _secretToken => dotenv.env['APP_SECRET_TOKEN'] ?? '';
+  static String get _cloudinaryUrl => '$_backendUrl/api/ai/cloudinary/upload';
 
   static Map<String, dynamic> _toMap(SubmissionModel m) => {
     'userId': m.userId,
@@ -74,9 +71,9 @@ class SubmissionFirebaseService {
 
     final response = await http.post(
       Uri.parse(_cloudinaryUrl),
+      headers: {'X-App-Secret': _secretToken},
       body: {
         'file': 'data:image/jpeg;base64,$base64Image',
-        'upload_preset': _uploadPreset,
         'folder': folder ?? 'submissions',
       },
     );
@@ -84,7 +81,7 @@ class SubmissionFirebaseService {
 
     if (response.statusCode != 200) {
       throw Exception(
-        'Cloudinary upload gagal: ${response.statusCode} ${response.body}',
+        'Cloudinary upload via Hono gagal: ${response.statusCode} ${response.body}',
       );
     }
 

@@ -27,6 +27,9 @@ class UserModel extends HiveObject {
   bool isProfileImageSynced;
   List<String>? monitoredBy; // List ID orang tua yang memantau akun ini
   DateTime? createdAt;
+  String plan;
+  DateTime? subscriptionStart;
+  DateTime? subscriptionEnd;
 
   UserModel({
     required this.id,
@@ -51,6 +54,9 @@ class UserModel extends HiveObject {
     this.isProfileImageSynced = true,
     this.monitoredBy,
     this.createdAt,
+    this.plan = 'free',
+    this.subscriptionStart,
+    this.subscriptionEnd,
   });
 
   /// Target makro harian (gram) - Menggunakan logic baru dari CalorieHelper
@@ -83,6 +89,9 @@ class UserModel extends HiveObject {
     bool? isProfileImageSynced,
     List<String>? monitoredBy,
     DateTime? createdAt,
+    String? plan,
+    DateTime? subscriptionStart,
+    DateTime? subscriptionEnd,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -107,6 +116,9 @@ class UserModel extends HiveObject {
       isProfileImageSynced: isProfileImageSynced ?? this.isProfileImageSynced,
       monitoredBy: monitoredBy ?? this.monitoredBy,
       createdAt: createdAt ?? this.createdAt,
+      plan: plan ?? this.plan,
+      subscriptionStart: subscriptionStart ?? this.subscriptionStart,
+      subscriptionEnd: subscriptionEnd ?? this.subscriptionEnd,
     );
   }
 
@@ -131,6 +143,9 @@ class UserModel extends HiveObject {
       'profileImageUrl': profileImageUrl,
       'monitoredBy': monitoredBy,
       'createdAt': createdAt?.toIso8601String(),
+      'plan': plan,
+      'subscriptionStart': subscriptionStart?.toIso8601String(),
+      'subscriptionEnd': subscriptionEnd?.toIso8601String(),
     };
   }
 
@@ -159,6 +174,11 @@ class UserModel extends HiveObject {
       monitoredBy: (map['monitoredBy'] as List?)?.cast<String>(),
       createdAt:
           map['createdAt'] != null ? DateTime.parse(map['createdAt']) : null,
+      plan: map['plan'] ?? 'free',
+      subscriptionStart:
+          map['subscriptionStart'] != null ? DateTime.parse(map['subscriptionStart']) : null,
+      subscriptionEnd:
+          map['subscriptionEnd'] != null ? DateTime.parse(map['subscriptionEnd']) : null,
     );
   }
 }
@@ -196,13 +216,16 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
       isProfileImageSynced: f[20] as bool? ?? true,
       monitoredBy: (f[21] as List?)?.cast<String>(),
       createdAt: f[22] as DateTime?,
+      plan: f[23] as String? ?? 'free',
+      subscriptionStart: f[24] as DateTime?,
+      subscriptionEnd: f[25] as DateTime?,
     );
   }
 
   @override
   void write(BinaryWriter writer, UserModel obj) {
     writer
-      ..writeByte(22) 
+      ..writeByte(25) 
       ..writeByte(0)..write(obj.id)
       ..writeByte(1)..write(obj.name)
       ..writeByte(2)..write(obj.email)
@@ -224,6 +247,9 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
       ..writeByte(19)..write(obj.localProfileImagePath)
       ..writeByte(20)..write(obj.isProfileImageSynced)
       ..writeByte(21)..write(obj.monitoredBy)
-      ..writeByte(22)..write(obj.createdAt);
+      ..writeByte(22)..write(obj.createdAt)
+      ..writeByte(23)..write(obj.plan)
+      ..writeByte(24)..write(obj.subscriptionStart)
+      ..writeByte(25)..write(obj.subscriptionEnd);
   }
 }
