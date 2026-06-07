@@ -119,7 +119,8 @@ void main() {
     });
     group('2.5 Input Log Manual (Komposisi Sendiri)', () {
       test('Positive: Custom nutrition creates valid LogModel', () {
-        final log = LogModel(id: 'l1', userId: 'u1', foodName: 'Custom', calories: 150, protein: 5, carbs: 10, fat: 2, mealType: 'Sarapan', consumedAt: DateTime.now(), servingSize: 100, category: 'lainnya', isManual: true);
+        final log = LogModel(id: 'l1', userId: 'u1', foodName: 'Custom', calories: 150, protein: 5, carbs: 10, fat: 2, mealType: 'Sarapan', 
+        consumedAt: DateTime.now(), servingSize: 100, category: 'lainnya', isManual: true);
         expect(log.isManual, true);
       });
     });

@@ -5,6 +5,7 @@ import 'package:nutritrack_app/features/general/food/models/log_model.dart';
 import 'package:nutritrack_app/services/hive_service.dart';
 import 'package:nutritrack_app/services/food_log_sync_service.dart';
 import 'package:nutritrack_app/services/food_log_firestore_service.dart';
+import 'package:nutritrack_app/services/submission_firebase_service.dart';
 
 class FoodController extends ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -392,5 +393,122 @@ class FoodController extends ChangeNotifier {
     } catch (e) {
       debugPrint("Log Sync Error: $e");
     }
+  }
+
+  Future<String?> uploadFoodImage(String localPath, String foodId) async {
+    if (localPath.isEmpty) return '';
+    if (localPath.startsWith('http')) return localPath;
+    return await SubmissionFirebaseService.uploadImage(localPath, foodId);
+  }
+
+  Future<void> addManualIngredient({
+    required String name,
+    required double calories,
+    required double protein,
+    required double carbs,
+    required double fat,
+    required double grams,
+    required String? userId,
+  }) async {
+    final foodId = 'manual_${DateTime.now().millisecondsSinceEpoch}';
+    final newIngredient = FoodModel(
+      id: foodId,
+      name: name,
+      category: 'Lainnya',
+      calories: (calories / grams) * 100,
+      protein: (protein / grams) * 100,
+      carbs: (carbs / grams) * 100,
+      fat: (fat / grams) * 100,
+      defaultServingSize: grams,
+      isApproved: true,
+      createdAt: DateTime.now(),
+      isManualIngredient: true,
+      userId: userId,
+    );
+    await addFood(newIngredient);
+  }
+
+  Future<void> updateManualIngredient({
+    required FoodModel food,
+    required String name,
+    required double calories,
+    required double protein,
+    required double carbs,
+    required double fat,
+    required double grams,
+  }) async {
+    await updateFood(food.copyWith(
+      name: name,
+      calories: (calories / grams) * 100,
+      protein: (protein / grams) * 100,
+      carbs: (carbs / grams) * 100,
+      fat: (fat / grams) * 100,
+      defaultServingSize: grams,
+    ));
+  }
+
+  Future<void> saveManualFood({
+    required String foodId,
+    required String name,
+    required String category,
+    required double calories,
+    required double protein,
+    required double carbs,
+    required double fat,
+    required double servingSize,
+    required String? imageUrl,
+    required String? ingredientsJson,
+    required String userId,
+    DateTime? createdAt,
+    FoodModel? initialFood,
+  }) async {
+    final newFood = FoodModel(
+      id: foodId,
+      name: name,
+      category: category,
+      calories: (calories / servingSize) * 100,
+      protein: (protein / servingSize) * 100,
+      carbs: (carbs / servingSize) * 100,
+      fat: (fat / servingSize) * 100,
+      defaultServingSize: servingSize,
+      isApproved: true,
+      createdAt: createdAt ?? DateTime.now(),
+      imageUrl: imageUrl,
+      ingredientsJson: ingredientsJson,
+      userId: userId,
+    );
+
+    if (initialFood != null) {
+      await updateFood(newFood);
+    } else {
+      await addFood(newFood);
+    }
+  }
+
+  Future<void> updateHistoricalLog({
+    required LogModel initialLog,
+    required String name,
+    required String category,
+    required double calories,
+    required double protein,
+    required double carbs,
+    required double fat,
+    required double servingSize,
+    required String? imageUrl,
+    required String? ingredientsJson,
+  }) async {
+    await updateSpecificLog(
+      initialLog.copyWith(
+        foodName: name,
+        category: category,
+        calories: calories,
+        protein: protein,
+        carbs: carbs,
+        fat: fat,
+        servingSize: servingSize,
+        imageUrl: imageUrl,
+        ingredientsJson: ingredientsJson,
+      ),
+    );
   }
 }

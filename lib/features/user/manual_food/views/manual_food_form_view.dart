@@ -5,7 +5,6 @@ import 'dart:io';
 import 'package:provider/provider.dart';
 import 'package:nutritrack_app/features/general/auth/controllers/auth_controller.dart';
 import 'package:nutritrack_app/features/general/food/controllers/food_controller.dart';
-import 'package:nutritrack_app/services/submission_firebase_service.dart';
 
 import 'package:nutritrack_app/features/general/food/views/widgets/ingredient_picker_dialog.dart';
 import 'package:nutritrack_app/features/general/food/models/food_model.dart';
@@ -34,8 +33,6 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
   final _carbsCtrl = TextEditingController();
   final _fatCtrl = TextEditingController();
   
-  int _quantity = 1;
-
   String _selectedUnit = 'gram';
   String _selectedCategory = 'Makanan Pokok';
   File? _image;
@@ -60,7 +57,6 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
 
   // ── Color palette NutriTrack ──────────────────────────────
   static const Color _primary = Color(0xFF2E7D32); // Progress Green
-  static const Color _primaryDark = Color(0xFF1B5E20);
   static const Color _bg = Color(0xFFF4FAF6);
   static const Color _surface = Colors.white;
   static const Color _textDark = Color(0xFF1A2E22);
@@ -149,45 +145,37 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
     final servingSize = double.tryParse(_servingSizeCtrl.text) ?? 100.0;
     final foodId = widget.initialFood?.id ?? 'manual_${DateTime.now().millisecondsSinceEpoch}';
 
+    final foodCtrl = context.read<FoodController>();
     String? uploadedImageUrl;
     if (_image != null) {
-      if (_image!.path.startsWith('http')) {
-        uploadedImageUrl = _image!.path; 
-      } else {
-        try {
-          uploadedImageUrl = await SubmissionFirebaseService.uploadImage(
-            _image!.path, 
-            foodId,
+      try {
+        uploadedImageUrl = await foodCtrl.uploadFoodImage(_image!.path, foodId);
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isSaving = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Gagal mengupload foto: $e'),
+              backgroundColor: Colors.red,
+            ),
           );
-        } catch (e) {
-          if (mounted) {
-            setState(() => _isSaving = false);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Gagal mengupload foto: $e'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-          return; 
         }
+        return; 
       }
     }
 
-    final foodCtrl = context.read<FoodController>();
     if (widget.initialLog != null && widget.isHistoricalEdit) {
-      await foodCtrl.updateSpecificLog(
-        widget.initialLog!.copyWith(
-          foodName: foodName,
-          category: _selectedCategory,
-          calories: calories,
-          protein: protein,
-          carbs: carbs,
-          fat: fat,
-          servingSize: servingSize,
-          imageUrl: uploadedImageUrl, 
-          ingredientsJson: _ingredients.isEmpty ? null : jsonEncode(_ingredients),
-        ),
+      await foodCtrl.updateHistoricalLog(
+        initialLog: widget.initialLog!,
+        name: foodName,
+        category: _selectedCategory,
+        calories: calories,
+        protein: protein,
+        carbs: carbs,
+        fat: fat,
+        servingSize: servingSize,
+        imageUrl: uploadedImageUrl,
+        ingredientsJson: _ingredients.isEmpty ? null : jsonEncode(_ingredients),
       );
 
       if (mounted) {
@@ -195,27 +183,21 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
         Navigator.pop(context, true);
       }
     } else {
-      final newFood = FoodModel(
-        id: foodId,
+      await foodCtrl.saveManualFood(
+        foodId: foodId,
         name: foodName,
         category: _selectedCategory,
-        calories: (calories / servingSize) * 100,
-        protein: (protein / servingSize) * 100,
-        carbs: (carbs / servingSize) * 100,
-        fat: (fat / servingSize) * 100,
-        defaultServingSize: servingSize,
-        isApproved: true,
-        createdAt: widget.initialFood?.createdAt ?? DateTime.now(),
-        imageUrl: uploadedImageUrl, 
+        calories: calories,
+        protein: protein,
+        carbs: carbs,
+        fat: fat,
+        servingSize: servingSize,
+        imageUrl: uploadedImageUrl,
         ingredientsJson: _ingredients.isEmpty ? null : jsonEncode(_ingredients),
-        userId: userId, 
+        userId: userId,
+        createdAt: widget.initialFood?.createdAt,
+        initialFood: widget.initialFood,
       );
-
-      if (widget.initialFood != null) {
-        await foodCtrl.updateFood(newFood);
-      } else {
-        await foodCtrl.addFood(newFood);
-      }
 
       if (mounted) {
         setState(() => _isSaving = false);
@@ -788,24 +770,16 @@ class _FormTambahMakananManualState extends State<FormTambahMakananManual> {
         // From ManualIngredientInputPage
         if (saveToDb) {
           final foodCtrl = context.read<FoodController>();
-          final foodId = 'manual_${DateTime.now().millisecondsSinceEpoch}';
-          final newIngredient = FoodModel(
-            id: foodId,
+          final userId = context.read<AuthController>().currentUser?.id;
+          await foodCtrl.addManualIngredient(
             name: result['name'],
-            category: 'Lainnya',
-            calories: ((result['calories'] as num) / (result['grams'] as num)) * 100,
-            protein: ((result['protein'] as num) / (result['grams'] as num)) * 100,
-            carbs: ((result['carbs'] as num) / (result['grams'] as num)) * 100,
-            fat: ((result['fat'] as num) / (result['grams'] as num)) * 100,
-            defaultServingSize: (result['grams'] as num).toDouble(),
-            isApproved: true,
-            createdAt: DateTime.now(), // ← KEMBALIKAN INI
-            imageUrl: null,
-            ingredientsJson: null,
-            isManualIngredient: true,
-            userId: context.read<AuthController>().currentUser?.id,
+            calories: (result['calories'] as num).toDouble(),
+            protein: (result['protein'] as num).toDouble(),
+            carbs: (result['carbs'] as num).toDouble(),
+            fat: (result['fat'] as num).toDouble(),
+            grams: (result['grams'] as num).toDouble(),
+            userId: userId,
           );
-          await foodCtrl.addFood(newIngredient);
         }
 
         setState(() {
