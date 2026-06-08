@@ -32,6 +32,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:nutritrack_app/features/user/smartwatch/controllers/smartwatch_controller.dart';
 import './services/notification_service.dart';
 import 'package:nutritrack_app/features/user/notification/controllers/notification_controller.dart';
+import 'package:nutritrack_app/features/user/profile/controllers/premium_upgrade_controller.dart';
 
 // ── Satu instance global — dipakai di MultiProvider DAN dipanggil loadSettings()
 final notifCtrl = NotificationController();
@@ -111,6 +112,7 @@ class NutriTrackApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AdminUserController()),
         ChangeNotifierProvider(create: (_) => SubmissionController()),
         ChangeNotifierProvider(create: (_) => SmartwatchController()),
+        ChangeNotifierProvider(create: (_) => PremiumUpgradeController()),
         ChangeNotifierProvider.value(value: submissionCtrl),
         // Pakai .value agar instance-nya sama dengan yang sudah loadSettings() di atas
         ChangeNotifierProvider.value(value: notifCtrl),

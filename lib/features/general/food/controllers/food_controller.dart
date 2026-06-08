@@ -6,9 +6,11 @@ import 'package:nutritrack_app/services/hive_service.dart';
 import 'package:nutritrack_app/services/food_log_sync_service.dart';
 import 'package:nutritrack_app/services/food_log_firestore_service.dart';
 import 'package:nutritrack_app/services/submission_firebase_service.dart';
+import 'package:nutritrack_app/services/groq_nutrition_service.dart';
 
 class FoodController extends ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final GroqNutritionService _groqService = GroqNutritionService();
 
   List<FoodModel> _allFoods = [];
   List<FoodModel> _filtered = [];
@@ -510,5 +512,38 @@ class FoodController extends ChangeNotifier {
         ingredientsJson: ingredientsJson,
       ),
     );
+  }
+
+  Future<FoodModel?> searchWithGroq({
+    required String query,
+    required String? userId,
+    bool saveToDb = false,
+    bool isApproved = false,
+  }) async {
+    final result = await _groqService.fetchNutritionData(query);
+    if (result == null) return null;
+
+    final double porsiGram = (result['porsi_gram'] as num?)?.toDouble() ?? 100.0;
+    final double ratio = porsiGram > 0 ? 100.0 / porsiGram : 1.0;
+
+    final newFood = FoodModel(
+      id: 'ai_${DateTime.now().millisecondsSinceEpoch}',
+      name: result['nama_makanan'] ?? query,
+      category: result['kategori'] ?? 'Lainnya',
+      calories: ((result['kalori'] as num?)?.toDouble() ?? 0.0) * ratio,
+      protein: ((result['protein'] as num?)?.toDouble() ?? 0.0) * ratio,
+      carbs: ((result['karbohidrat'] as num?)?.toDouble() ?? 0.0) * ratio,
+      fat: ((result['lemak'] as num?)?.toDouble() ?? 0.0) * ratio,
+      defaultServingSize: porsiGram,
+      isApproved: isApproved,
+      createdAt: DateTime.now(),
+      userId: userId,
+    );
+
+    if (saveToDb) {
+      await addFood(newFood);
+    }
+    
+    return newFood;
   }
 }

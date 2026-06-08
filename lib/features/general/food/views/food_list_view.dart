@@ -7,7 +7,6 @@ import 'package:nutritrack_app/features/general/food/models/food_model.dart';
 import './food_detail_view.dart';
 import 'package:nutritrack_app/features/general/auth/controllers/auth_controller.dart';
 import 'dart:io';
-import 'package:nutritrack_app/services/groq_nutrition_service.dart';
 import 'package:nutritrack_app/features/general/food/controllers/watchlist_controller.dart';
 import 'package:nutritrack_app/features/general/food/models/log_model.dart';
 import 'package:nutritrack_app/helpers/date_controller.dart';
@@ -39,7 +38,6 @@ class _FoodListViewState extends State<FoodListView> {
   ];
 
   bool _isSearchingAI = false;
-  final GroqNutritionService _aiService = GroqNutritionService();
 
   Future<void> _searchAI(String query) async {
     if (query.trim().isEmpty) return;
@@ -98,29 +96,17 @@ class _FoodListViewState extends State<FoodListView> {
 
     setState(() => _isSearchingAI = true);
     try {
-      final result = await _aiService.fetchNutritionData(query);
-      if (result != null) {
+      final ctrl = context.read<FoodController>();
+      final newFood = await ctrl.searchWithGroq(
+        query: query,
+        userId: user?.id,
+        saveToDb: true,
+        isApproved: false,
+      );
+      if (newFood != null) {
         if (user != null) {
           SubscriptionHelper.incrementGroqSearchCount(user.id);
         }
-        final ctrl = context.read<FoodController>();
-        final double porsiGram = (result['porsi_gram'] as num?)?.toDouble() ?? 100.0;
-        final double ratio = porsiGram > 0 ? 100.0 / porsiGram : 1.0;
-
-        final newFood = FoodModel(
-          id: 'ai_${DateTime.now().millisecondsSinceEpoch}',
-          name: result['nama_makanan'] ?? query,
-          category: result['kategori'] ?? 'Lainnya',
-          calories: ((result['kalori'] as num?)?.toDouble() ?? 0.0) * ratio,
-          protein: ((result['protein'] as num?)?.toDouble() ?? 0.0) * ratio,
-          carbs: ((result['karbohidrat'] as num?)?.toDouble() ?? 0.0) * ratio,
-          fat: ((result['lemak'] as num?)?.toDouble() ?? 0.0) * ratio,
-          defaultServingSize: porsiGram, 
-          isApproved: false,
-          createdAt: DateTime.now(),
-          userId: context.read<AuthController>().currentUser?.id,
-        );
-        await ctrl.addFood(newFood);
         
         // Set search text and trigger search
         _searchCtrl.text = newFood.name;

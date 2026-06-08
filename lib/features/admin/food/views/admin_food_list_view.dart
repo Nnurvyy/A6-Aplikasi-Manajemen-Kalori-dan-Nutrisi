@@ -5,7 +5,6 @@ import 'package:nutritrack_app/features/general/food/models/food_model.dart';
 import 'package:nutritrack_app/features/general/food/views/food_detail_view.dart';
 import 'admin_food_form_view.dart';
 import 'package:nutritrack_app/helpers/string_helper.dart';
-import 'package:nutritrack_app/services/groq_nutrition_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:io';
 
@@ -129,28 +128,16 @@ class _AdminFoodListViewState extends State<AdminFoodListView> {
     );
 
     try {
-      final aiService = GroqNutritionService();
-      final result = await aiService.fetchNutritionData(query);
+      final ctrl = context.read<FoodController>();
+      final aiFood = await ctrl.searchWithGroq(
+        query: query,
+        userId: null,
+        saveToDb: false,
+        isApproved: true,
+      );
       if (mounted) Navigator.pop(context); // Pop loading dialog
 
-      if (result != null) {
-        final double porsiGram = (result['porsi_gram'] as num?)?.toDouble() ?? 100.0;
-        final double ratio = porsiGram > 0 ? 100.0 / porsiGram : 1.0;
-
-        // Create temporary FoodModel pre-populated
-        final aiFood = FoodModel(
-          id: 'ai_${DateTime.now().millisecondsSinceEpoch}',
-          name: result['nama_makanan'] ?? query,
-          category: result['kategori'] ?? 'Lainnya',
-          calories: ((result['kalori'] as num?)?.toDouble() ?? 0.0) * ratio,
-          protein: ((result['protein'] as num?)?.toDouble() ?? 0.0) * ratio,
-          carbs: ((result['karbohidrat'] as num?)?.toDouble() ?? 0.0) * ratio,
-          fat: ((result['lemak'] as num?)?.toDouble() ?? 0.0) * ratio,
-          defaultServingSize: porsiGram,
-          isApproved: true, // Admin-created AI foods are automatically approved
-          createdAt: DateTime.now(),
-        );
-
+      if (aiFood != null) {
         final resultForm = await Navigator.push(
           context,
           MaterialPageRoute(
