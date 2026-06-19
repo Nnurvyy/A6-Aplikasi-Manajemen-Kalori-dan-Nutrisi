@@ -19,8 +19,10 @@ import 'package:nutritrack_app/features/general/views/ad_screen.dart';
 
 class FoodListView extends StatefulWidget {
   final String? initialSearch;
+  final String? fromCombinationId; 
+  final String? combinationTitle;
 
-  const FoodListView({super.key, this.initialSearch});
+  const FoodListView({super.key, this.initialSearch, this.fromCombinationId, this.combinationTitle,});
 
   @override
   State<FoodListView> createState() => _FoodListViewState();
@@ -33,6 +35,7 @@ class _FoodListViewState extends State<FoodListView> {
 
   bool _isMultiSelectMode = false;
   final Set<FoodModel> _selectedFoods = {};
+  bool _isPreviewExpanded = false;
 
   static const List<String> _filterCategories = [
     'Semua', 'Makanan Pokok', 'Lauk', 'Sayuran', 'Buah', 'Minuman', 'Snack', 'Lainnya'
@@ -99,6 +102,7 @@ class _FoodListViewState extends State<FoodListView> {
     setState(() => _isSearchingAI = true);
     try {
       final result = await _aiService.fetchNutritionData(query);
+      if (!mounted) return;
       if (result != null) {
         if (user != null) {
           SubscriptionHelper.incrementGroqSearchCount(user.id);
@@ -139,6 +143,11 @@ class _FoodListViewState extends State<FoodListView> {
   @override
   void initState() {
     super.initState();
+
+    if (widget.fromCombinationId != null) {
+      _isMultiSelectMode = true;
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final ctrl = context.read<FoodController>();
       if (widget.initialSearch != null) {
@@ -484,9 +493,9 @@ class _FoodListViewState extends State<FoodListView> {
         ],
       ),
 
+      
       bottomNavigationBar: _isMultiSelectMode && _selectedFoods.isNotEmpty
           ? Container(
-              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: isDark ? AppColors.darkCard : Colors.white,
                 boxShadow: [
@@ -498,23 +507,142 @@ class _FoodListViewState extends State<FoodListView> {
                 ],
               ),
               child: SafeArea(
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  onPressed: () => _showCheckoutBottomSheet(),
-                  child: Text(
-                    'Lanjut (${_selectedFoods.length} Makanan)',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    //toggle
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          _isPreviewExpanded = !_isPreviewExpanded;
+                        });
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  _isPreviewExpanded ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                                  color: AppColors.primary,
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  _isPreviewExpanded 
+                                      ? 'Sembunyikan daftar menu' 
+                                      : 'Lihat ${_selectedFoods.length} menu terpilih',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Icon(
+                              _isPreviewExpanded 
+                                  ? Icons.keyboard_arrow_down_rounded 
+                                  : Icons.keyboard_arrow_up_rounded,
+                              color: AppColors.primary,
+                              size: 22,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const Divider(height: 1, thickness: 0.5),
+
+                    //extended drop down
+                    if (_isPreviewExpanded)
+                      Container(
+                        constraints: const BoxConstraints(maxHeight: 180), 
+                        color: isDark ? AppColors.darkSurface : const Color(0xFFF8F9FA),
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: _selectedFoods.length,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          itemBuilder: (context, index) {
+                            final food = _selectedFoods.toList()[index];
+                            final categoryColor = _catColor(food.category);
+
+                            return Card(
+                              
+                              key: ValueKey(food.id), 
+                              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                side: BorderSide(color: categoryColor.withValues(alpha: 0.3), width: 1),
+                              ),
+                              
+                              color: isDark 
+                                  ? categoryColor.withValues(alpha: 0.12) 
+                                  : categoryColor.withValues(alpha: 0.06),
+                              child: ListTile(
+                                dense: true,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                              
+                                title: Text(
+                                  food.name,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13, 
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark ? Colors.white : Colors.black87
+                                  ),
+                                ),
+                                
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.remove_circle_outline_rounded, color: Colors.red, size: 18),
+                                  onPressed: () {
+                                    setState(() {
+                                      _selectedFoods.remove(food);
+                                      if (_selectedFoods.isEmpty) {
+                                        _isPreviewExpanded = false;
+                                      }
+                                    });
+                                  },
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    if (_isPreviewExpanded) const Divider(height: 1, thickness: 0.5),
+                    
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _isPreviewExpanded = false;
+                            });
+                            _showCheckoutBottomSheet();
+                          },
+                          child: Text(
+                            widget.fromCombinationId != null
+                                ? 'Tambah ${_selectedFoods.length} ke "${widget.combinationTitle}"'
+                                : 'Lanjut (${_selectedFoods.length} Makanan)',
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             )
           : null,
-
-    );
+        );
   }
 
   Widget _buildPagination(int current, int total, bool isDark) {

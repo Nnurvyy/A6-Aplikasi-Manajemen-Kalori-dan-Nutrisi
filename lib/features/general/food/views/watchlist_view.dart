@@ -30,6 +30,7 @@ class _WatchlistViewState extends State<WatchlistView> with SingleTickerProvider
 
   static const int _itemsPerPage = 10;
   int _currentPage = 0;
+  final Set<String> _expandedCombos = {};
 
   @override
   void initState() {
@@ -576,15 +577,14 @@ class _WatchlistViewState extends State<WatchlistView> with SingleTickerProvider
                       );
                     }
 
-                    if (context.mounted) {
-                      Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Menu "$mealName" berhasil ditambahkan ke Riwayat!'),
+                     if (!context.mounted) return;
+                       Navigator.pop(ctx);
+                       ScaffoldMessenger.of(context).showSnackBar(
+                         SnackBar(
+                           content: Text('Menu "$mealName" berhasil ditambahkan ke Riwayat!'),
                           backgroundColor: Colors.green,
-                        ),
-                      );
-                    }
+                         ),
+                       );
                   },
                 ),
               ),
@@ -595,6 +595,7 @@ class _WatchlistViewState extends State<WatchlistView> with SingleTickerProvider
     );
   }
 
+ 
   Widget _buildCombinationTab(BuildContext context, List<FoodCombinationModel> combos, String userId) {
     if (combos.isEmpty) {
       return RefreshIndicator(
@@ -619,13 +620,14 @@ class _WatchlistViewState extends State<WatchlistView> with SingleTickerProvider
         itemCount: combos.length,
         itemBuilder: (context, index) {
           final combo = combos[index];
+          
+          final isExpanded = _expandedCombos.contains(combo.id);
 
           double totalCal = combo.foods.fold(0, (sum, f) => sum + f.calories);
           double totalProtein = combo.foods.fold(0, (sum, f) => sum + f.protein);
           double totalCarbs = combo.foods.fold(0, (sum, f) => sum + f.carbs);
           double totalFat = combo.foods.fold(0, (sum, f) => sum + f.fat);
 
-          // Determine dominant nutrient (by weight in grams)
           double maxVal = totalProtein;
           String dominantNutrient = 'protein';
 
@@ -646,28 +648,29 @@ class _WatchlistViewState extends State<WatchlistView> with SingleTickerProvider
           final hasNutrients = totalProtein > 0 || totalCarbs > 0 || totalFat > 0;
 
           if (!hasNutrients) {
-            accentColor = const Color(0xFF2E7D32); // Primary Green
-            borderVal = const Color(0xFFA7E8BD); // Soft Green
-            bgVal = const Color(0xFFE8F5E9); // Soft Green BG
+            accentColor = const Color(0xFF2E7D32);
+            borderVal = const Color(0xFFA7E8BD);
+            bgVal = const Color(0xFFE8F5E9);
             iconVal = Icons.restaurant_menu_rounded;
           } else if (dominantNutrient == 'protein') {
-            accentColor = const Color(0xFFEF5350); // Protein Red/Pink
+            accentColor = const Color(0xFFEF5350);
             borderVal = const Color(0xFFFFC0CB); 
             bgVal = const Color(0xFFFFF0F5); 
             iconVal = Icons.fitness_center_rounded;
           } else if (dominantNutrient == 'carbs') {
-            accentColor = const Color(0xFF42A5F5); // Carbs Blue
+            accentColor = const Color(0xFF42A5F5);
             borderVal = const Color(0xFFD2E3FC); 
             bgVal = const Color(0xFFE8F0FE); 
             iconVal = Icons.grain_rounded;
           } else {
-            accentColor = const Color(0xFFFFA726); // Fat Orange
+            accentColor = const Color(0xFFFFA726);
             borderVal = const Color(0xFFFFE0B2); 
             bgVal = const Color(0xFFFFF3E0); 
             iconVal = Icons.opacity_rounded;
           }
 
-          return Container(
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
             margin: const EdgeInsets.only(bottom: 16),
             decoration: BoxDecoration(
               color: bgVal.withValues(alpha: 0.2),
@@ -686,196 +689,220 @@ class _WatchlistViewState extends State<WatchlistView> with SingleTickerProvider
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: accentColor.withValues(alpha: 0.12),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(iconVal, color: accentColor, size: 20),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    combo.title,
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 16, 
-                                      fontWeight: FontWeight.bold, 
-                                      color: _textDark,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Icon(
-                                  combo.isSynced == true ? Icons.cloud_done_rounded : Icons.cloud_upload_rounded,
-                                  size: 14,
-                                  color: combo.isSynced == true 
-                                      ? Colors.blue.withValues(alpha: 0.8) 
-                                      : Colors.orange.withValues(alpha: 0.8),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete_sweep_rounded, color: Colors.redAccent),
-                        tooltip: 'Hapus Semua Kombinasi',
-                        onPressed: () => context.read<WatchlistController>().deleteCombination(combo.id),
-                      ),
-                    ],
-                  ),
-
-                  const Divider(height: 20, thickness: 1),
-
-                  ...combo.foods.map((food) => Container(
-                        margin: const EdgeInsets.symmetric(vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: borderVal.withValues(alpha: 0.4),
-                            width: 1,
-                          ),
-                        ),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(16),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => FoodDetailView(food: food),
-                              ),
-                            );
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 8,
-                                  height: 8,
-                                  decoration: BoxDecoration(
-                                    color: _categoryColor(food.category),
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        food.name,
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 13, 
-                                          fontWeight: FontWeight.bold,
-                                          color: _textDark
-                                        ),
-                                      ),
-                                      Text(
-                                        '${StringHelper.formatCategory(food.category)} • ${food.defaultServingSize.round()}g',
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 10,
-                                          color: _textMuted,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Text(
-                                  '${food.calories.toStringAsFixed(0)} kkal',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 12, 
-                                    fontWeight: FontWeight.w600,
-                                    color: _textMuted
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                IconButton(
-                                  icon: const Icon(Icons.remove_circle_outline_rounded, size: 18, color: Colors.orange),
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(),
-                                  onPressed: () => context.read<WatchlistController>().removeFoodFromCombination(combo.id, food.id),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      )),
-
-                  const Divider(height: 24, thickness: 1),
-
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.6),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: borderVal.withValues(alpha: 0.3),
-                        width: 1,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  
+                  InkWell(
+                    onTap: () {
+                      setState(() {
+                        if (isExpanded) {
+                          _expandedCombos.remove(combo.id);
+                        } else {
+                          _expandedCombos.add(combo.id);
+                        }
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: Row(
                       children: [
-                        Row(
-                          children: [
-                            Icon(Icons.insights_rounded, size: 14, color: accentColor),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Total Nutrisi Kombinasi:',
-                              style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: accentColor),
-                            ),
-                          ],
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: accentColor.withValues(alpha: 0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(iconVal, color: accentColor, size: 20),
                         ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            _buildNutrientInfo('🔥 Kalori', '${totalCal.toStringAsFixed(0)} kkal', accentColor),
-                            _buildNutrientInfo('💪 Protein', '${totalProtein.toStringAsFixed(1)}g', accentColor),
-                            _buildNutrientInfo('🍞 Karbo', '${totalCarbs.toStringAsFixed(1)}g', accentColor),
-                            _buildNutrientInfo('🥑 Lemak', '${totalFat.toStringAsFixed(1)}g', accentColor),
-                          ],
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      combo.title,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 16, 
+                                        fontWeight: FontWeight.bold, 
+                                        color: _textDark,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Icon(
+                                    combo.isSynced == true ? Icons.cloud_done_rounded : Icons.cloud_upload_rounded,
+                                    size: 14,
+                                    color: combo.isSynced == true 
+                                        ? Colors.blue.withValues(alpha: 0.8) 
+                                        : Colors.orange.withValues(alpha: 0.8),
+                                  ),
+                                ],
+                              ),
+                              Text(
+                                '${combo.foods.length} Menu • ${totalCal.toStringAsFixed(0)} kkal',
+                                style: GoogleFonts.poppins(fontSize: 12, color: _textMuted, fontWeight: FontWeight.w500),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // 
+                        Icon(
+                          isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                          color: _textMuted,
+                        ),
+                        const SizedBox(width: 4),
+                        IconButton(
+                          icon: const Icon(Icons.delete_sweep_rounded, color: Colors.redAccent),
+                          tooltip: 'Hapus Semua Kombinasi',
+                          onPressed: () => context.read<WatchlistController>().deleteCombination(combo.id),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.add_task_rounded, color: Colors.white, size: 18),
-                      label: Text(
-                        'Makan Menu Ini',
-                        style: GoogleFonts.poppins(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          fontSize: 13,
+
+                  if (isExpanded) ...[
+                    const Divider(height: 20, thickness: 1),
+                    ...combo.foods.map((food) => Container(
+                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: borderVal.withValues(alpha: 0.4),
+                              width: 1,
+                            ),
+                          ),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => FoodDetailView(food: food),
+                                ),
+                              );
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: _categoryColor(food.category),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          food.name,
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 13, 
+                                            fontWeight: FontWeight.bold,
+                                            color: _textDark
+                                          ),
+                                        ),
+                                        Text(
+                                          '${StringHelper.formatCategory(food.category)} • ${food.defaultServingSize.round()}g',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 10,
+                                            color: _textMuted,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Text(
+                                    '${food.calories.toStringAsFixed(0)} kkal',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12, 
+                                      fontWeight: FontWeight.w600,
+                                      color: _textMuted
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  IconButton(
+                                    icon: const Icon(Icons.remove_circle_outline_rounded, size: 18, color: Colors.orange),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    onPressed: () => context.read<WatchlistController>().removeFoodFromCombination(combo.id, food.id),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        )),
+
+                    const Divider(height: 24, thickness: 1),
+
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: borderVal.withValues(alpha: 0.3),
+                          width: 1,
                         ),
                       ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: accentColor,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.insights_rounded, size: 14, color: accentColor),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Total Nutrisi Kombinasi:',
+                                style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: accentColor),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _buildNutrientInfo('🔥 Kalori', '${totalCal.toStringAsFixed(0)} kkal', accentColor),
+                              _buildNutrientInfo('🥩 Protein', '${totalProtein.toStringAsFixed(1)}g', accentColor),
+                              _buildNutrientInfo('🌾 Karbo', '${totalCarbs.toStringAsFixed(1)}g', accentColor),
+                              _buildNutrientInfo('🥑 Lemak', '${totalFat.toStringAsFixed(1)}g', accentColor),
+                            ],
+                          ),
+                        ],
                       ),
-                      onPressed: () => _showLogComboBottomSheet(context, combo),
                     ),
-                  ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.add_task_rounded, color: Colors.white, size: 18),
+                        label: Text(
+                          'Makan Menu Ini',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            fontSize: 13,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: accentColor,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        onPressed: () => _showLogComboBottomSheet(context, combo),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

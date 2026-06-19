@@ -289,8 +289,11 @@ class FoodController extends ChangeNotifier {
     await HiveService.logs.put(newLog.id, newLog);
 
     notifyListeners();
-
-    FoodLogSyncService.saveLog(newLog, onSynced: () => notifyListeners());
+    try {
+      FoodLogSyncService.saveLog(newLog, onSynced: () => notifyListeners());
+    } catch (e) {
+      debugPrint("Gagal menjalankan background sync (Offline): $e");
+    }
 
     return true; 
   }
