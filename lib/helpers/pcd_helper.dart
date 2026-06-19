@@ -6,8 +6,7 @@ import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
 
 class PCDHelper {
-  /// Melakukan preprocessing gambar di background (tanpa UI).
-  /// Karena OpenCV dilepas, kita menggunakan library image murni untuk:
+  /// Melakukan preprocessing gambar di background
   /// 1. Grayscale & Contrast Enhancement
   /// 2. Smart Crop berdasarkan kotak batas estimasi (jika diberikan)
   static Future<String?> autoCropAndEnhance(String imagePath, {Rectangle<int>? cropRect}) async {

@@ -54,7 +54,6 @@ class _PilihMakananManualState extends State<PilihMakananManual> with SingleTick
   @override
   Widget build(BuildContext context) {
     final foodCtrl = context.watch<FoodController>();
-    final authCtrl = context.watch<AuthController>();
     
     final manualItems = foodCtrl.manualFoods
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -107,31 +106,23 @@ class _PilihMakananManualState extends State<PilihMakananManual> with SingleTick
               // Refresh handled by Provider
             }
           } else {
-            // New ingredient input from "Komposisi" tab
+            final foodCtrl = context.read<FoodController>();
+            final authCtrl = context.read<AuthController>();
             final result = await Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const ManualIngredientInputPage()),
             );
             if (result != null && result is Map) {
-              if (!mounted) return;
-              // Save as manual ingredient
-              final foodCtrl = context.read<FoodController>();
-              final foodId = 'manual_${DateTime.now().millisecondsSinceEpoch}';
-              final newIngredient = FoodModel(
-                id: foodId,
+              final userId = authCtrl.currentUser?.id;
+              await foodCtrl.addManualIngredient(
                 name: result['name'],
-                category: 'Lainnya',
-                calories: (result['calories'] / result['grams']) * 100,
-                protein: (result['protein'] / result['grams']) * 100,
-                carbs: (result['carbs'] / result['grams']) * 100,
-                fat: (result['fat'] / result['grams']) * 100,
-                defaultServingSize: result['grams'],
-                isApproved: true,
-                createdAt: DateTime.now(),
-                isManualIngredient: true,
-                userId: mounted ? context.read<AuthController>().currentUser?.id : null, // ← TAMBAHKAN INI
+                calories: (result['calories'] as num).toDouble(),
+                protein: (result['protein'] as num).toDouble(),
+                carbs: (result['carbs'] as num).toDouble(),
+                fat: (result['fat'] as num).toDouble(),
+                grams: (result['grams'] as num).toDouble(),
+                userId: userId,
               );
-              await foodCtrl.addFood(newIngredient);
             }
           }
         },
@@ -414,6 +405,7 @@ class _PilihMakananManualState extends State<PilihMakananManual> with SingleTick
   }
 
   void _editManualFood(BuildContext context, FoodModel food) async {
+    final foodCtrl = context.read<FoodController>();
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -424,16 +416,15 @@ class _PilihMakananManualState extends State<PilihMakananManual> with SingleTick
     );
     if (result == true || (result != null && result is Map)) {
       if (result is Map && food.isManualIngredient) {
-        if (!mounted) return;
-        final foodCtrl = context.read<FoodController>();
-        await foodCtrl.updateFood(food.copyWith(
+        await foodCtrl.updateManualIngredient(
+          food: food,
           name: result['name'],
-          calories: (result['calories'] / result['grams']) * 100,
-          protein: (result['protein'] / result['grams']) * 100,
-          carbs: (result['carbs'] / result['grams']) * 100,
-          fat: (result['fat'] / result['grams']) * 100,
-          defaultServingSize: result['grams'].toDouble(),
-        ));
+          calories: (result['calories'] as num).toDouble(),
+          protein: (result['protein'] as num).toDouble(),
+          carbs: (result['carbs'] as num).toDouble(),
+          fat: (result['fat'] as num).toDouble(),
+          grams: (result['grams'] as num).toDouble(),
+        );
       }
       // Refresh handled by Provider or by calling updateFood
     }

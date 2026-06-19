@@ -13,8 +13,6 @@ class SavedCompositionsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final foodCtrl = context.watch<FoodController>();
-    final authCtrl = context.watch<AuthController>();
-    final userId = authCtrl.currentUser?.id ?? '';
 
     // Only show individual ingredients (tunggal)
     final List<FoodModel> savedItems = foodCtrl.manualFoods

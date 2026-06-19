@@ -1,14 +1,10 @@
-import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import 'package:nutritrack_app/features/general/auth/controllers/auth_controller.dart';
-import 'package:nutritrack_app/helpers/app_colors.dart';
+import 'package:nutritrack_app/features/user/profile/controllers/premium_upgrade_controller.dart';
 
 class PremiumUpgradeView extends StatefulWidget {
   const PremiumUpgradeView({super.key});
@@ -18,234 +14,67 @@ class PremiumUpgradeView extends StatefulWidget {
 }
 
 class _PremiumUpgradeViewState extends State<PremiumUpgradeView> {
-  bool _isLoading = false;
-  String? _orderId;
-  String? _redirectUrl;
-  bool _isPendingPayment = false;
-  Timer? _statusTimer;
+  static const _green = Color(0xFF2E7D32);
+  static const _gold = Color(0xFFFFA000);
+
+  PremiumUpgradeController? _premiumUpgradeController;
+  bool _showingSuccessDialog = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final ctrl = Provider.of<PremiumUpgradeController>(context, listen: false);
+    if (_premiumUpgradeController != ctrl) {
+      _premiumUpgradeController?.removeListener(_onControllerChanged);
+      _premiumUpgradeController = ctrl;
+      _premiumUpgradeController?.addListener(_onControllerChanged);
+    }
+  }
 
   @override
   void dispose() {
-    _statusTimer?.cancel();
+    _premiumUpgradeController?.removeListener(_onControllerChanged);
+    _premiumUpgradeController?.resetState();
     super.dispose();
   }
 
-  static const _green = Color(0xFF2E7D32);
-  static const _gold = Color(0xFFFFA000);
+  void _onControllerChanged() {
+    if (!mounted) return;
+    final ctrl = _premiumUpgradeController;
+    if (ctrl == null) return;
+
+    if (ctrl.errorMessage != null && mounted) {
+      final msg = ctrl.errorMessage!;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (ctrl.errorMessage != null) {
+          ctrl.clearError();
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg)),
+      );
+    }
+
+    if (ctrl.isSuccess && mounted && !_showingSuccessDialog) {
+      _showingSuccessDialog = true;
+      _showSuccessDialog().then((_) {
+        if (mounted) {
+          Navigator.pop(context);
+        }
+      });
+    }
+  }
 
   Future<void> _initiatePayment() async {
     final auth = context.read<AuthController>();
     final user = auth.currentUser;
     if (user == null) return;
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    // Sanitize user.id to keep only characters allowed by Midtrans: alphanumeric, -, _, ., ~
-    final cleanUserId = user.id.replaceAll(RegExp(r'[^a-zA-Z0-9\-\_\.\~]'), '_');
-    final shortUserId = cleanUserId.length > 10 ? cleanUserId.substring(0, 10) : cleanUserId;
-    final orderId = 'prem_${shortUserId}_${DateTime.now().millisecondsSinceEpoch}';
-    final backendUrl = dotenv.env['BACKEND_URL'] ?? '';
-    final secretToken = dotenv.env['APP_SECRET_TOKEN'] ?? '';
-
-    // Clean customer details
-    final cleanName = user.name.trim().isEmpty ? 'User' : user.name.trim();
-    var cleanEmail = user.email.trim();
-    if (cleanEmail.isEmpty || !cleanEmail.contains('@') || !cleanEmail.contains('.')) {
-      cleanEmail = 'user@example.com'; // Fallback for invalid/empty emails during testing
-    }
-
-    try {
-      final response = await http.post(
-        Uri.parse('$backendUrl/api/payment/charge'),
-        headers: {
-          'Content-Type': 'application/json',
-          'X-App-Secret': secretToken,
-        },
-        body: jsonEncode({
-          'orderId': orderId,
-          'grossAmount': 20000,
-          'name': cleanName,
-          'email': cleanEmail,
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final redirectUrl = data['redirect_url'] as String;
-
-        setState(() {
-          _orderId = orderId;
-          _redirectUrl = redirectUrl;
-          _isPendingPayment = true;
-          _isLoading = false;
-        });
-        _startStatusPolling();
-
-        // Launch redirect URL in the external browser
-        final uri = Uri.parse(redirectUrl);
-        try {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        } catch (e) {
-          debugPrint('Auto-launch failed: $e');
-        }
-      } else {
-        // Parse the error message from the response body for better debugging
-        String errorMsg = response.statusCode.toString();
-        try {
-          final errorData = jsonDecode(response.body);
-          if (errorData is Map && errorData.containsKey('error')) {
-            errorMsg = '$errorMsg - ${errorData['error']}';
-          }
-        } catch (_) {
-          errorMsg = '$errorMsg - ${response.body}';
-        }
-        throw Exception('Gagal menghubungi Payment Gateway: $errorMsg');
-      }
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
-      }
-    }
+    await context.read<PremiumUpgradeController>().initiatePayment(user, auth);
   }
 
   Future<void> _checkPaymentStatus() async {
-    if (_orderId == null) return;
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    final backendUrl = dotenv.env['BACKEND_URL'] ?? '';
-    final secretToken = dotenv.env['APP_SECRET_TOKEN'] ?? '';
-
-    try {
-      final response = await http.get(
-        Uri.parse('$backendUrl/api/payment/status/$_orderId'),
-        headers: {
-          'X-App-Secret': secretToken,
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final transactionStatus = data['transaction_status'] as String?;
-
-        if (transactionStatus == 'settlement' || transactionStatus == 'capture') {
-          // Success! Update User state to premium
-          final auth = context.read<AuthController>();
-          final user = auth.currentUser;
-          if (user != null) {
-            final now = DateTime.now();
-            final updated = user.copyWith(
-              plan: 'premium',
-              subscriptionStart: now,
-              subscriptionEnd: now.add(const Duration(days: 30)),
-            );
-            await auth.updateProfile(updated);
-
-            setState(() {
-              _isLoading = false;
-              _isPendingPayment = false;
-            });
-
-            if (mounted) {
-              await _showSuccessDialog();
-              Navigator.pop(context);
-            }
-          }
-        } else {
-          setState(() {
-            _isLoading = false;
-          });
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Pembayaran belum diselesaikan. Status: ${transactionStatus ?? 'Unknown'}',
-                ),
-              ),
-            );
-          }
-        }
-      } else {
-        throw Exception('Gagal mengecek status pembayaran.');
-      }
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
-      }
-    }
-  }
-
-  void _startStatusPolling() {
-    _statusTimer?.cancel();
-    _statusTimer = Timer.periodic(const Duration(seconds: 4), (timer) async {
-      if (!mounted || !_isPendingPayment || _orderId == null) {
-        timer.cancel();
-        return;
-      }
-      await _pollPaymentStatus(timer);
-    });
-  }
-
-  Future<void> _pollPaymentStatus(Timer timer) async {
-    final backendUrl = dotenv.env['BACKEND_URL'] ?? '';
-    final secretToken = dotenv.env['APP_SECRET_TOKEN'] ?? '';
-
-    try {
-      final response = await http.get(
-        Uri.parse('$backendUrl/api/payment/status/$_orderId'),
-        headers: {
-          'X-App-Secret': secretToken,
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final transactionStatus = data['transaction_status'] as String?;
-
-        if (transactionStatus == 'settlement' || transactionStatus == 'capture') {
-          timer.cancel();
-          _statusTimer?.cancel();
-
-          // Success! Update User state to premium
-          final auth = context.read<AuthController>();
-          final user = auth.currentUser;
-          if (user != null) {
-            final now = DateTime.now();
-            final updated = user.copyWith(
-              plan: 'premium',
-              subscriptionStart: now,
-              subscriptionEnd: now.add(const Duration(days: 30)),
-            );
-            await auth.updateProfile(updated);
-
-            setState(() {
-              _isPendingPayment = false;
-            });
-
-            if (mounted) {
-              await _showSuccessDialog();
-              Navigator.pop(context);
-            }
-          }
-        }
-      }
-    } catch (e) {
-      debugPrint('Polling status failed: $e');
-    }
+    final auth = context.read<AuthController>();
+    await context.read<PremiumUpgradeController>().checkPaymentStatus(auth);
   }
 
   Future<void> _showSuccessDialog() async {
@@ -284,6 +113,7 @@ class _PremiumUpgradeViewState extends State<PremiumUpgradeView> {
     final auth = context.watch<AuthController>();
     final user = auth.currentUser;
     final isPremium = user?.plan == 'premium';
+    final upgradeCtrl = context.watch<PremiumUpgradeController>();
 
     // Format Dates
     final today = DateTime.now();
@@ -304,7 +134,7 @@ class _PremiumUpgradeViewState extends State<PremiumUpgradeView> {
         ),
       ),
       body: SafeArea(
-        child: _isLoading
+        child: upgradeCtrl.isLoading
             ? const Center(child: CircularProgressIndicator(color: _green))
             : Padding(
                 padding: const EdgeInsets.all(24.0),
@@ -414,7 +244,7 @@ class _PremiumUpgradeViewState extends State<PremiumUpgradeView> {
                           ),
                         ),
                       ),
-                    ] else if (!_isPendingPayment) ...[
+                    ] else if (!upgradeCtrl.isPendingPayment) ...[
                       // ─── Purchase Benefits Page (Free plan viewing upgrade) ───
                       Center(
                         child: Container(
@@ -557,8 +387,8 @@ class _PremiumUpgradeViewState extends State<PremiumUpgradeView> {
                       
                       OutlinedButton.icon(
                         onPressed: () async {
-                          if (_redirectUrl != null) {
-                            await launchUrl(Uri.parse(_redirectUrl!), mode: LaunchMode.externalApplication);
+                          if (upgradeCtrl.redirectUrl != null) {
+                            await launchUrl(Uri.parse(upgradeCtrl.redirectUrl!), mode: LaunchMode.externalApplication);
                           }
                         },
                         icon: const Icon(Icons.open_in_browser_rounded),
@@ -583,12 +413,7 @@ class _PremiumUpgradeViewState extends State<PremiumUpgradeView> {
                       const SizedBox(height: 10),
                       TextButton(
                         onPressed: () {
-                          _statusTimer?.cancel();
-                          setState(() {
-                            _isPendingPayment = false;
-                            _orderId = null;
-                            _redirectUrl = null;
-                          });
+                          upgradeCtrl.resetState();
                         },
                         child: const Text('Kembali / Batalkan', style: TextStyle(color: Colors.redAccent)),
                       ),
